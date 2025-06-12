@@ -9,6 +9,8 @@ import "test/MotionComponent"
 import "core:reflect"
 import "core:io"
 
+import "vendor:microui"
+
 Entity :: struct {
     id: u64,
     name: string,
@@ -22,6 +24,9 @@ Frog :: struct {
 }
 
 main :: proc() {
+    Context: microui.Context = {}
+    microui.begin_window(&Context, "Bingus", microui.Rect{40, 40, 0,0})
+    microui.button(&Context, "Hello?")
 
     writer: io.Writer = {}
 
@@ -30,7 +35,6 @@ main :: proc() {
     fmt.println(typeid_of(Entity))
 
     a:= fmt.aprint(typeid_of(Entity))
-
 
     fmt.println(a)
 
