@@ -3,7 +3,7 @@
     <CLASSES />
     <JAVADOC />
     <SOURCES>
-      <root url="file:///usr/bin" />
+      <root url="file://$USER_HOME$/Downloads/odin/Odin" />
     </SOURCES>
   </library>
 </component>

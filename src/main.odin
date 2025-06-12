@@ -4,42 +4,74 @@ import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
+import "test/Character"
+import "test/MotionComponent"
+import "core:reflect"
+import "core:io"
+
+Entity :: struct {
+    id: u64,
+    name: string,
+
+    derived: any
+}
+
+Frog :: struct {
+    using entity: Entity,
+    jump_height: f32
+}
 
 main :: proc() {
-    rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-    rl.InitWindow(800, 600, "collision")
+
+    writer: io.Writer = {}
+
+    Ent: Entity = {}
+
+    fmt.println(typeid_of(Entity))
+
+    a:= fmt.aprint(typeid_of(Entity))
+
+
+    fmt.println(a)
+
+    fmt.println(writer)
+
+    rl.SetConfigFlags({ .VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT })
+    rl.InitWindow(800, 600, "mph*0.5mv^2")
     defer rl.CloseWindow()
+
 
     rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
     rl.DisableCursor()
 
-    look_angles: rl.Vector2 = 0
-    cam: rl.Camera3D = {
-        position = {5, 1, 5},
-        target = {0, 0, 3},
-        up = {0, 3, 0},
+    look_angles : rl.Vector2 = 0
+    cam : rl.Camera3D = {
+        position = { 5, 1, 5 },
+        target = { 0, 0, 3 },
+        up = { 0, 3, 0 },
         fovy = 90,
         projection = .PERSPECTIVE,
     }
+    vela : linalg.Vector3f16 = { 1, 2, 3 }
 
     vel: rl.Vector3
 
     tris: [dynamic][3]rl.Vector3
 
-    append_quad :: proc(tris: ^[dynamic][3]rl.Vector3, a, b, c, d: rl.Vector3, offs: rl.Vector3 = {}) {
-        points := [][3]rl.Vector3{{b + offs, a + offs, c + offs}, {b + offs, c + offs, d + offs}}
+    append_quad :: proc(tris: ^[dynamic][3]rl.Vector3, a, b, c, d: rl.Vector3, offs: rl.Vector3 = { }) {
+        points := [][3]rl.Vector3{ { b + offs, a + offs, c + offs }, { b + offs, c + offs, d + offs } }
         append(tris, ..points)
     }
 
-    append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {0, -2, 0})
-    append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {0, -2, 10})
-    append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 0, 10})
-    append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 10, 10}, {10, 10, 10}, {10, 0, 20})
-    append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 10, 30})
+    append_quad(&tris, { 0, 0, 0 }, { 10, 0, 0 }, { 0, 0, 10 }, { 10, 0, 10 }, { 0, -2, 0 })
+    append_quad(&tris, { 0, 0, 0 }, { 10, 0, 0 }, { 0, 0, 10 }, { 10, 0, 10 }, { 0, -2, 10 })
+    append_quad(&tris, { 0, 0, 0 }, { 10, 0, 0 }, { 0, 0, 10 }, { 10, 0, 10 }, { 10, 0, 10 })
+    append_quad(&tris, { 0, 0, 0 }, { 10, 0, 0 }, { 0, 10, 10 }, { 10, 10, 10 }, { 10, 0, 20 })
+    append_quad(&tris, { 0, 0, 0 }, { 10, 0, 0 }, { 0, 0, 10 }, { 10, 0, 10 }, { 10, 10, 30 })
 
     for !rl.WindowShouldClose() {
         rl.BeginDrawing()
-        rl.ClearBackground({40, 30, 50, 255})
+        rl.ClearBackground({ 40, 30, 50, 255 })
         rl.BeginMode3D(cam)
 
         dt := rl.GetFrameTime()
@@ -48,8 +80,8 @@ main :: proc() {
         linalg.quaternion_from_euler_angle_y_f32(look_angles.y) *
         linalg.quaternion_from_euler_angle_x_f32(look_angles.x)
 
-        forward := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{0, 0, 1})
-        right := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{1, 0, 0})
+        forward := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{ 0, 0, 1 })
+        right := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{ 1, 0, 0 })
 
         look_angles.y -= rl.GetMouseDelta().x * 0.0015
         look_angles.x += rl.GetMouseDelta().y * 0.0015
@@ -71,7 +103,7 @@ main :: proc() {
         if rl.IsKeyPressed(.SPACE) do vel.y = 15
 
         // damping
-        vel *= 1.0 / (1.0 + dt * 2)
+        vel *= 1.0 / (1.0 + dt * 1.5)
 
         // Collide
         for t in tris {
@@ -103,10 +135,10 @@ main :: proc() {
             rl.DrawLine3D(t[1], t[2], rl.LIGHTGRAY)
         }
 
-        rl.DrawCube({0, 0, 0}, 0.1, 0.1, 0.1, rl.WHITE)
-        rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
-        rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
-        rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
+        rl.DrawCube({ 0, 0, 0 }, 0.1, 0.1, 0.1, rl.WHITE)
+        rl.DrawCube({ 1, 0, 0 }, 1, 0.1, 0.1, rl.RED)
+        rl.DrawCube({ 0, 1, 0 }, 0.1, 1, 0.1, rl.GREEN)
+        rl.DrawCube({ 0, 0, 1 }, 0.1, 0.1, 1, rl.BLUE)
 
         rl.EndMode3D()
 
