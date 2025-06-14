@@ -23,14 +23,17 @@ Frog :: struct {
     jump_height: f32
 }
 
-main :: proc() {
-    Context: microui.Context = {}
-    microui.begin_window(&Context, "Bingus", microui.Rect{40, 40, 0,0})
-    microui.button(&Context, "Hello?")
+PrintSomeStuff :: proc() {
+    fmt.println("hello!")
+    return
+}
 
+main :: proc() {
+
+    PrintSomeStuff()
     writer: io.Writer = {}
 
-    Ent: Entity = {}
+    Ent: Frog = {}
 
     fmt.println(typeid_of(Entity))
 
