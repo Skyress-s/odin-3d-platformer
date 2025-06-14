@@ -1,12 +1,8 @@
 package main
 
 import "core:fmt"
-import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
-import "test/Character"
-import "test/MotionComponent"
-import "core:reflect"
 import "core:io"
 
 import "vendor:microui"
