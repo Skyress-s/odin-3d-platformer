@@ -135,6 +135,7 @@ main :: proc() {
 
 
 
+
         cam.position += vel * dt
         cam.target = cam.position + forward
 
@@ -160,6 +161,8 @@ main :: proc() {
         rl.EndDrawing()
     }
 }
+
+
 
 // Real Time collision detection 5.1.5
 closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {

@@ -7,55 +7,17 @@ import "core:unicode/utf8"
 import rl "vendor:raylib"
 import mu "vendor:microui"
 
-state := struct{
-    mu_ctx: mu.Context,
-    log_buf: [1 << 16]byte,
-    log_buf_len: int,
-    log_buf_updated: bool,
-    bg: mu.Color,
-    atlas_texture: rl.RenderTexture2D,
-
-    screen_width: c.int,
-    screen_height: c.int,
-
-    screen_texture: rl.RenderTexture2D,
-}{
-    screen_width = 1900,
-    screen_height = 1040,
-    bg = { 90, 95, 100, 0 }, // 255
-}
-
-mouse_buttons_map := [mu.Mouse]rl.MouseButton{
-    .LEFT    = .LEFT,
-    .RIGHT   = .RIGHT,
-    .MIDDLE  = .MIDDLE,
-}
-
-key_map := [mu.Key][2]rl.KeyboardKey{
-    .SHIFT     = { .LEFT_SHIFT, .RIGHT_SHIFT },
-    .CTRL      = { .LEFT_CONTROL, .RIGHT_CONTROL },
-    .ALT       = { .LEFT_ALT, .RIGHT_ALT },
-    .BACKSPACE = { .BACKSPACE, .KEY_NULL },
-    .DELETE    = { .DELETE, .KEY_NULL },
-    .RETURN    = { .ENTER, .KP_ENTER },
-    .LEFT      = { .LEFT, .KEY_NULL },
-    .RIGHT     = { .RIGHT, .KEY_NULL },
-    .HOME      = { .HOME, .KEY_NULL },
-    .END       = { .END, .KEY_NULL },
-    .A         = { .A, .KEY_NULL },
-    .X         = { .X, .KEY_NULL },
-    .C         = { .C, .KEY_NULL },
-    .V         = { .V, .KEY_NULL },
-}
+import mph_ui "src/mph_ui"
 
 
 main :: proc() {
+
     rl.SetConfigFlags({ .VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT })
-    rl.InitWindow(state.screen_width, state.screen_height, "microui-raylib-odin")
+    rl.InitWindow(mph_ui.state.screen_width, mph_ui.state.screen_height, "microui-raylib-odin")
     defer rl.CloseWindow()
     rl.SetTargetFPS(144)
 
-    ctx := &state.mu_ctx
+    ctx := &mph_ui.state.mu_ctx
     mu.init(ctx,
     set_clipboard = proc(user_data: rawptr, text: string) -> (ok: bool) {
         cstr := strings.clone_to_cstring(text)
@@ -76,8 +38,8 @@ main :: proc() {
     ctx.text_width = mu.default_atlas_text_width
     ctx.text_height = mu.default_atlas_text_height
 
-    state.atlas_texture = rl.LoadRenderTexture(c.int(mu.DEFAULT_ATLAS_WIDTH), c.int(mu.DEFAULT_ATLAS_HEIGHT))
-    defer rl.UnloadRenderTexture(state.atlas_texture)
+    mph_ui.state.atlas_texture = rl.LoadRenderTexture(c.int(mu.DEFAULT_ATLAS_WIDTH), c.int(mu.DEFAULT_ATLAS_HEIGHT))
+    defer rl.UnloadRenderTexture(mph_ui.state.atlas_texture)
 
     image := rl.GenImageColor(c.int(mu.DEFAULT_ATLAS_WIDTH), c.int(mu.DEFAULT_ATLAS_HEIGHT), rl.Color{ 0, 0, 0, 0 })
     defer rl.UnloadImage(image)
@@ -89,12 +51,12 @@ main :: proc() {
         rl.ImageDrawPixel(&image, c.int(x), c.int(y), color)
     }
 
-    rl.BeginTextureMode(state.atlas_texture)
-    rl.UpdateTexture(state.atlas_texture.texture, rl.LoadImageColors(image))
+    rl.BeginTextureMode(mph_ui.state.atlas_texture)
+    rl.UpdateTexture(mph_ui.state.atlas_texture.texture, rl.LoadImageColors(image))
     rl.EndTextureMode()
 
-    state.screen_texture = rl.LoadRenderTexture(state.screen_width, state.screen_height)
-    defer rl.UnloadRenderTexture(state.screen_texture)
+    mph_ui.state.screen_texture = rl.LoadRenderTexture(mph_ui.state.screen_width, mph_ui.state.screen_height)
+    defer rl.UnloadRenderTexture(mph_ui.state.screen_texture)
 
 
     cam : rl.Camera3D = {
@@ -116,7 +78,7 @@ main :: proc() {
         mouse_wheel_pos := rl.GetMouseWheelMoveV()
         mu.input_scroll(ctx, i32(mouse_wheel_pos.x) * 30, i32(mouse_wheel_pos.y) * -30)
 
-        for button_rl, button_mu in mouse_buttons_map {
+        for button_rl, button_mu in mph_ui.mouse_buttons_map {
             switch {
             case rl.IsMouseButtonPressed(button_rl):
                 mu.input_mouse_down(ctx, mouse_x, mouse_y, button_mu)
@@ -125,7 +87,7 @@ main :: proc() {
             }
         }
 
-        for keys_rl, key_mu in key_map {
+        for keys_rl, key_mu in mph_ui.key_map {
             for key_rl in keys_rl {
                 switch {
                 case key_rl == .KEY_NULL:
@@ -152,8 +114,8 @@ main :: proc() {
             mu.input_text(ctx, string(buf[:n]))
         }
 
-        // state.screen_height = rl.GetScreenHeight()
-        // state.screen_width = rl.GetScreenWidth()
+        // mph_ui.state.screen_height = rl.GetScreenHeight()
+        // mph_ui.state.screen_width = rl.GetScreenWidth()
 
         mu.begin(ctx)
         all_windows(ctx)
@@ -169,7 +131,7 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
         dst.height = f32(src.h)
 
         rl.DrawTextureRec(
-        texture  = state.atlas_texture.texture,
+        texture  = mph_ui.state.atlas_texture.texture,
         source   = { f32(src.x), f32(src.y), f32(src.w), f32(src.h) },
         position = { dst.x, dst.y },
         tint     = color,
@@ -182,9 +144,9 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
 
     height := rl.GetScreenHeight()
 
-    rl.BeginTextureMode(state.screen_texture)
+    rl.BeginTextureMode(mph_ui.state.screen_texture)
     rl.EndScissorMode()
-    rl.ClearBackground(to_rl_color(state.bg))
+    rl.ClearBackground(to_rl_color(mph_ui.state.bg))
 
     command_backing: ^mu.Command
     for variant in mu.next_command_iterator(ctx, &command_backing) {
@@ -195,7 +157,7 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
                 if ch & 0xc0 != 0x80 {
                     r := min(int(ch), 127)
                     src := mu.default_atlas[mu.DEFAULT_ATLAS_FONT + r]
-                    render_texture(state.screen_texture, &dst, src, to_rl_color(cmd.color))
+                    render_texture(mph_ui.state.screen_texture, &dst, src, to_rl_color(cmd.color))
                     dst.x += dst.width
                 }
             }
@@ -205,7 +167,7 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
             src := mu.default_atlas[cmd.id]
             x := cmd.rect.x + (cmd.rect.w - src.w) / 2
             y := cmd.rect.y + (cmd.rect.h - src.h) / 2
-            render_texture(state.screen_texture, &rl.Rectangle { f32(x), f32(y), 0, 0 }, src, to_rl_color(cmd.color))
+            render_texture(mph_ui.state.screen_texture, &rl.Rectangle { f32(x), f32(y), 0, 0 }, src, to_rl_color(cmd.color))
         case ^mu.Command_Clip:
             rl.BeginScissorMode(cmd.rect.x, height - (cmd.rect.y + cmd.rect.h), cmd.rect.w, cmd.rect.h)
         case ^mu.Command_Jump:
@@ -222,8 +184,8 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
     rl.EndMode3D()
 
     rl.DrawTextureRec(
-    texture  = state.screen_texture.texture,
-    source   = { 0, 0, f32(state.screen_width), -f32(state.screen_height) },
+    texture  = mph_ui.state.screen_texture.texture,
+    source   = { 0, 0, f32(mph_ui.state.screen_width), -f32(mph_ui.state.screen_height) },
     // source   = { 0, 0, f32(rl.GetScreenWidth()), -f32(rl.GetScreenHeight()) },
     position = { 0, 0 },
     tint     = rl.WHITE,
@@ -244,17 +206,17 @@ u8_slider :: proc(ctx: ^mu.Context, val: ^u8, lo, hi: u8) -> (res: mu.Result_Set
 }
 
 write_log :: proc(str: string) {
-    state.log_buf_len += copy(state.log_buf[state.log_buf_len:], str)
-    state.log_buf_len += copy(state.log_buf[state.log_buf_len:], "\n")
-    state.log_buf_updated = true
+    mph_ui.state.log_buf_len += copy(mph_ui.state.log_buf[mph_ui.state.log_buf_len:], str)
+    mph_ui.state.log_buf_len += copy(mph_ui.state.log_buf[mph_ui.state.log_buf_len:], "\n")
+    mph_ui.state.log_buf_updated = true
 }
 
 read_log :: proc() -> string {
-    return string(state.log_buf[:state.log_buf_len])
+    return string(mph_ui.state.log_buf[:mph_ui.state.log_buf_len])
 }
 reset_log :: proc() {
-    state.log_buf_updated = true
-    state.log_buf_len = 0
+    mph_ui.state.log_buf_updated = true
+    mph_ui.state.log_buf_len = 0
 }
 
 
@@ -359,16 +321,16 @@ all_windows :: proc(ctx: ^mu.Context) {
             mu.layout_begin_column(ctx)
             {
                 mu.layout_row(ctx, { 46, -1 }, 0)
-                mu.label(ctx, "Red:");   u8_slider(ctx, &state.bg.r, 0, 255)
-                mu.label(ctx, "Green:"); u8_slider(ctx, &state.bg.g, 0, 255)
-                mu.label(ctx, "Blue:");  u8_slider(ctx, &state.bg.b, 0, 255)
+                mu.label(ctx, "Red:");   u8_slider(ctx, &mph_ui.state.bg.r, 0, 255)
+                mu.label(ctx, "Green:"); u8_slider(ctx, &mph_ui.state.bg.g, 0, 255)
+                mu.label(ctx, "Blue:");  u8_slider(ctx, &mph_ui.state.bg.b, 0, 255)
             }
             mu.layout_end_column(ctx)
 
             r := mu.layout_next(ctx)
-            mu.draw_rect(ctx, r, state.bg)
+            mu.draw_rect(ctx, r, mph_ui.state.bg)
             mu.draw_box(ctx, mu.expand_rect(r, 1), ctx.style.colors[.BORDER])
-            mu.draw_control_text(ctx, fmt.tprintf("#%02x%02x%02x", state.bg.r, state.bg.g, state.bg.b), r, .TEXT, { .ALIGN_CENTER })
+            mu.draw_control_text(ctx, fmt.tprintf("#%02x%02x%02x", mph_ui.state.bg.r, mph_ui.state.bg.g, mph_ui.state.bg.b), r, .TEXT, { .ALIGN_CENTER })
         }
     }
 
@@ -379,10 +341,10 @@ all_windows :: proc(ctx: ^mu.Context) {
         mu.begin_panel(ctx, "Log")
         mu.layout_row(ctx, { -1 }, -1)
         mu.text(ctx, read_log())
-        if state.log_buf_updated {
+        if mph_ui.state.log_buf_updated {
             panel := mu.get_current_container(ctx)
             panel.scroll.y = panel.content_size.y
-            state.log_buf_updated = false
+            mph_ui.state.log_buf_updated = false
         }
         mu.end_panel(ctx)
 
