@@ -20,8 +20,8 @@ state := struct{
 
     screen_texture: rl.RenderTexture2D,
 }{
-    screen_width = 1800,
-    screen_height = 540,
+    screen_width = 1900,
+    screen_height = 1040,
     bg = { 90, 95, 100, 0 }, // 255
 }
 
@@ -73,7 +73,6 @@ main :: proc() {
     },
     )
 
-
     ctx.text_width = mu.default_atlas_text_width
     ctx.text_height = mu.default_atlas_text_height
 
@@ -108,7 +107,7 @@ main :: proc() {
 
     for !rl.WindowShouldClose() {
         free_all(context.temp_allocator)
-        rl.UpdateCamera(&cam, rl.CameraMode.ORBITAL)
+        rl.UpdateCamera(&cam, rl.CameraMode.FIRST_PERSON)
 
         mouse_pos := rl.GetMousePosition()
         mouse_x, mouse_y := i32(mouse_pos.x), i32(mouse_pos.y)
@@ -186,8 +185,6 @@ render :: proc "contextless" (ctx: ^mu.Context, cam: ^rl.Camera3D) {
     rl.BeginTextureMode(state.screen_texture)
     rl.EndScissorMode()
     rl.ClearBackground(to_rl_color(state.bg))
-
-
 
     command_backing: ^mu.Command
     for variant in mu.next_command_iterator(ctx, &command_backing) {

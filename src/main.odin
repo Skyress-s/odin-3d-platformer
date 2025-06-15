@@ -24,6 +24,7 @@ PrintSomeStuff :: proc() {
     return
 }
 
+
 main :: proc() {
 
     PrintSomeStuff()
@@ -60,6 +61,9 @@ main :: proc() {
     vel: rl.Vector3
 
     tris: [dynamic][3]rl.Vector3
+    cubes: [dynamic]rl.BoundingBox
+
+    append(&cubes, rl.BoundingBox{})
 
     append_quad :: proc(tris: ^[dynamic][3]rl.Vector3, a, b, c, d: rl.Vector3, offs: rl.Vector3 = { }) {
         points := [][3]rl.Vector3{ { b + offs, a + offs, c + offs }, { b + offs, c + offs, d + offs } }
@@ -101,12 +105,12 @@ main :: proc() {
         if rl.IsKeyDown(.Q) do vel.y -= dt * SPEED
 
         // gravity
-        vel.y -= dt * 10 * (vel.y < 0.0 ? 2 : 1)
+        vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
 
         if rl.IsKeyPressed(.SPACE) do vel.y = 15
 
         // damping
-        vel *= 1.0 / (1.0 + dt * 1.5)
+        // vel *= 1.0 / (1.0 + dt * 1.5)
 
         // Collide
         for t in tris {
@@ -126,6 +130,10 @@ main :: proc() {
                 }
             }
         }
+
+        // Collide with cubes / planes
+
+
 
         cam.position += vel * dt
         cam.target = cam.position + forward
