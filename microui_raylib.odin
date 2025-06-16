@@ -12,6 +12,7 @@ import mph_ui "src/mph_ui"
 
 main :: proc() {
 
+
     rl.SetConfigFlags({ .VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT })
     rl.InitWindow(mph_ui.state.screen_width, mph_ui.state.screen_height, "microui-raylib-odin")
     defer rl.CloseWindow()

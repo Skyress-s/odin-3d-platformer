@@ -5,40 +5,45 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 import "core:io"
 
-import "vendor:microui"
 
-Entity :: struct {
-    id: u64,
-    name: string,
+Bound :: distinct rl.BoundingBox
 
-    derived: any
+Vector :: distinct rl.Vector3
+
+Hash_Cell :: struct {
+    items: [dynamic]Bound
 }
 
-Frog :: struct {
-    using entity: Entity,
-    jump_height: f32
+Hash_Cell_Int :: u16
+
+HASH_CELL_METERS :Hash_Cell_Int: 4
+
+Hash_Location_For_Cell :: proc (vec: ^Vector) -> Hash_Cell_Int {
+    return cast(Hash_Cell_Int)(vec.x / cast(f32)HASH_CELL_METERS) << 0 + cast(Hash_Cell_Int)(vec.y / cast(f32)HASH_CELL_METERS) << 3 + cast(Hash_Cell_Int)(vec.z / cast(f32)HASH_CELL_METERS) << 6
 }
 
-PrintSomeStuff :: proc() {
-    fmt.println("hello!")
-    return
-}
+Draw_Hash_Tree :: proc(hash_tree: map[Hash_Cell_Int]Hash_Cell) { // todo, pass by ptr?
+    for Key in hash_tree {
 
+        // rl.DrawBoundingBox({{},{}}, rl.RED)
+        fmt.printfln("%[0]b", Key)
+        fmt.println(Key)
+        fmt.println("x: ", (Key & 0b111), " y: ", ((Key & 0b111_000) >> 3), "z: ", ((Key & 0b111_000_000) >> 6))
+    }
+
+    rl.DrawBoundingBox({{-1, -1, -1}, {1, 1, 1}}, rl.RED)
+}
 
 main :: proc() {
+    fmt.printfln("%[0]b", )
 
-    PrintSomeStuff()
-    writer: io.Writer = {}
+    spatial_hash_tree:= make(map[Hash_Cell_Int]Hash_Cell)
 
-    Ent: Frog = {}
+    spatial_hash_tree[Hash_Location_For_Cell(&{5, 2, 4})] = {}
+    // spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = {}
 
-    fmt.println(typeid_of(Entity))
+    fmt.println(spatial_hash_tree)
 
-    a:= fmt.aprint(typeid_of(Entity))
-
-    fmt.println(a)
-
-    fmt.println(writer)
 
     rl.SetConfigFlags({ .VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT })
     rl.InitWindow(800, 600, "mph*0.5mv^2")
@@ -151,6 +156,8 @@ main :: proc() {
         rl.DrawCube({ 1, 0, 0 }, 1, 0.1, 0.1, rl.RED)
         rl.DrawCube({ 0, 1, 0 }, 0.1, 1, 0.1, rl.GREEN)
         rl.DrawCube({ 0, 0, 1 }, 0.1, 0.1, 1, rl.BLUE)
+
+        Draw_Hash_Tree(spatial_hash_tree)
 
         rl.EndMode3D()
 
