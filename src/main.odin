@@ -3,6 +3,7 @@ package main
 import "core:fmt"
 import "core:math/linalg"
 import rl "vendor:raylib"
+import "core:math"
 import "core:io"
 
 
@@ -17,6 +18,28 @@ Hash_Cell :: struct {
 Hash_Cell_Int :: u16
 
 HASH_CELL_METERS :Hash_Cell_Int: 4
+Hash_Int :: i32
+
+HASH_CELL_SIZE_METERS :: 1 << 7 // 128
+
+MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
+
+Hash_Key :: struct {
+    x: Hash_Int,
+    y: Hash_Int,
+    z: Hash_Int,
+
+}
+
+Vector3 :: distinct rl.Vector3
+
+Hash_Location :: proc (vec: ^Vector3) -> (ret_val: Hash_Key) {
+    ret_val.x = cast(Hash_Int)(math.floor(vec.x / cast(f32)HASH_CELL_SIZE_METERS))
+    ret_val.y = cast(Hash_Int)(math.floor(vec.y / cast(f32)HASH_CELL_SIZE_METERS))
+    ret_val.z = cast(Hash_Int)(math.floor(vec.z / cast(f32)HASH_CELL_SIZE_METERS))
+    return
+}
+
 
 Hash_Location_For_Cell :: proc (vec: ^Vector) -> Hash_Cell_Int {
     return cast(Hash_Cell_Int)(vec.x / cast(f32)HASH_CELL_METERS) << 0 + cast(Hash_Cell_Int)(vec.y / cast(f32)HASH_CELL_METERS) << 3 + cast(Hash_Cell_Int)(vec.z / cast(f32)HASH_CELL_METERS) << 6
