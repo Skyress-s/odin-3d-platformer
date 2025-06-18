@@ -17,7 +17,7 @@ Hash_Cell :: struct {
 
 Hash_Int :: i32
 
-HASH_CELL_SIZE_METERS :: 1 << 7 // 128
+HASH_CELL_SIZE_METERS :: 1 << 3 // 128
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
@@ -27,9 +27,24 @@ Hash_Key :: struct {
 	z: Hash_Int,
 }
 
-Vector3 :: distinct rl.Vector3
+Draw_Hash_Cell_Bounds :: proc(vec: ^Vector) {
+	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
+	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
+	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
 
-Hash_Location :: proc(vec: ^Vector3) -> (ret_val: Hash_Key) {
+	offset := cast(f32)(HASH_CELL_SIZE_METERS) / 2.0
+
+	rl.DrawCubeWires(
+		{x + offset, y + offset, x + offset},
+		HASH_CELL_SIZE_METERS,
+		HASH_CELL_SIZE_METERS,
+		HASH_CELL_SIZE_METERS,
+		rl.RED,
+	)
+
+}
+
+Hash_Location :: proc(vec: ^Vector) -> (ret_val: Hash_Key) {
 	ret_val.x = cast(Hash_Int)(math.floor(vec.x / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.y = cast(Hash_Int)(math.floor(vec.y / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.z = cast(Hash_Int)(math.floor(vec.z / cast(f32)HASH_CELL_SIZE_METERS))
@@ -39,18 +54,18 @@ Hash_Location :: proc(vec: ^Vector3) -> (ret_val: Hash_Key) {
 
 Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by ptr?
 	for Key in hash_tree {
-		x := cast(f32)(Key.x * HASH_CELL_SIZE_METERS)
-		y := cast(f32)(Key.y * HASH_CELL_SIZE_METERS)
-		z := cast(f32)(Key.z * HASH_CELL_SIZE_METERS)
+		Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
 
-
+		/*
 		rl.DrawBoundingBox(
-			{
+			rl.BoundingBox {
 				{x, y, x},
-				{x + HASH_CELL_SIZE_METERS, y + HASH_CELL_SIZE_METERS, z + HASH_CELL_SIZE_METERS},
+				//{x + HASH_CELL_SIZE_METERS, y + HASH_CELL_SIZE_METERS, z + HASH_CELL_SIZE_METERS},
+				{x, y, z},
 			},
 			rl.RED,
 		)
+		*/
 
 		/*
 		fmt.println(
@@ -62,8 +77,6 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by pt
 			((Key & 0b111_000_000) >> 6),
 		*/
 	}
-
-	rl.DrawBoundingBox({{-1, -1, -1}, {1, 1, 1}}, rl.RED)
 }
 
 main :: proc() {
@@ -71,9 +84,11 @@ main :: proc() {
 
 	spatial_hash_tree := make(map[Hash_Key]Hash_Cell)
 
-	spatial_hash_tree[Hash_Location(&{5, 2, 4})] = {}
-	spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
-	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = {}
+	spatial_hash_tree[Hash_Location(&{-1, 0, 0})] = {}
+	spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
+	// spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
+	//spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
+	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = }
 
 	fmt.println(spatial_hash_tree)
 
@@ -193,6 +208,10 @@ main :: proc() {
 		rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
 		Draw_Hash_Tree(spatial_hash_tree)
+		hash_key := Hash_Location(&(Vector{cam.position.x, cam.position.y, cam.position.z}))
+		Draw_Hash_Cell_Bounds(
+			&Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
+		)
 
 		rl.EndMode3D()
 
