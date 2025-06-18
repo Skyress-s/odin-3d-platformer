@@ -15,9 +15,6 @@ Hash_Cell :: struct {
 	items: [dynamic]Bound,
 }
 
-Hash_Cell_Int :: u16
-
-HASH_CELL_METERS: Hash_Cell_Int : 4
 Hash_Int :: i32
 
 HASH_CELL_SIZE_METERS :: 1 << 7 // 128
@@ -40,12 +37,22 @@ Hash_Location :: proc(vec: ^Vector3) -> (ret_val: Hash_Key) {
 }
 
 
-Draw_Hash_Tree :: proc(hash_tree: map[Hash_Cell_Int]Hash_Cell) { 	// todo, pass by ptr?
+Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by ptr?
 	for Key in hash_tree {
+		x := cast(f32)(Key.x * HASH_CELL_SIZE_METERS)
+		y := cast(f32)(Key.y * HASH_CELL_SIZE_METERS)
+		z := cast(f32)(Key.z * HASH_CELL_SIZE_METERS)
 
-		// rl.DrawBoundingBox({{},{}}, rl.RED)
-		fmt.printfln("%[0]b", Key)
-		fmt.println(Key)
+
+		rl.DrawBoundingBox(
+			{
+				{x, y, x},
+				{x + HASH_CELL_SIZE_METERS, y + HASH_CELL_SIZE_METERS, z + HASH_CELL_SIZE_METERS},
+			},
+			rl.RED,
+		)
+
+		/*
 		fmt.println(
 			"x: ",
 			(Key & 0b111),
@@ -53,7 +60,7 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Cell_Int]Hash_Cell) { 	// todo, pass 
 			((Key & 0b111_000) >> 3),
 			"z: ",
 			((Key & 0b111_000_000) >> 6),
-		)
+		*/
 	}
 
 	rl.DrawBoundingBox({{-1, -1, -1}, {1, 1, 1}}, rl.RED)
@@ -65,6 +72,7 @@ main :: proc() {
 	spatial_hash_tree := make(map[Hash_Key]Hash_Cell)
 
 	spatial_hash_tree[Hash_Location(&{5, 2, 4})] = {}
+	spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
 	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = {}
 
 	fmt.println(spatial_hash_tree)
