@@ -7,7 +7,7 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-Vector :: distinct rl.Vector3
+Vector :: rl.Vector3
 
 // Transform :: rl.Transform
 Transform :: struct {
@@ -118,43 +118,68 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 	return transform
 }
 
-draw_collision_shape :: proc(collision_shape: Collision_Shape) {
+
+draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color) {
+	rlgl.PushMatrix()
+	defer rlgl.PopMatrix()
+	mat := get_matrix_from_transform((collision_shape.transform))
+	matrix_data := rl.MatrixToFloatV(mat)
+	rlgl.MultMatrixf(auto_cast &matrix_data)
+
 	switch v in collision_shape.shape {
 	case Box:
-		rlgl.PushMatrix()
-
-		mat := get_matrix_from_transform((collision_shape.transform))
-		fmt.println("Drawing shape box: ", mat)
-		//rlgl.Translatef(v.translation.x, v.translation.y, v.translation.z)
-
-
-		a := rl.MatrixToFloatV(mat)
-		rlgl.MultMatrixf(auto_cast &a)
-		// rlgl.MultMatrixf(cast([^]f32)(&mat))
-		rl.DrawCube(rl.Vector3{0, 0, 0}, 1, 1, 1, rl.RED)
-
-		rlgl.PopMatrix()
+		rl.DrawCube(rl.Vector3{0, 0, 0}, 1, 1, 1, color^)
 	case Sphere:
-
+		rl.DrawSphere(rl.Vector3{0, 0, 0}, v.radius, color^)
 	case Cylinder:
+		rl.DrawCylinder(rl.Vector3{0, 0, 0}, v.radius, v.radius, v.height, 16, color^)
 	}
 }
 
 
-Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by ptr?
+Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key) { 	// todo, pass by ptr?
 	for Key in hash_tree {
 		// Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
 		Draw_Hash_Cell_Bounds(Key)
 
+		color := rl.RED
+		if (Key == active_cell^) do color = rl.GREEN
+
+
 		for shape in hash_tree[Key].items {
-			draw_collision_shape(shape^)
+			draw_collision_shape(shape^, &color)
 		}
 	}
 }
 
+get_bounds :: proc(collision_shape: ^Collision_Shape) -> (bound: Bound) {
 
-add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: map[Hash_Key]Hash_Cell) {
-	cell := hash_map[Hash_Location(shape.transform.translation.xyz)]
+	translation := collision_shape.transform.translation
+	switch shape in collision_shape.shape {
+	case Box:
+		bound.min = translation - shape.extents
+		bound.max = translation + shape.extents
+	case Sphere:
+		r := shape.radius
+		bound.min = translation - Vector{r, r, r}
+		bound.max = translation + Vector{r, r, r}
+	case Cylinder:
+		bound.min = translation - Vector{shape.radius, shape.radius, shape.height}
+		bound.max = translation + Vector{shape.radius, shape.radius, shape.height}
+	}
+
+
+	return
+}
+
+add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
+	bound := get_bounds(shape)
+	cell := &hash_map[Hash_Location(&shape.transform.translation)]
+	if cell == nil {
+		// fmt.println("Emty cell, creating new one...")
+		hash_map[Hash_Location(&shape.transform.translation)] = {}
+		cell = &hash_map[Hash_Location(&shape.transform.translation)]
+	}
 
 	append_elem(&cell.items, shape)
 }
@@ -166,30 +191,34 @@ main :: proc() {
 	// fmt.println(HASH_CELL_SIZE_METERS)
 	// fmt.println(new_location)
 
-	spatial_hash_tree := make(map[Hash_Key]Hash_Cell)
+	spatial_hash_map := make(map[Hash_Key]Hash_Cell)
 
 	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {0, 1, 0})
+	box := Collision_Shape{{{9, 2, 7}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	add_shape_to_hash_map(&box, &spatial_hash_map)
 
-	box := Collision_Shape{{{9, 0, 0}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	box2 := Collision_Shape{{{9, 17, 9}, {}, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	add_shape_to_hash_map(&box2, &spatial_hash_map)
 
-	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
-	cell := &spatial_hash_tree[Hash_Location(&box.transform.translation)]
+	sphere1 := Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
+	add_shape_to_hash_map(&sphere1, &spatial_hash_map)
 
-	append_elem(&cell.items, &box)
+	cylinder1 := Collision_Shape{{{17, 18, 9}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
+	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	/*
 	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
 
 	mapp := &spatial_hash_tree[Hash_Location(&box.transform.translation)]
 	append_elem(&mapp.items, &box)
 	*/
-	fmt.println("test", cell)
+	// fmt.println("test", cell)
 
 
 	// spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
 	//spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
 	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = }
 
-	fmt.println(spatial_hash_tree)
+	fmt.println(spatial_hash_map)
 
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
@@ -306,13 +335,14 @@ main :: proc() {
 		rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 		rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
-		Draw_Hash_Tree(spatial_hash_tree)
-
 		hash_key := Hash_Location(&(Vector{cam.position.x, cam.position.y, cam.position.z}))
 		Draw_Hash_Cell_Bounds(
 			hash_key,
 			// &Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
 		)
+
+		Draw_Hash_Tree(spatial_hash_map, &hash_key)
+
 
 		rl.EndMode3D()
 
