@@ -27,13 +27,25 @@ Hash_Key :: struct {
 	z: Hash_Int,
 }
 
-Draw_Hash_Cell_Bounds :: proc(vec: ^Vector) {
+key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
+	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
+	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
+	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
+	return {x, y, z}
+}
+
+Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key) {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
 	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
 	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
 
 	offset := cast(f32)(HASH_CELL_SIZE_METERS) / 2.0
+	t := cast(f32)HASH_CELL_SIZE_METERS
 
+
+	rl.DrawBoundingBox({{x, y, z}, {x + t, y + t, z + t}}, rl.GREEN)
+
+	/*
 	rl.DrawCubeWires(
 		{x + offset, y + offset, x + offset},
 		HASH_CELL_SIZE_METERS,
@@ -41,6 +53,7 @@ Draw_Hash_Cell_Bounds :: proc(vec: ^Vector) {
 		HASH_CELL_SIZE_METERS,
 		rl.RED,
 	)
+	*/
 
 }
 
@@ -54,8 +67,8 @@ Hash_Location :: proc(vec: ^Vector) -> (ret_val: Hash_Key) {
 
 Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by ptr?
 	for Key in hash_tree {
-		Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
-
+		// Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
+		Draw_Hash_Cell_Bounds(Key)
 		/*
 		rl.DrawBoundingBox(
 			rl.BoundingBox {
@@ -80,7 +93,12 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by pt
 }
 
 main :: proc() {
-	fmt.printfln("%[0]b")
+	// key := Hash_Location(&{100.4, 7.9, 8.0})
+	// new_location := key_to_corner_location(&key)
+
+	// fmt.println(HASH_CELL_SIZE_METERS)
+	// fmt.println(new_location)
+
 
 	spatial_hash_tree := make(map[Hash_Key]Hash_Cell)
 
@@ -208,9 +226,11 @@ main :: proc() {
 		rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
 		Draw_Hash_Tree(spatial_hash_tree)
+
 		hash_key := Hash_Location(&(Vector{cam.position.x, cam.position.y, cam.position.z}))
 		Draw_Hash_Cell_Bounds(
-			&Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
+			hash_key,
+			// &Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
 		)
 
 		rl.EndMode3D()
