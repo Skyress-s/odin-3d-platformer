@@ -5,19 +5,49 @@ import "core:io"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
-
-
-Bound :: distinct rl.BoundingBox
+import rlgl "vendor:raylib/rlgl"
 
 Vector :: distinct rl.Vector3
 
+// Transform :: rl.Transform
+Transform :: struct {
+	translation: Vector,
+	rotation:    quaternion128,
+	scale:       Vector,
+}
+
+Box :: struct {
+	extents: Vector,
+}
+
+Sphere :: struct {
+	radius: f32,
+}
+
+Cylinder :: struct {
+	height: f32,
+	radius: f32,
+}
+
+Collision_Shape :: struct {
+	transform: Transform,
+	shape:     union {
+		Box,
+		Sphere,
+		Cylinder,
+	},
+}
+
+Bound :: distinct rl.BoundingBox
+
+
 Hash_Cell :: struct {
-	items: [dynamic]Bound,
+	items: [dynamic]^Collision_Shape,
 }
 
 Hash_Int :: i32
 
-HASH_CELL_SIZE_METERS :: 1 << 3 // 128
+HASH_CELL_SIZE_METERS :: 1 << 4 // 128
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
@@ -64,32 +94,69 @@ Hash_Location :: proc(vec: ^Vector) -> (ret_val: Hash_Key) {
 	return
 }
 
+get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
+	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
+
+	// Create rotation matrix from quaternion
+	matRotation := rl.QuaternionToMatrix(trans.rotation)
+
+	// Create translation matrix
+	matTranslation := rl.MatrixTranslate(
+		trans.translation.x,
+		trans.translation.y,
+		trans.translation.z,
+	)
+
+	fmt.printfln("test {}", matTranslation)
+
+	// Combine them: Scale -> Rotate -> Translate
+	// Order matters: S * R * T
+	// transform := matScale * matRotation
+	// transform = transform * matTranslation
+	//transform := matScale * matRotation * matTranslation
+	transform := matTranslation * matRotation * matScale
+	return transform
+}
+
+draw_collision_shape :: proc(collision_shape: Collision_Shape) {
+	switch v in collision_shape.shape {
+	case Box:
+		rlgl.PushMatrix()
+
+		mat := get_matrix_from_transform((collision_shape.transform))
+		fmt.println("Drawing shape box: ", mat)
+		//rlgl.Translatef(v.translation.x, v.translation.y, v.translation.z)
+
+
+		a := rl.MatrixToFloatV(mat)
+		rlgl.MultMatrixf(auto_cast &a)
+		// rlgl.MultMatrixf(cast([^]f32)(&mat))
+		rl.DrawCube(rl.Vector3{0, 0, 0}, 1, 1, 1, rl.RED)
+
+		rlgl.PopMatrix()
+	case Sphere:
+
+	case Cylinder:
+	}
+}
+
 
 Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell) { 	// todo, pass by ptr?
 	for Key in hash_tree {
 		// Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
 		Draw_Hash_Cell_Bounds(Key)
-		/*
-		rl.DrawBoundingBox(
-			rl.BoundingBox {
-				{x, y, x},
-				//{x + HASH_CELL_SIZE_METERS, y + HASH_CELL_SIZE_METERS, z + HASH_CELL_SIZE_METERS},
-				{x, y, z},
-			},
-			rl.RED,
-		)
-		*/
 
-		/*
-		fmt.println(
-			"x: ",
-			(Key & 0b111),
-			" y: ",
-			((Key & 0b111_000) >> 3),
-			"z: ",
-			((Key & 0b111_000_000) >> 6),
-		*/
+		for shape in hash_tree[Key].items {
+			draw_collision_shape(shape^)
+		}
 	}
+}
+
+
+add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: map[Hash_Key]Hash_Cell) {
+	cell := hash_map[Hash_Location(shape.transform.translation.xyz)]
+
+	append_elem(&cell.items, shape)
 }
 
 main :: proc() {
@@ -99,11 +166,25 @@ main :: proc() {
 	// fmt.println(HASH_CELL_SIZE_METERS)
 	// fmt.println(new_location)
 
-
 	spatial_hash_tree := make(map[Hash_Key]Hash_Cell)
 
-	spatial_hash_tree[Hash_Location(&{-1, 0, 0})] = {}
-	spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
+	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {0, 1, 0})
+
+	box := Collision_Shape{{{9, 0, 0}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+
+	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
+	cell := &spatial_hash_tree[Hash_Location(&box.transform.translation)]
+
+	append_elem(&cell.items, &box)
+	/*
+	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
+
+	mapp := &spatial_hash_tree[Hash_Location(&box.transform.translation)]
+	append_elem(&mapp.items, &box)
+	*/
+	fmt.println("test", cell)
+
+
 	// spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
 	//spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
 	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = }
