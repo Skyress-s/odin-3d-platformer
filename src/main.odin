@@ -38,7 +38,7 @@ Collision_Shape :: struct {
 	},
 }
 
-Bound :: distinct rl.BoundingBox
+Bound :: rl.BoundingBox
 
 
 Hash_Cell :: struct {
@@ -107,21 +107,26 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 		trans.translation.z,
 	)
 
-	fmt.printfln("test {}", matTranslation)
-
 	// Combine them: Scale -> Rotate -> Translate
 	// Order matters: S * R * T
 	// transform := matScale * matRotation
 	// transform = transform * matTranslation
-	//transform := matScale * matRotation * matTranslation
-	transform := matTranslation * matRotation * matScale
+	transform := matTranslation * matRotation
+	transform = transform * matScale
+	// transform := matScale * matRotation * matTranslation
+	// transform := matTranslation * matRotation * matScale
 	return transform
 }
 
 
 draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color) {
+
+	bounds := get_bounds(collision_shape)
+	rl.DrawBoundingBox(bounds, rl.YELLOW)
+
 	rlgl.PushMatrix()
 	defer rlgl.PopMatrix()
+
 	mat := get_matrix_from_transform((collision_shape.transform))
 	matrix_data := rl.MatrixToFloatV(mat)
 	rlgl.MultMatrixf(auto_cast &matrix_data)
@@ -152,28 +157,33 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 	}
 }
 
-get_bounds :: proc(collision_shape: ^Collision_Shape) -> (bound: Bound) {
+get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
 
-	translation := collision_shape.transform.translation
+	using collision_shape.transform
+
+
 	switch shape in collision_shape.shape {
 	case Box:
-		bound.min = translation - shape.extents
-		bound.max = translation + shape.extents
+		bound.min = translation - (shape.extents.xyz * scale.xyz / 2.0)
+		bound.max = translation + (shape.extents.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
-		bound.min = translation - Vector{r, r, r}
-		bound.max = translation + Vector{r, r, r}
+		bound.min = translation - Vector{r * scale.x, r * scale.y, r * scale.z}
+		bound.max = translation + Vector{r * scale.x, r * scale.y, r * scale.z}
 	case Cylinder:
-		bound.min = translation - Vector{shape.radius, shape.radius, shape.height}
-		bound.max = translation + Vector{shape.radius, shape.radius, shape.height}
+		bound.min =
+			translation -
+			Vector{shape.radius * scale.x, shape.height * scale.x, shape.radius * scale.z}
+		bound.max =
+			translation +
+			Vector{shape.radius * scale.x, shape.radius * scale.y, shape.height * scale.x}
 	}
-
 
 	return
 }
 
 add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
-	bound := get_bounds(shape)
+	// TODO bound := get_bounds(shape)
 	cell := &hash_map[Hash_Location(&shape.transform.translation)]
 	if cell == nil {
 		// fmt.println("Emty cell, creating new one...")
@@ -193,11 +203,12 @@ main :: proc() {
 
 	spatial_hash_map := make(map[Hash_Key]Hash_Cell)
 
-	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {0, 1, 0})
-	box := Collision_Shape{{{9, 2, 7}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0})
+	// q := linalg.QUATERNIONF32_IDENTITY
+	box := Collision_Shape{{{9, 2, 7}, q, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box, &spatial_hash_map)
 
-	box2 := Collision_Shape{{{9, 17, 9}, {}, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	box2 := Collision_Shape{{{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box2, &spatial_hash_map)
 
 	sphere1 := Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
