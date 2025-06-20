@@ -1,5 +1,6 @@
 package main
 
+import intrinsics "base:intrinsics"
 import "core:fmt"
 import "core:io"
 import "core:math"
@@ -97,7 +98,7 @@ Hash_Location :: proc(vec: ^Vector) -> (ret_val: Hash_Key) {
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 
-	// Create rotation matrix from quaternion
+	// Create 1rotation matrix from quaternion
 	matRotation := rl.QuaternionToMatrix(trans.rotation)
 
 	// Create translation matrix
@@ -137,7 +138,14 @@ draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color)
 	case Sphere:
 		rl.DrawSphere(rl.Vector3{0, 0, 0}, v.radius, color^)
 	case Cylinder:
-		rl.DrawCylinder(rl.Vector3{0, 0, 0}, v.radius, v.radius, v.height, 16, color^)
+		rl.DrawCylinder(
+			rl.Vector3{0, -v.height * 0.5, 0}, // raylib is weird with where the center of a 
+			v.radius,
+			v.radius,
+			v.height,
+			16,
+			color^,
+		)
 	}
 }
 
@@ -160,10 +168,14 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
 
 	using collision_shape.transform
-
+	srtMatrix := get_matrix_from_transform(collision_shape.transform)
 
 	switch shape in collision_shape.shape {
 	case Box:
+		vec1 := Vector{shape.extents.x, shape.extents.y, shape.extents.z}
+
+		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
+
 		bound.min = translation - (shape.extents.xyz * scale.xyz / 2.0)
 		bound.max = translation + (shape.extents.xyz * scale.xyz / 2.0)
 	case Sphere:
@@ -173,10 +185,10 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	case Cylinder:
 		bound.min =
 			translation -
-			Vector{shape.radius * scale.x, shape.height * scale.x, shape.radius * scale.z}
+			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
 		bound.max =
 			translation +
-			Vector{shape.radius * scale.x, shape.radius * scale.y, shape.height * scale.x}
+			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
 	}
 
 	return
@@ -195,6 +207,8 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 }
 
 main :: proc() {
+
+
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
 
@@ -214,7 +228,7 @@ main :: proc() {
 	sphere1 := Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
 	add_shape_to_hash_map(&sphere1, &spatial_hash_map)
 
-	cylinder1 := Collision_Shape{{{17, 18, 9}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
+	cylinder1 := Collision_Shape{{{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	/*
 	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
