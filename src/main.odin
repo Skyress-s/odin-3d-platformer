@@ -31,6 +31,7 @@ Cylinder :: struct {
 }
 
 Collision_Shape :: struct {
+	id:        i32,
 	transform: Transform,
 	shape:     union {
 		Box,
@@ -88,7 +89,7 @@ Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key) {
 
 }
 
-Hash_Location :: proc(vec: ^Vector) -> (ret_val: Hash_Key) {
+Hash_Location :: proc(vec: Vector) -> (ret_val: Hash_Key) {
 	ret_val.x = cast(Hash_Int)(math.floor(vec.x / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.y = cast(Hash_Int)(math.floor(vec.y / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.z = cast(Hash_Int)(math.floor(vec.z / cast(f32)HASH_CELL_SIZE_METERS))
@@ -155,13 +156,6 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 		// Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
 		Draw_Hash_Cell_Bounds(Key)
 
-		color := rl.RED
-		if (Key == active_cell^) do color = rl.GREEN
-
-
-		for shape in hash_tree[Key].items {
-			draw_collision_shape(shape^, &color)
-		}
 	}
 }
 
@@ -194,16 +188,41 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	return
 }
 
-add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
-	// TODO bound := get_bounds(shape)
-	cell := &hash_map[Hash_Location(&shape.transform.translation)]
-	if cell == nil {
-		// fmt.println("Emty cell, creating new one...")
-		hash_map[Hash_Location(&shape.transform.translation)] = {}
-		cell = &hash_map[Hash_Location(&shape.transform.translation)]
+get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
+
+	using bound
+	points := [8]Vector {
+		Vector{min.x, min.y, min.z},
+		Vector{max.x, min.y, min.z},
+		Vector{max.x, max.y, min.z},
+		Vector{max.x, max.y, max.z},
+		Vector{min.x, max.y, max.z},
+		Vector{min.x, min.y, max.z},
+		Vector{max.x, min.y, max.z},
+		Vector{max.x, min.y, max.z},
 	}
 
-	append_elem(&cell.items, shape)
+
+	for v in points {
+		cells[Hash_Location(v)] = true
+	}
+	return
+}
+
+add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
+	bounds := get_bounds(shape^)
+	hash_keys := get_overlapping_cells(bounds)
+	fmt.println("overlapping cells: ", len(hash_keys))
+
+	for hash_key in hash_keys {
+		cell := &hash_map[Hash_Location(shape.transform.translation)]
+		if cell == nil {
+			// fmt.println("Emty cell, creating new one...")
+			hash_map[Hash_Location(shape.transform.translation)] = {}
+			cell = &hash_map[Hash_Location(shape.transform.translation)]
+		}
+		append_elem(&cell.items, shape)
+	}
 }
 
 main :: proc() {
@@ -216,20 +235,32 @@ main :: proc() {
 	// fmt.println(new_location)
 
 	spatial_hash_map := make(map[Hash_Key]Hash_Cell)
+	objects: map[Collision_Shape]bool = {}
+	i: i32 = {}
 
 	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0})
 	// q := linalg.QUATERNIONF32_IDENTITY
-	box := Collision_Shape{{{9, 2, 7}, q, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
+	i += 1
+	box := Collision_Shape{i, {{8, 2, 16}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
 	add_shape_to_hash_map(&box, &spatial_hash_map)
+	objects[box] = true
 
-	box2 := Collision_Shape{{{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
+	i += 1
+	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box2, &spatial_hash_map)
+	objects[box2] = true
 
-	sphere1 := Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
+	i += 1
+	sphere1 := Collision_Shape{i, {{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
 	add_shape_to_hash_map(&sphere1, &spatial_hash_map)
+	objects[sphere1] = true
 
-	cylinder1 := Collision_Shape{{{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
+	i += 1
+	cylinder1 := Collision_Shape{i, {{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
+	objects[cylinder1] = true
+
+
 	/*
 	spatial_hash_tree[Hash_Location(&box.transform.translation)] = {}
 
@@ -360,13 +391,27 @@ main :: proc() {
 		rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 		rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
-		hash_key := Hash_Location(&(Vector{cam.position.x, cam.position.y, cam.position.z}))
+		hash_key := Hash_Location((Vector{cam.position.x, cam.position.y, cam.position.z}))
 		Draw_Hash_Cell_Bounds(
 			hash_key,
 			// &Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
 		)
 
 		Draw_Hash_Tree(spatial_hash_map, &hash_key)
+
+		active_cell_items := spatial_hash_map[hash_key].items
+
+		for shape in objects {
+			color := rl.RED
+			for active_cell_item in active_cell_items {
+				if active_cell_item.id == shape.id {
+					color = rl.GREEN
+					break
+				}
+			}
+
+			draw_collision_shape(shape, &color)
+		}
 
 
 		rl.EndMode3D()
