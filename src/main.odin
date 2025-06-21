@@ -124,6 +124,7 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color) {
 
 	bounds := get_bounds(collision_shape)
+	fmt.println(bounds)
 	rl.DrawBoundingBox(bounds, rl.YELLOW)
 
 	rlgl.PushMatrix()
@@ -167,20 +168,89 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	switch shape in collision_shape.shape {
 	case Box:
 		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
+		using shape
+		x := size.x / 2.0
+		y := size.y / 2.0
+		z := size.z / 2.0
+		points := [8]Vector {
+			Vector{x, y, z},
+			Vector{-x, y, z},
+			Vector{-x, -y, z},
+			Vector{-x, -y, -z},
+			Vector{x, -y, -z},
+			Vector{x, y, -z},
+			Vector{x, -y, z},
+			Vector{-x, y, -z},
+		}
 
-		bound.min = translation - (shape.size.xyz * scale.xyz / 2.0)
-		bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
+		maxX, maxY, maxZ, minX, minY, minZ: f32 =
+			min(f32), min(f32), min(f32), max(f32), max(f32), max(f32)
+		for p in points {
+			transformed_p := srtMatrix * linalg.Vector4f32{p.x, p.y, p.z, 1}
+
+			maxX = max(maxX, transformed_p.x)
+			minX = min(minX, transformed_p.x)
+
+			maxY = max(maxY, transformed_p.y)
+			minY = min(minY, transformed_p.y)
+
+			maxZ = max(maxZ, transformed_p.z)
+			minZ = min(minZ, transformed_p.z)
+		}
+
+		bound.min = Vector{minX, minY, minZ}
+		bound.max = Vector{maxX, maxY, maxZ}
+	// bound.min = translation - (shape.size.xyz * scale.xyz / 2.0)
+	// bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
 		bound.min = translation - Vector{r * scale.x, r * scale.y, r * scale.z}
 		bound.max = translation + Vector{r * scale.x, r * scale.y, r * scale.z}
 	case Cylinder:
+		using shape
+		x := radius
+		y := height / 2.0
+		z := radius
+		points := [8]Vector {
+			Vector{x, y, z},
+			Vector{-x, y, z},
+			Vector{-x, -y, z},
+			Vector{-x, -y, -z},
+			Vector{x, -y, -z},
+			Vector{x, y, -z},
+			Vector{x, -y, z},
+			Vector{-x, y, -z},
+		}
+
+		maxX, maxY, maxZ, minX, minY, minZ: f32 =
+			min(f32), min(f32), min(f32), max(f32), max(f32), max(f32)
+		for p in points {
+			transformed_p := srtMatrix * linalg.Vector4f32{p.x, p.y, p.z, 1}
+
+			maxX = max(maxX, transformed_p.x)
+			minX = min(minX, transformed_p.x)
+
+			maxY = max(maxY, transformed_p.y)
+			minY = min(minY, transformed_p.y)
+
+			maxZ = max(maxZ, transformed_p.z)
+			minZ = min(minZ, transformed_p.z)
+		}
+		bound.min = Vector{minX, minY, minZ}
+		bound.max = Vector{maxX, maxY, maxZ}
+
+	/*
+
+		bound.min = Vector{minX, minY, minZ}
+		bound.max = Vector{maxX, maxY, maxZ}
 		bound.min =
 			translation -
 			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
 		bound.max =
 			translation +
 			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
+
+		*/
 	}
 
 	return
@@ -238,22 +308,18 @@ main :: proc() {
 	objects: map[Collision_Shape]bool = {}
 	i: i32 = {}
 
-	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0})
+	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0.7})
 	// q := linalg.QUATERNIONF32_IDENTITY
 	i += 1
-	box := Collision_Shape{i, {{16, 16, 16}, q, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
+	box := Collision_Shape{i, {{16, 16, 16}, q, {1, 1, 1}}, Box{{10.0, 10.0, 9.0}}}
 	add_shape_to_hash_map(&box, &spatial_hash_map)
 	objects[box] = true
-	fmt.println(spatial_hash_map)
-
-	/*
-
-
 
 	i += 1
 	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box2, &spatial_hash_map)
 	objects[box2] = true
+
 
 	i += 1
 	sphere1 := Collision_Shape{i, {{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
@@ -261,9 +327,11 @@ main :: proc() {
 	objects[sphere1] = true
 
 	i += 1
-	cylinder1 := Collision_Shape{i, {{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
+	cylinder1 := Collision_Shape{i, {{-32, 0, 0}, q, {1, 1, 1}}, Cylinder{9.0, 3.0}}
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	objects[cylinder1] = true
+
+	/*
 	i += 1
 	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box2, &spatial_hash_map)
