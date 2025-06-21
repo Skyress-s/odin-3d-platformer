@@ -18,7 +18,7 @@ Transform :: struct {
 }
 
 Box :: struct {
-	extents: Vector,
+	size: Vector,
 }
 
 Sphere :: struct {
@@ -135,7 +135,7 @@ draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color)
 
 	switch v in collision_shape.shape {
 	case Box:
-		rl.DrawCube(rl.Vector3{0, 0, 0}, 1, 1, 1, color^)
+		rl.DrawCube(rl.Vector3{0, 0, 0}, v.size.x, v.size.y, v.size.z, color^)
 	case Sphere:
 		rl.DrawSphere(rl.Vector3{0, 0, 0}, v.radius, color^)
 	case Cylinder:
@@ -166,12 +166,10 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 
 	switch shape in collision_shape.shape {
 	case Box:
-		vec1 := Vector{shape.extents.x, shape.extents.y, shape.extents.z}
-
 		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
 
-		bound.min = translation - (shape.extents.xyz * scale.xyz / 2.0)
-		bound.max = translation + (shape.extents.xyz * scale.xyz / 2.0)
+		bound.min = translation - (shape.size.xyz * scale.xyz / 2.0)
+		bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
 		bound.min = translation - Vector{r * scale.x, r * scale.y, r * scale.z}
@@ -199,12 +197,13 @@ get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
 		Vector{min.x, max.y, max.z},
 		Vector{min.x, min.y, max.z},
 		Vector{max.x, min.y, max.z},
-		Vector{max.x, min.y, max.z},
+		Vector{min.x, max.y, min.z},
 	}
 
 
 	for v in points {
 		cells[Hash_Location(v)] = true
+		fmt.println("njahahaha")
 	}
 	return
 }
@@ -212,15 +211,16 @@ get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
 add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
 	bounds := get_bounds(shape^)
 	hash_keys := get_overlapping_cells(bounds)
-	fmt.println("overlapping cells: ", len(hash_keys))
+	fmt.println("overlapping cells: ", len(hash_keys), "hash keys: ", hash_keys)
 
 	for hash_key in hash_keys {
-		cell := &hash_map[Hash_Location(shape.transform.translation)]
+		cell := &hash_map[hash_key]
 		if cell == nil {
 			// fmt.println("Emty cell, creating new one...")
-			hash_map[Hash_Location(shape.transform.translation)] = {}
-			cell = &hash_map[Hash_Location(shape.transform.translation)]
+			hash_map[hash_key] = {}
+			cell = &hash_map[hash_key]
 		}
+		fmt.println("adding element to hash cell: ", hash_key, " | ", cell)
 		append_elem(&cell.items, shape)
 	}
 }
@@ -241,9 +241,14 @@ main :: proc() {
 	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0})
 	// q := linalg.QUATERNIONF32_IDENTITY
 	i += 1
-	box := Collision_Shape{i, {{8, 2, 16}, q, {1, 1, 1}}, Box{{10.0, 10.0, 10.0}}}
+	box := Collision_Shape{i, {{16, 16, 16}, q, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
 	add_shape_to_hash_map(&box, &spatial_hash_map)
 	objects[box] = true
+	fmt.println(spatial_hash_map)
+
+	/*
+
+
 
 	i += 1
 	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
@@ -259,6 +264,21 @@ main :: proc() {
 	cylinder1 := Collision_Shape{i, {{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	objects[cylinder1] = true
+	i += 1
+	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
+	add_shape_to_hash_map(&box2, &spatial_hash_map)
+	objects[box2] = true
+
+	i += 1
+	sphere1 := Collision_Shape{i, {{17, 6, 9}, {}, {1, 1, 1}}, Sphere{5.0}}
+	add_shape_to_hash_map(&sphere1, &spatial_hash_map)
+	objects[sphere1] = true
+
+	i += 1
+	cylinder1 := Collision_Shape{i, {{0, 0, 0}, {}, {1, 1, 1}}, Cylinder{5.0, 3.0}}
+	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
+	objects[cylinder1] = true
+	*/
 
 
 	/*
