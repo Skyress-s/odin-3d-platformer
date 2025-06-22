@@ -441,6 +441,7 @@ main :: proc() {
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
+
 		// Collide
 		for t in tris {
 			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
@@ -460,7 +461,12 @@ main :: proc() {
 			}
 		}
 
+
+		active_cell := spatial_hash_map[Hash_Location(cam.position)]
 		// Collide with cubes / planes
+		for shape in active_cell.items {
+			// todo
+		}
 
 
 		cam.position += vel * dt
