@@ -295,6 +295,10 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 	}
 }
 
+handle_collision_box :: proc(cylinder: ^Cylinder, player_shape: ^Collision_Shape) {
+
+}
+
 main :: proc() {
 
 
@@ -441,6 +445,12 @@ main :: proc() {
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
+		active_cell := spatial_hash_map[Hash_Location(cam.position)]
+		// Collide with cubes / planes
+		for shape in active_cell.items {
+			// todo
+		}
+
 
 		// Collide
 		for t in tris {
@@ -459,13 +469,6 @@ main :: proc() {
 					vel -= normal * vel_normal_dot
 				}
 			}
-		}
-
-
-		active_cell := spatial_hash_map[Hash_Location(cam.position)]
-		// Collide with cubes / planes
-		for shape in active_cell.items {
-			// todo
 		}
 
 
