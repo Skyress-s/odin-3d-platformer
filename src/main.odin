@@ -160,6 +160,29 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 	}
 }
 
+box_get_points :: proc(box: ^Box, shape: ^Collision_Shape) -> Vector[3] {
+	
+	using shape.transform
+	x :=  size.x * box.size.z / 2.0
+	y := size.y / 2.0
+	z := size.z / 2.0
+
+		x*= box.siz
+
+	points := [8]Vector {
+		Vector{x, y, z},
+		Vector{-x, y, z},
+		Vector{-x, -y, z},
+		Vector{-x, -y, -z},
+		Vector{x, -y, -z},
+		Vector{x, y, -z},
+		Vector{x, -y, z},
+		Vector{-x, y, -z},
+	}
+	
+
+}
+
 get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
 
 	using collision_shape.transform
@@ -448,12 +471,21 @@ main :: proc() {
 		active_cell := spatial_hash_map[Hash_Location(cam.position)]
 		// Collide with cubes / planes
 		for shape in active_cell.items {
+		 	#patial switch  shape {
+				case Box {
+				
+			
+			}
+				
+			}
+
+			}
 			// todo
 		}
 
 
 		// Collide
-		for t in tris {
+		for t in trss {
 			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
 			diff := cam.position - closest
 			dist := linalg.length(diff)
