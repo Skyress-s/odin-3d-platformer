@@ -160,27 +160,38 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 	}
 }
 
-box_get_points :: proc(box: ^Box, shape: ^Collision_Shape) -> Vector[3] {
-	
-	using shape.transform
-	x :=  size.x * box.size.z / 2.0
-	y := size.y / 2.0
-	z := size.z / 2.0
 
-		x*= box.siz
+box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
+
+	using shape.transform
+	x := scale.x * box.size.x / 2.0
+	y := scale.y * box.size.y / 2.0
+	z := scale.z * box.size.z / 2.0
 
 	points := [8]Vector {
-		Vector{x, y, z},
-		Vector{-x, y, z},
-		Vector{-x, -y, z},
-		Vector{-x, -y, -z},
-		Vector{x, -y, -z},
-		Vector{x, y, -z},
-		Vector{x, -y, z},
-		Vector{-x, y, -z},
+		Vector{x, y, z}, // 0
+		Vector{-x, y, z}, // 1
+		Vector{-x, -y, z}, // 2
+		Vector{-x, -y, -z}, // 3
+		Vector{x, -y, -z}, // 4
+		Vector{x, y, -z}, // 5
+		Vector{x, -y, z}, // 6
+		Vector{-x, y, -z}, // 7
 	}
-	
 
+	mat := get_matrix_from_transform(shape.transform)
+
+	transformed_points: [dynamic][3]Vector = {}
+
+	for p in points {
+		transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
+		pp: Vector = transformed_p.xyz
+		//append_elem(&transformed_points, pp)
+	}
+
+	// tris: [dynamic][3]Vector = {{points[0], points[1], points[5]}}
+
+	return {}
 }
 
 get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
@@ -318,9 +329,18 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 	}
 }
 
-handle_collision_box :: proc(cylinder: ^Cylinder, player_shape: ^Collision_Shape) {
+shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector) {
+	switch s in shape.shape {
+	case Box:
+	//box_get_tris(&s, shape)
+	case Sphere:
+	case Cylinder:
+	}
+
+	return {}
 
 }
+
 
 main :: proc() {
 
@@ -412,7 +432,7 @@ main :: proc() {
 
 	vel: rl.Vector3
 
-	tris: [dynamic][3]rl.Vector3
+	tris: [dynamic][3]Vector
 	cubes: [dynamic]rl.BoundingBox
 
 	append(&cubes, rl.BoundingBox{})
@@ -471,21 +491,15 @@ main :: proc() {
 		active_cell := spatial_hash_map[Hash_Location(cam.position)]
 		// Collide with cubes / planes
 		for shape in active_cell.items {
-		 	#patial switch  shape {
-				case Box {
-				
-			
-			}
-				
-			}
-
-			}
+			//////new_tris := shape_get_collision_tris(shape)
+			//append_elem(&tris, ..new_tris)
 			// todo
+
 		}
 
 
 		// Collide
-		for t in trss {
+		for t in tris {
 			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
 			diff := cam.position - closest
 			dist := linalg.length(diff)
