@@ -1,5 +1,6 @@
 package main
 
+import "base:builtin"
 import intrinsics "base:intrinsics"
 import "core:fmt"
 import "core:io"
@@ -181,17 +182,30 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
 
 	mat := get_matrix_from_transform(shape.transform)
 
-	transformed_points: [dynamic][3]Vector = {}
+	transformed_points: [8]Vector = {}
 
-	for p in points {
+	for p, i in points {
 		transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
 		pp: Vector = transformed_p.xyz
-		//append_elem(&transformed_points, pp)
+		transformed_points[i] = pp
 	}
 
-	// tris: [dynamic][3]Vector = {{points[0], points[1], points[5]}}
+	tris: [dynamic][3]Vector = {}
 
-	return {}
+	// todo man this is funky, there must be a better way
+
+	// top
+	append(&tris, [3]Vector{transformed_points[0], transformed_points[5], transformed_points[1]})
+	append(&tris, [3]Vector{transformed_points[1], transformed_points[5], transformed_points[7]})
+	// bottom 
+	append(&tris, [3]Vector{transformed_points[3], transformed_points[5], transformed_points[4]})
+	append(&tris, [3]Vector{transformed_points[3], transformed_points[7], transformed_points[5]})
+	// Left
+	append(&tris, [3]Vector{transformed_points[0], transformed_points[1], transformed_points[2]})
+	append(&tris, [3]Vector{transformed_points[6], transformed_points[0], transformed_points[2]})
+	// 
+
+	return tris
 }
 
 get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
@@ -330,9 +344,9 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 }
 
 shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector) {
-	switch s in shape.shape {
+	switch &s in shape.shape {
 	case Box:
-	//box_get_tris(&s, shape)
+		return box_get_tris(&s, shape)
 	case Sphere:
 	case Cylinder:
 	}
@@ -343,7 +357,6 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector
 
 
 main :: proc() {
-
 
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
@@ -490,9 +503,12 @@ main :: proc() {
 
 		active_cell := spatial_hash_map[Hash_Location(cam.position)]
 		// Collide with cubes / planes
-		for shape in active_cell.items {
-			//////new_tris := shape_get_collision_tris(shape)
-			//append_elem(&tris, ..new_tris)
+		for &shape in active_cell.items {
+			new_tris := shape_get_collision_tris(shape)
+			for &tri in new_tris {
+				append_elem(&tris, tri)
+				// todo need to figure out how to add the whole array
+			}
 			// todo
 
 		}
@@ -553,7 +569,7 @@ main :: proc() {
 				}
 			}
 
-			draw_collision_shape(shape, &color)
+			// draw_collision_shape(shape, &color)
 		}
 
 
