@@ -194,16 +194,24 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
 
 	// todo man this is funky, there must be a better way
 
-	// top
+	// Top
 	append(&tris, [3]Vector{transformed_points[0], transformed_points[5], transformed_points[1]})
 	append(&tris, [3]Vector{transformed_points[1], transformed_points[5], transformed_points[7]})
-	// bottom 
+	// Bottom
+	append(&tris, [3]Vector{transformed_points[2], transformed_points[3], transformed_points[4]})
+	append(&tris, [3]Vector{transformed_points[2], transformed_points[4], transformed_points[6]})
+	// Left 
 	append(&tris, [3]Vector{transformed_points[3], transformed_points[5], transformed_points[4]})
 	append(&tris, [3]Vector{transformed_points[3], transformed_points[7], transformed_points[5]})
-	// Left
+	// Right
 	append(&tris, [3]Vector{transformed_points[0], transformed_points[1], transformed_points[2]})
 	append(&tris, [3]Vector{transformed_points[6], transformed_points[0], transformed_points[2]})
-	// 
+	// Forward
+	append(&tris, [3]Vector{transformed_points[1], transformed_points[3], transformed_points[2]})
+	append(&tris, [3]Vector{transformed_points[3], transformed_points[1], transformed_points[7]})
+	// Backward
+	append(&tris, [3]Vector{transformed_points[0], transformed_points[4], transformed_points[5]})
+	append(&tris, [3]Vector{transformed_points[0], transformed_points[6], transformed_points[4]})
 
 	return tris
 }
@@ -368,8 +376,8 @@ main :: proc() {
 	objects: map[Collision_Shape]bool = {}
 	i: i32 = {}
 
-	q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0.7})
-	// q := linalg.QUATERNIONF32_IDENTITY
+	//q := linalg.quaternion_from_forward_and_up_f32({1, 1, 0}, {0, 1, 0.7})
+	q := linalg.QUATERNIONF32_IDENTITY
 	i += 1
 	box := Collision_Shape{i, {{16, 16, 16}, q, {1, 1, 1}}, Box{{10.0, 10.0, 9.0}}}
 	add_shape_to_hash_map(&box, &spatial_hash_map)
