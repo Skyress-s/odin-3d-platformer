@@ -1,5 +1,6 @@
 package main
 
+import p "Physics"
 import "base:builtin"
 import intrinsics "base:intrinsics"
 import "core:fmt"
@@ -8,7 +9,6 @@ import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
-
 Vector :: rl.Vector3
 
 // Transform :: rl.Transform
@@ -366,6 +366,13 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector
 
 main :: proc() {
 
+	test: [dynamic]int = make([dynamic]int)
+	append(&test, 4, 97, 7)
+
+	test2: [dynamic]int = make([dynamic]int)
+	append(&test2, 1, 2, 3)
+
+
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
 
@@ -511,19 +518,21 @@ main :: proc() {
 
 		active_cell := spatial_hash_map[Hash_Location(cam.position)]
 		// Collide with cubes / planes
+
+
+		active_cell_tris: [dynamic][3]Vector = {}
+
 		for &shape in active_cell.items {
 			new_tris := shape_get_collision_tris(shape)
 			for &tri in new_tris {
-				append_elem(&tris, tri)
+				append_elem(&active_cell_tris, tri)
 				// todo need to figure out how to add the whole array
 			}
 			// todo
 
 		}
 
-
-		// Collide
-		for t in tris {
+		collide_with_tri :: proc(t: [3]Vector, vel: ^Vector, cam: ^rl.Camera3D) {
 			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
 			diff := cam.position - closest
 			dist := linalg.length(diff)
@@ -534,11 +543,22 @@ main :: proc() {
 			if dist < RAD {
 				cam.position += normal * (RAD - dist)
 				// project velocity to the normal plane, if moving towards it
-				vel_normal_dot := linalg.dot(vel, normal)
+				vel_normal_dot: f32 = linalg.dot(vel^, normal)
 				if vel_normal_dot < 0 {
-					vel -= normal * vel_normal_dot
+					vel^ -= normal * vel_normal_dot
 				}
 			}
+
+		}
+
+		// Collide
+		for t in tris {
+			collide_with_tri(t, &vel, &cam)
+		}
+
+		for t in active_cell_tris {
+			collide_with_tri(t, &vel, &cam)
+
 		}
 
 
@@ -547,6 +567,13 @@ main :: proc() {
 
 		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
 		for t in tris {
+			rl.DrawTriangle3D(t[0], t[1], t[2], rl.GRAY)
+			rl.DrawLine3D(t[0], t[1], rl.LIGHTGRAY)
+			rl.DrawLine3D(t[0], t[2], rl.LIGHTGRAY)
+			rl.DrawLine3D(t[1], t[2], rl.LIGHTGRAY)
+		}
+
+		for t in active_cell_tris {
 			rl.DrawTriangle3D(t[0], t[1], t[2], rl.GRAY)
 			rl.DrawLine3D(t[0], t[1], rl.LIGHTGRAY)
 			rl.DrawLine3D(t[0], t[2], rl.LIGHTGRAY)
