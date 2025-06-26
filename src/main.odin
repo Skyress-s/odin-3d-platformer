@@ -475,6 +475,8 @@ main :: proc() {
 	rl.InitWindow(800, 600, "mph*0.5mv^2")
 	defer rl.CloseWindow()
 
+	rl.SetTargetFPS(180)
+
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
