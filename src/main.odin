@@ -44,8 +44,12 @@ Collision_Shape :: struct {
 Bound :: rl.BoundingBox
 
 
+Collision_Triangle :: struct {
+	points: [3]Vector,
+}
+
 Hash_Cell :: struct {
-	items: [dynamic]^Collision_Shape,
+	tris: [dynamic]Collision_Triangle,
 }
 
 Hash_Int :: i32
@@ -162,7 +166,7 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 }
 
 
-box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
+box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_Triangle {
 
 	using shape.transform
 	x := scale.x * box.size.x / 2.0
@@ -190,28 +194,30 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
 		transformed_points[i] = pp
 	}
 
-	tris: [dynamic][3]Vector = {}
+	tris: [dynamic]Collision_Triangle = {}
 
 	// todo man this is funky, there must be a better way
 
+	ps := &transformed_points
+
 	// Top
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[5], transformed_points[1]})
-	append(&tris, [3]Vector{transformed_points[1], transformed_points[5], transformed_points[7]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[5], ps[7]}})
 	// Bottom
-	append(&tris, [3]Vector{transformed_points[2], transformed_points[3], transformed_points[4]})
-	append(&tris, [3]Vector{transformed_points[2], transformed_points[4], transformed_points[6]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
 	// Left 
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[5], transformed_points[4]})
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[7], transformed_points[5]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
 	// Right
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[1], transformed_points[2]})
-	append(&tris, [3]Vector{transformed_points[6], transformed_points[0], transformed_points[2]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[1], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[6], ps[0], ps[2]}})
 	// Forward
-	append(&tris, [3]Vector{transformed_points[1], transformed_points[3], transformed_points[2]})
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[1], transformed_points[7]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[3], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[1], ps[7]}})
 	// Backward
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[4], transformed_points[5]})
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[6], transformed_points[4]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[4], ps[5]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[6], ps[4]}})
 
 	return tris
 }
@@ -347,11 +353,14 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 			cell = &hash_map[hash_key]
 		}
 		fmt.println("adding element to hash cell: ", hash_key, " | ", cell)
-		append_elem(&cell.items, shape)
+		tris := shape_get_collision_tris(shape)
+		for &t in tris {
+			append_elem(&cell.tris, t) // todo huah tuah
+		}
 	}
 }
 
-shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector) {
+shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {
 	switch &s in shape.shape {
 	case Box:
 		return box_get_tris(&s, shape)
@@ -460,17 +469,20 @@ main :: proc() {
 
 	vel: rl.Vector3
 
-	tris: [dynamic][3]Vector
+	tris: [dynamic]Collision_Triangle
 	cubes: [dynamic]rl.BoundingBox
 
 	append(&cubes, rl.BoundingBox{})
 
 	append_quad :: proc(
-		tris: ^[dynamic][3]rl.Vector3,
+		tris: ^[dynamic]Collision_Triangle,
 		a, b, c, d: rl.Vector3,
 		offs: rl.Vector3 = {},
 	) {
-		points := [][3]rl.Vector3{{b + offs, a + offs, c + offs}, {b + offs, c + offs, d + offs}}
+		points := []Collision_Triangle {
+			Collision_Triangle{{b + offs, a + offs, c + offs}},
+			Collision_Triangle{{b + offs, c + offs, d + offs}},
+		}
 		append(tris, ..points)
 	}
 
@@ -516,24 +528,21 @@ main :: proc() {
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
-		active_cell := spatial_hash_map[Hash_Location(cam.position)]
+		//get_overlapping_cells(cam.position)
+		active_hash_key := Hash_Location(cam.position)
+		active_cell := spatial_hash_map[active_hash_key]
 		// Collide with cubes / planes
 
 
-		active_cell_tris: [dynamic][3]Vector = {}
+		active_cell_tris := &active_cell.tris
 
-		for &shape in active_cell.items {
-			new_tris := shape_get_collision_tris(shape)
-			for &tri in new_tris {
-				append_elem(&active_cell_tris, tri)
-				// todo need to figure out how to add the whole array
-			}
-			// todo
-
-		}
-
-		collide_with_tri :: proc(t: [3]Vector, vel: ^Vector, cam: ^rl.Camera3D) {
-			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
+		collide_with_tri :: proc(t: ^Collision_Triangle, vel: ^Vector, cam: ^rl.Camera3D) {
+			closest := closest_point_on_triangle(
+				cam.position,
+				t.points[0],
+				t.points[1],
+				t.points[2],
+			)
 			diff := cam.position - closest
 			dist := linalg.length(diff)
 			normal := diff / dist
@@ -552,12 +561,12 @@ main :: proc() {
 		}
 
 		// Collide
-		for t in tris {
-			collide_with_tri(t, &vel, &cam)
+		for &t in tris {
+			collide_with_tri(&t, &vel, &cam)
 		}
 
-		for t in active_cell_tris {
-			collide_with_tri(t, &vel, &cam)
+		for &t in active_cell_tris {
+			collide_with_tri(&t, &vel, &cam)
 
 		}
 
@@ -565,19 +574,34 @@ main :: proc() {
 		cam.position += vel * dt
 		cam.target = cam.position + forward
 
-		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
-		for t in tris {
-			rl.DrawTriangle3D(t[0], t[1], t[2], rl.GRAY)
-			rl.DrawLine3D(t[0], t[1], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[0], t[2], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[1], t[2], rl.LIGHTGRAY)
+		draw_collision_tri :: proc(t: ^Collision_Triangle, face_color, edge_color: rl.Color) {
+			using t
+			rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
+			rl.DrawLine3D(points[0], points[1], edge_color)
+			rl.DrawLine3D(points[0], points[2], edge_color)
+			rl.DrawLine3D(points[1], points[2], edge_color)
+
 		}
 
-		for t in active_cell_tris {
-			rl.DrawTriangle3D(t[0], t[1], t[2], rl.GRAY)
-			rl.DrawLine3D(t[0], t[1], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[0], t[2], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[1], t[2], rl.LIGHTGRAY)
+		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
+		for &t in tris {
+
+			draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
+		}
+
+		for &t in active_cell_tris {
+
+			draw_collision_tri(&t, rl.GREEN, rl.GRAY)
+		}
+
+		// Draw all other geometry
+		for hash_key in spatial_hash_map {
+			if hash_key == active_hash_key do continue
+
+			cell := &spatial_hash_map[hash_key]
+			for &t in cell.tris {
+				// draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
+			}
 		}
 
 		rl.DrawCube({0, 0, 0}, 0.1, 0.1, 0.1, rl.WHITE)
@@ -593,6 +617,8 @@ main :: proc() {
 
 		Draw_Hash_Tree(spatial_hash_map, &hash_key)
 
+
+		/*
 		active_cell_items := spatial_hash_map[hash_key].items
 
 		for shape in objects {
@@ -607,6 +633,7 @@ main :: proc() {
 			// draw_collision_shape(shape, &color)
 		}
 
+		*/
 
 		rl.EndMode3D()
 
