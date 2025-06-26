@@ -1,0 +1,7 @@
+
+[26/06/2025]
+- Instead of having an array of tris. Switched to an array of objects, this way we can add a id to objects. It also makes it easier to now draw the same object that crosses cells multiple times. Although those should probably be seperated, but since this is a tiny project, it might be fine. 
+
+
+
+
