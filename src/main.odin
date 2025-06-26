@@ -48,8 +48,13 @@ Collision_Triangle :: struct {
 	points: [3]Vector,
 }
 
-Hash_Cell :: struct {
+Collision_Object :: struct {
+	id:   u16,
 	tris: [dynamic]Collision_Triangle,
+}
+
+Hash_Cell :: struct {
+	objects: [dynamic]Collision_Object,
 }
 
 Hash_Int :: i32
@@ -57,6 +62,15 @@ Hash_Int :: i32
 HASH_CELL_SIZE_METERS :: 1 << 4 // 128
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
+
+Collision_Object_Id :: u16
+
+COLLISION_OBJECT_COUNTER: Collision_Object_Id = 0
+
+get_collision_id :: proc() -> Collision_Object_Id {
+	COLLISION_OBJECT_COUNTER += 1
+	return COLLISION_OBJECT_COUNTER
+}
 
 Hash_Key :: struct {
 	x: Hash_Int,
@@ -345,6 +359,8 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 	hash_keys := get_overlapping_cells(bounds)
 	fmt.println("overlapping cells: ", len(hash_keys), "hash keys: ", hash_keys)
 
+	collision_object_id := get_collision_id()
+
 	for hash_key in hash_keys {
 		cell := &hash_map[hash_key]
 		if cell == nil {
@@ -354,9 +370,15 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 		}
 		fmt.println("adding element to hash cell: ", hash_key, " | ", cell)
 		tris := shape_get_collision_tris(shape)
+
+		col_obs := Collision_Object{collision_object_id, {}}
+
+
 		for &t in tris {
-			append_elem(&cell.tris, t) // todo huah tuah
+			append_elem(&col_obs.tris, t) // todo huah tuah
 		}
+
+		append_elem(&cell.objects, col_obs)
 	}
 }
 
@@ -534,7 +556,7 @@ main :: proc() {
 		// Collide with cubes / planes
 
 
-		active_cell_tris := &active_cell.tris
+		active_cell_objects := &active_cell.objects
 
 		collide_with_tri :: proc(t: ^Collision_Triangle, vel: ^Vector, cam: ^rl.Camera3D) {
 			closest := closest_point_on_triangle(
@@ -565,8 +587,12 @@ main :: proc() {
 			collide_with_tri(&t, &vel, &cam)
 		}
 
-		for &t in active_cell_tris {
-			collide_with_tri(&t, &vel, &cam)
+		for &collision_object in active_cell_objects {
+
+			for &t in collision_object.tris {
+				collide_with_tri(&t, &vel, &cam)
+
+			}
 
 		}
 
@@ -583,15 +609,29 @@ main :: proc() {
 
 		}
 
+		draw_collision_object :: proc(
+			collision_object: ^Collision_Object,
+			face_color, edge_color: rl.Color,
+		) {
+			for &t in collision_object.tris {
+				draw_collision_tri(&t, face_color, edge_color)
+			}
+		}
+
 		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
 		for &t in tris {
 
 			draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
 		}
 
-		for &t in active_cell_tris {
+		drawn_collision_objects_ids: map[Collision_Object_Id]bool
 
-			draw_collision_tri(&t, rl.GREEN, rl.GRAY)
+		for &collision_object in active_cell_objects {
+			has_been_drawn := collision_object.id in drawn_collision_objects_ids
+			if (!has_been_drawn) {
+				draw_collision_object(&collision_object, rl.GREEN, rl.GRAY)
+				drawn_collision_objects_ids[collision_object.id] = true
+			}
 		}
 
 		// Draw all other geometry
@@ -599,8 +639,12 @@ main :: proc() {
 			if hash_key == active_hash_key do continue
 
 			cell := &spatial_hash_map[hash_key]
-			for &t in cell.tris {
-				// draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
+			for &collision_object in cell.objects {
+				has_been_drawn := collision_object.id in drawn_collision_objects_ids
+				if (!has_been_drawn) {
+					draw_collision_object(&collision_object, rl.LIGHTGRAY, rl.GRAY)
+					drawn_collision_objects_ids[collision_object.id] = true
+				}
 			}
 		}
 
