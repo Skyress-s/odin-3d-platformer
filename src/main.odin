@@ -59,7 +59,7 @@ Hash_Cell :: struct {
 
 Hash_Int :: i32
 
-HASH_CELL_SIZE_METERS :: 1 << 4 // 128
+HASH_CELL_SIZE_METERS :: 1 << 5 // 256
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
@@ -245,9 +245,9 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	case Box:
 		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
 		using shape
-		x := size.x / 2.0
-		y := size.y / 2.0
-		z := size.z / 2.0
+		x := size.x
+		y := size.y
+		z := size.z
 		points := [8]Vector {
 			Vector{x, y, z},
 			Vector{-x, y, z},
@@ -330,6 +330,54 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	}
 
 	return
+
+}
+is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Triangle) -> bool {
+	for &collision_triangle in tris {
+		for &p in collision_triangle.points {
+			if Hash_Location(p) == hash_key^ do return true
+		}
+	}
+	return false
+}
+
+get_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+
+	min_hash := Hash_Location(bound.min)
+	hash_keys[min_hash] = true
+	max_hash := Hash_Location(bound.max)
+	hash_keys[max_hash] = true
+
+	// Early bail if bound is contained within one cell
+	// Todo is this actually more efficient? Have to test
+	if min_hash == max_hash do return hash_keys
+
+	// need to walk to the max cell, and go through every path
+
+	minX, maxX: i32 = min_hash.x, max_hash.x
+	minY, maxY: i32 = min_hash.y, max_hash.y
+	minZ, maxZ: i32 = min_hash.z, max_hash.z
+
+
+	// fmt.println("printing new cells for min: ", min_hash, " max: ", max_hash)
+	for x := minX; x <= maxX; x += 1 {
+
+		//new_hash := Hash_Key{x, y, z}
+		//hash_keys[new_hash] = true
+		for y := minY; y <= maxY; y += 1 {
+
+			//new_hash := Hash_Key{x, y, z}
+			//hash_keys[new_hash] = true
+			for z := minZ; z <= maxZ; z += 1 {
+
+				new_hash := Hash_Key{x, y, z}
+				hash_keys[new_hash] = true
+				// fmt.println("\t", new_hash)
+			}
+		}
+	}
+
+	return hash_keys
 }
 
 get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
@@ -349,26 +397,29 @@ get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
 
 	for v in points {
 		cells[Hash_Location(v)] = true
-		fmt.println("njahahaha")
 	}
 	return
 }
 
 add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
 	bounds := get_bounds(shape^)
-	hash_keys := get_overlapping_cells(bounds)
-	fmt.println("overlapping cells: ", len(hash_keys), "hash keys: ", hash_keys)
+	potential_hash_keys := get_overlapping_cells2(bounds)
+
+	/*
+	for potential_hash_key in potential_hash_keys {
+
+	}
+	*/
 
 	collision_object_id := get_collision_id()
 
-	for hash_key in hash_keys {
+	for hash_key in potential_hash_keys {
 		cell := &hash_map[hash_key]
 		if cell == nil {
 			// fmt.println("Emty cell, creating new one...")
 			hash_map[hash_key] = {}
 			cell = &hash_map[hash_key]
 		}
-		fmt.println("adding element to hash cell: ", hash_key, " | ", cell)
 		tris := shape_get_collision_tris(shape)
 
 		col_obs := Collision_Object{collision_object_id, {}}
@@ -436,6 +487,15 @@ main :: proc() {
 	cylinder1 := Collision_Shape{i, {{-32, 0, 0}, q, {1, 1, 1}}, Cylinder{9.0, 3.0}}
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	objects[cylinder1] = true
+
+
+	i += 1
+	q2 := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {1, -1, 1})
+	box3 := Collision_Shape{i, {{-32, 0, 0}, q2, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
+	//box3 := Collision_Shape{i, {{-32, 0, 0}, q, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
+	add_shape_to_hash_map(&box3, &spatial_hash_map)
+	objects[box3] = true
+
 
 	/*
 	i += 1
@@ -548,6 +608,7 @@ main :: proc() {
 		vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
 
 		if rl.IsKeyPressed(.SPACE) do vel.y = 15
+
 
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
