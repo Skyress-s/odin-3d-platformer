@@ -447,7 +447,6 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 
 main :: proc() {
-
 	test: [dynamic]int = make([dynamic]int)
 	append(&test, 4, 97, 7)
 
@@ -596,8 +595,11 @@ main :: proc() {
 		SPEED :: 20
 		RAD :: 1
 
-		if rl.IsKeyDown(.W) do vel += forward * dt * SPEED
-		if rl.IsKeyDown(.S) do vel -= forward * dt * SPEED
+		xz_forward := forward
+		xz_forward.y = 0
+		xz_forward = linalg.vector_normalize(xz_forward)
+		if rl.IsKeyDown(.W) do vel += xz_forward * dt * SPEED
+		if rl.IsKeyDown(.S) do vel -= xz_forward * dt * SPEED
 		if rl.IsKeyDown(.D) do vel -= right * dt * SPEED
 		if rl.IsKeyDown(.A) do vel += right * dt * SPEED
 
