@@ -674,6 +674,15 @@ main :: proc() {
 
 		}
 
+		test := linalg.vector_normalize(cam.target - cam.position)
+		collision_tri := Collision_Triangle{{Vector{0, 0, 0}, Vector{10, 0, 0}, Vector{0, 0, 10}}}
+
+		rl.DrawSphere(collision_tri.points.x, 2, rl.GREEN)
+		rl.DrawSphere(collision_tri.points.y, 2, rl.GREEN)
+		rl.DrawSphere(collision_tri.points.z, 2, rl.GREEN)
+
+		ray_triangle_collision(&cam.position, &test, &collision_tri)
+
 		draw_collision_object :: proc(
 			collision_object: ^Collision_Object,
 			face_color, edge_color: rl.Color,
@@ -754,9 +763,57 @@ main :: proc() {
 	}
 }
 
-ray_triangle_collision :: proc(ray_dir: ^Vector, tri: ^Collision_Triangle) {
+ray_triangle_collision :: proc(
+	ray_pos: ^Vector,
+	ray_dir: ^Vector,
+	tri: ^Collision_Triangle,
+) -> bool {
+	ab := tri.points.y - tri.points.x
+	ac := tri.points.z - tri.points.x
+	cb := tri.points.y - tri.points.z
+	some_point_on_triangle := tri.points.x
 
+	tri_normal := linalg.vector_cross3(ab, ac)
+
+	ray_tri_normal_dot := linalg.vector_dot(ray_dir^, tri_normal)
+	if abs(ray_tri_normal_dot) < 0.0001 do return false
+
+	t :=
+		(linalg.vector_dot(some_point_on_triangle - ray_pos^, tri_normal)) /
+		linalg.vector_dot(ray_dir^, tri_normal)
+
+	p := ray_pos^ + ray_dir^ * t
+
+	A_to_point := p - tri.points.x
+	B_to_point := p - tri.points.y
+	C_to_point := p - tri.points.z
+
+
+	t1 := linalg.vector_cross3(A_to_point, ac)
+	t2 := linalg.vector_cross3(B_to_point, -ab)
+	t3 := linalg.vector_cross3(C_to_point, cb)
+
+	fmt.println(
+		linalg.vector_dot(t1, tri_normal),
+		" ",
+		linalg.vector_dot(t2, tri_normal),
+		" ",
+		linalg.vector_dot(t3, tri_normal),
+	)
+
+
+	hit :=
+		linalg.vector_dot(tri_normal, t1) > 0 &&
+		linalg.vector_dot(tri_normal, t2) > 0 &&
+		linalg.vector_dot(tri_normal, t3) > 0
+
+	color: rl.Color = rl.RED
+	if hit do color = rl.GREEN
+	rl.DrawSphere(p, 2.0, color) // TODO REMOVE!!! 
+	return hit
 }
+
+
 // Real Time collision detection 5.1.5
 closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	// Check if P in vertex region outside A
