@@ -754,7 +754,9 @@ main :: proc() {
 	}
 }
 
+ray_triangle_collision :: proc(ray_dir: ^Vector, tri: ^Collision_Triangle) {
 
+}
 // Real Time collision detection 5.1.5
 closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	// Check if P in vertex region outside A
