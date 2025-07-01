@@ -178,7 +178,9 @@ main :: proc() {
 		if rl.IsKeyDown(.E) do vel.y += dt * SPEED
 		if rl.IsKeyDown(.Q) do vel.y -= dt * SPEED
 
-		// TODO if rl.IsMouseButtonPressed(.LEFT) do 0
+		if rl.IsMouseButtonPressed(.LEFT) {
+
+		}
 
 		// gravity
 		vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
@@ -202,7 +204,7 @@ main :: proc() {
 			vel: ^spat.Vector,
 			cam: ^rl.Camera3D,
 		) {
-			closest := closest_point_on_triangle(
+			closest := spat.closest_point_on_triangle(
 				cam.position,
 				t.points[0],
 				t.points[1],
@@ -261,7 +263,7 @@ main :: proc() {
 		rl.DrawSphere(collision_tri.points.y, 2, rl.GREEN)
 		rl.DrawSphere(collision_tri.points.z, 2, rl.GREEN)
 
-		ray_triangle_intersect(&cam.position, &test, &collision_tri)
+		spat.ray_triangle_intersect(&cam.position, &test, &collision_tri)
 
 		draw_collision_object :: proc(
 			collision_object: ^spat.Collision_Object,
@@ -343,91 +345,4 @@ main :: proc() {
 
 		rl.EndDrawing()
 	}
-}
-
-ray_triangle_intersect :: proc(
-	ray_pos: ^spat.Vector,
-	ray_dir: ^spat.Vector,
-	tri: ^spat.Collision_Triangle,
-) -> bool {
-	ab := tri.points.y - tri.points.x
-	ac := tri.points.z - tri.points.x
-	cb := tri.points.y - tri.points.z
-	some_point_on_triangle := tri.points.x
-
-	tri_normal := linalg.vector_cross3(ab, ac)
-
-	ray_tri_normal_dot := linalg.vector_dot(ray_dir^, tri_normal)
-	if abs(ray_tri_normal_dot) < 0.0001 do return false
-
-	t :=
-		(linalg.vector_dot(some_point_on_triangle - ray_pos^, tri_normal)) /
-		linalg.vector_dot(ray_dir^, tri_normal)
-
-	p := ray_pos^ + ray_dir^ * t
-
-	A_to_point := p - tri.points.x
-	B_to_point := p - tri.points.y
-	C_to_point := p - tri.points.z
-
-
-	t1 := linalg.vector_cross3(A_to_point, ac)
-	t2 := linalg.vector_cross3(B_to_point, -ab)
-	t3 := linalg.vector_cross3(C_to_point, cb)
-
-
-	hit :=
-		linalg.vector_dot(tri_normal, t1) > 0 &&
-		linalg.vector_dot(tri_normal, t2) > 0 &&
-		linalg.vector_dot(tri_normal, t3) > 0
-
-	color: rl.Color = rl.RED
-	if hit do color = rl.GREEN
-	rl.DrawSphere(p, 2.0, color) // TODO REMOVE!!! 
-	return hit
-}
-
-
-// Real Time collision detection 5.1.5
-closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
-	// Check if P in vertex region outside A
-	ab := b - a
-	ac := c - a
-	ap := p - a
-	d1 := linalg.dot(ab, ap)
-	d2 := linalg.dot(ac, ap)
-	if d1 <= 0.0 && d2 <= 0.0 do return a // barycentric coordinates (1,0,0)
-	// Check if P in vertex region outside B
-	bp := p - b
-	d3 := linalg.dot(ab, bp)
-	d4 := linalg.dot(ac, bp)
-	if d3 >= 0.0 && d4 <= d3 do return b // barycentric coordinates (0,1,0)
-	// Check if P in edge region of AB, if so return projection of P onto AB
-	vc := d1 * d4 - d3 * d2
-	if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
-		v := d1 / (d1 - d3)
-		return a + v * ab // barycentric coordinates (1-v,v,0)
-	}
-	// Check if P in vertex region outside C
-	cp := p - c
-	d5 := linalg.dot(ab, cp)
-	d6 := linalg.dot(ac, cp)
-	if d6 >= 0.0 && d5 <= d6 do return c // barycentric coordinates (0,0,1)
-	// Check if P in edge region of AC, if so return projection of P onto AC
-	vb := d5 * d2 - d1 * d6
-	if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
-		w := d2 / (d2 - d6)
-		return a + w * ac // barycentric coordinates (1-w,0,w)
-	}
-	// Check if P in edge region of BC, if so return projection of P onto BC
-	va := d3 * d6 - d5 * d4
-	if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
-		w := (d4 - d3) / ((d4 - d3) + (d5 - d6))
-		return b + w * (c - b) // barycentric coordinates (0,1-w,w)
-	}
-	// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-	denom := 1.0 / (va + vb + vc)
-	v := vb * denom
-	w := vc * denom
-	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
 }
