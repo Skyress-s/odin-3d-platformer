@@ -681,7 +681,7 @@ main :: proc() {
 		rl.DrawSphere(collision_tri.points.y, 2, rl.GREEN)
 		rl.DrawSphere(collision_tri.points.z, 2, rl.GREEN)
 
-		ray_triangle_collision(&cam.position, &test, &collision_tri)
+		ray_triangle_intersect(&cam.position, &test, &collision_tri)
 
 		draw_collision_object :: proc(
 			collision_object: ^Collision_Object,
@@ -763,7 +763,7 @@ main :: proc() {
 	}
 }
 
-ray_triangle_collision :: proc(
+ray_triangle_intersect :: proc(
 	ray_pos: ^Vector,
 	ray_dir: ^Vector,
 	tri: ^Collision_Triangle,
@@ -793,23 +793,17 @@ ray_triangle_collision :: proc(
 	t2 := linalg.vector_cross3(B_to_point, -ab)
 	t3 := linalg.vector_cross3(C_to_point, cb)
 
-	fmt.println(
-		linalg.vector_dot(t1, tri_normal),
-		" ",
-		linalg.vector_dot(t2, tri_normal),
-		" ",
-		linalg.vector_dot(t3, tri_normal),
-	)
-
 
 	hit :=
 		linalg.vector_dot(tri_normal, t1) > 0 &&
 		linalg.vector_dot(tri_normal, t2) > 0 &&
 		linalg.vector_dot(tri_normal, t3) > 0
 
+	/*
 	color: rl.Color = rl.RED
 	if hit do color = rl.GREEN
 	rl.DrawSphere(p, 2.0, color) // TODO REMOVE!!! 
+	*/
 	return hit
 }
 
