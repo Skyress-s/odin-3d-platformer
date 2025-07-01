@@ -44,15 +44,33 @@ Collision_Shape :: struct {
 Bound :: rl.BoundingBox
 
 
+Collision_Triangle :: struct {
+	points: [3]Vector,
+}
+
+Collision_Object :: struct {
+	id:   u16,
+	tris: [dynamic]Collision_Triangle,
+}
+
 Hash_Cell :: struct {
-	items: [dynamic]^Collision_Shape,
+	objects: [dynamic]Collision_Object,
 }
 
 Hash_Int :: i32
 
-HASH_CELL_SIZE_METERS :: 1 << 4 // 128
+HASH_CELL_SIZE_METERS :: 1 << 5 // 256
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
+
+Collision_Object_Id :: u16
+
+COLLISION_OBJECT_COUNTER: Collision_Object_Id = 0
+
+get_collision_id :: proc() -> Collision_Object_Id {
+	COLLISION_OBJECT_COUNTER += 1
+	return COLLISION_OBJECT_COUNTER
+}
 
 Hash_Key :: struct {
 	x: Hash_Int,
@@ -162,7 +180,7 @@ Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key
 }
 
 
-box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
+box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_Triangle {
 
 	using shape.transform
 	x := scale.x * box.size.x / 2.0
@@ -190,28 +208,30 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic][3]Vector {
 		transformed_points[i] = pp
 	}
 
-	tris: [dynamic][3]Vector = {}
+	tris: [dynamic]Collision_Triangle = {}
 
 	// todo man this is funky, there must be a better way
 
+	ps := &transformed_points
+
 	// Top
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[5], transformed_points[1]})
-	append(&tris, [3]Vector{transformed_points[1], transformed_points[5], transformed_points[7]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[5], ps[7]}})
 	// Bottom
-	append(&tris, [3]Vector{transformed_points[2], transformed_points[3], transformed_points[4]})
-	append(&tris, [3]Vector{transformed_points[2], transformed_points[4], transformed_points[6]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
 	// Left 
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[5], transformed_points[4]})
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[7], transformed_points[5]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
 	// Right
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[1], transformed_points[2]})
-	append(&tris, [3]Vector{transformed_points[6], transformed_points[0], transformed_points[2]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[1], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[6], ps[0], ps[2]}})
 	// Forward
-	append(&tris, [3]Vector{transformed_points[1], transformed_points[3], transformed_points[2]})
-	append(&tris, [3]Vector{transformed_points[3], transformed_points[1], transformed_points[7]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[3], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[1], ps[7]}})
 	// Backward
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[4], transformed_points[5]})
-	append(&tris, [3]Vector{transformed_points[0], transformed_points[6], transformed_points[4]})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[4], ps[5]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[6], ps[4]}})
 
 	return tris
 }
@@ -225,9 +245,9 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	case Box:
 		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
 		using shape
-		x := size.x / 2.0
-		y := size.y / 2.0
-		z := size.z / 2.0
+		x := size.x
+		y := size.y
+		z := size.z
 		points := [8]Vector {
 			Vector{x, y, z},
 			Vector{-x, y, z},
@@ -310,6 +330,54 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	}
 
 	return
+
+}
+is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Triangle) -> bool {
+	for &collision_triangle in tris {
+		for &p in collision_triangle.points {
+			if Hash_Location(p) == hash_key^ do return true
+		}
+	}
+	return false
+}
+
+get_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+
+	min_hash := Hash_Location(bound.min)
+	hash_keys[min_hash] = true
+	max_hash := Hash_Location(bound.max)
+	hash_keys[max_hash] = true
+
+	// Early bail if bound is contained within one cell
+	// Todo is this actually more efficient? Have to test
+	if min_hash == max_hash do return hash_keys
+
+	// need to walk to the max cell, and go through every path
+
+	minX, maxX: i32 = min_hash.x, max_hash.x
+	minY, maxY: i32 = min_hash.y, max_hash.y
+	minZ, maxZ: i32 = min_hash.z, max_hash.z
+
+
+	// fmt.println("printing new cells for min: ", min_hash, " max: ", max_hash)
+	for x := minX; x <= maxX; x += 1 {
+
+		//new_hash := Hash_Key{x, y, z}
+		//hash_keys[new_hash] = true
+		for y := minY; y <= maxY; y += 1 {
+
+			//new_hash := Hash_Key{x, y, z}
+			//hash_keys[new_hash] = true
+			for z := minZ; z <= maxZ; z += 1 {
+
+				new_hash := Hash_Key{x, y, z}
+				hash_keys[new_hash] = true
+				// fmt.println("\t", new_hash)
+			}
+		}
+	}
+
+	return hash_keys
 }
 
 get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
@@ -329,29 +397,43 @@ get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
 
 	for v in points {
 		cells[Hash_Location(v)] = true
-		fmt.println("njahahaha")
 	}
 	return
 }
 
 add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
 	bounds := get_bounds(shape^)
-	hash_keys := get_overlapping_cells(bounds)
-	fmt.println("overlapping cells: ", len(hash_keys), "hash keys: ", hash_keys)
+	potential_hash_keys := get_overlapping_cells2(bounds)
 
-	for hash_key in hash_keys {
+	/*
+	for potential_hash_key in potential_hash_keys {
+
+	}
+	*/
+
+	collision_object_id := get_collision_id()
+
+	for hash_key in potential_hash_keys {
 		cell := &hash_map[hash_key]
 		if cell == nil {
 			// fmt.println("Emty cell, creating new one...")
 			hash_map[hash_key] = {}
 			cell = &hash_map[hash_key]
 		}
-		fmt.println("adding element to hash cell: ", hash_key, " | ", cell)
-		append_elem(&cell.items, shape)
+		tris := shape_get_collision_tris(shape)
+
+		col_obs := Collision_Object{collision_object_id, {}}
+
+
+		for &t in tris {
+			append_elem(&col_obs.tris, t) // todo huah tuah
+		}
+
+		append_elem(&cell.objects, col_obs)
 	}
 }
 
-shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector) {
+shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {
 	switch &s in shape.shape {
 	case Box:
 		return box_get_tris(&s, shape)
@@ -365,7 +447,6 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic]([3]Vector
 
 
 main :: proc() {
-
 	test: [dynamic]int = make([dynamic]int)
 	append(&test, 4, 97, 7)
 
@@ -406,6 +487,15 @@ main :: proc() {
 	add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	objects[cylinder1] = true
 
+
+	i += 1
+	q2 := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {1, -1, 1})
+	box3 := Collision_Shape{i, {{-32, 0, 0}, q2, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
+	//box3 := Collision_Shape{i, {{-32, 0, 0}, q, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
+	add_shape_to_hash_map(&box3, &spatial_hash_map)
+	objects[box3] = true
+
+
 	/*
 	i += 1
 	box2 := Collision_Shape{i, {{9, 17, 9}, {}, {1, 1, 1}}, Box{{1.0, 1.0, 1.0}}}
@@ -444,6 +534,8 @@ main :: proc() {
 	rl.InitWindow(800, 600, "mph*0.5mv^2")
 	defer rl.CloseWindow()
 
+	rl.SetTargetFPS(180)
+
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
@@ -460,17 +552,20 @@ main :: proc() {
 
 	vel: rl.Vector3
 
-	tris: [dynamic][3]Vector
+	tris: [dynamic]Collision_Triangle
 	cubes: [dynamic]rl.BoundingBox
 
 	append(&cubes, rl.BoundingBox{})
 
 	append_quad :: proc(
-		tris: ^[dynamic][3]rl.Vector3,
+		tris: ^[dynamic]Collision_Triangle,
 		a, b, c, d: rl.Vector3,
 		offs: rl.Vector3 = {},
 	) {
-		points := [][3]rl.Vector3{{b + offs, a + offs, c + offs}, {b + offs, c + offs, d + offs}}
+		points := []Collision_Triangle {
+			Collision_Triangle{{b + offs, a + offs, c + offs}},
+			Collision_Triangle{{b + offs, c + offs, d + offs}},
+		}
 		append(tris, ..points)
 	}
 
@@ -500,8 +595,11 @@ main :: proc() {
 		SPEED :: 20
 		RAD :: 1
 
-		if rl.IsKeyDown(.W) do vel += forward * dt * SPEED
-		if rl.IsKeyDown(.S) do vel -= forward * dt * SPEED
+		xz_forward := forward
+		xz_forward.y = 0
+		xz_forward = linalg.vector_normalize(xz_forward)
+		if rl.IsKeyDown(.W) do vel += xz_forward * dt * SPEED
+		if rl.IsKeyDown(.S) do vel -= xz_forward * dt * SPEED
 		if rl.IsKeyDown(.D) do vel -= right * dt * SPEED
 		if rl.IsKeyDown(.A) do vel += right * dt * SPEED
 
@@ -513,27 +611,25 @@ main :: proc() {
 
 		if rl.IsKeyPressed(.SPACE) do vel.y = 15
 
+
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
-		active_cell := spatial_hash_map[Hash_Location(cam.position)]
+		//get_overlapping_cells(cam.position)
+		active_hash_key := Hash_Location(cam.position)
+		active_cell := spatial_hash_map[active_hash_key]
 		// Collide with cubes / planes
 
 
-		active_cell_tris: [dynamic][3]Vector = {}
+		active_cell_objects := &active_cell.objects
 
-		for &shape in active_cell.items {
-			new_tris := shape_get_collision_tris(shape)
-			for &tri in new_tris {
-				append_elem(&active_cell_tris, tri)
-				// todo need to figure out how to add the whole array
-			}
-			// todo
-
-		}
-
-		collide_with_tri :: proc(t: [3]Vector, vel: ^Vector, cam: ^rl.Camera3D) {
-			closest := closest_point_on_triangle(cam.position, t[0], t[1], t[2])
+		collide_with_tri :: proc(t: ^Collision_Triangle, vel: ^Vector, cam: ^rl.Camera3D) {
+			closest := closest_point_on_triangle(
+				cam.position,
+				t.points[0],
+				t.points[1],
+				t.points[2],
+			)
 			diff := cam.position - closest
 			dist := linalg.length(diff)
 			normal := diff / dist
@@ -552,12 +648,16 @@ main :: proc() {
 		}
 
 		// Collide
-		for t in tris {
-			collide_with_tri(t, &vel, &cam)
+		for &t in tris {
+			collide_with_tri(&t, &vel, &cam)
 		}
 
-		for t in active_cell_tris {
-			collide_with_tri(t, &vel, &cam)
+		for &collision_object in active_cell_objects {
+
+			for &t in collision_object.tris {
+				collide_with_tri(&t, &vel, &cam)
+
+			}
 
 		}
 
@@ -565,12 +665,61 @@ main :: proc() {
 		cam.position += vel * dt
 		cam.target = cam.position + forward
 
+		draw_collision_tri :: proc(t: ^Collision_Triangle, face_color, edge_color: rl.Color) {
+			using t
+			rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
+			rl.DrawLine3D(points[0], points[1], edge_color)
+			rl.DrawLine3D(points[0], points[2], edge_color)
+			rl.DrawLine3D(points[1], points[2], edge_color)
+
+		}
+
+		test := linalg.vector_normalize(cam.target - cam.position)
+		collision_tri := Collision_Triangle{{Vector{0, 0, 0}, Vector{10, 0, 0}, Vector{0, 0, 10}}}
+
+		rl.DrawSphere(collision_tri.points.x, 2, rl.GREEN)
+		rl.DrawSphere(collision_tri.points.y, 2, rl.GREEN)
+		rl.DrawSphere(collision_tri.points.z, 2, rl.GREEN)
+
+		ray_triangle_intersect(&cam.position, &test, &collision_tri)
+
+		draw_collision_object :: proc(
+			collision_object: ^Collision_Object,
+			face_color, edge_color: rl.Color,
+		) {
+			for &t in collision_object.tris {
+				draw_collision_tri(&t, face_color, edge_color)
+			}
+		}
+
 		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
-		for t in tris {
-			rl.DrawTriangle3D(t[0], t[1], t[2], rl.GRAY)
-			rl.DrawLine3D(t[0], t[1], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[0], t[2], rl.LIGHTGRAY)
-			rl.DrawLine3D(t[1], t[2], rl.LIGHTGRAY)
+		for &t in tris {
+
+			draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
+		}
+
+		drawn_collision_objects_ids: map[Collision_Object_Id]bool
+
+		for &collision_object in active_cell_objects {
+			has_been_drawn := collision_object.id in drawn_collision_objects_ids
+			if (!has_been_drawn) {
+				draw_collision_object(&collision_object, rl.GREEN, rl.GRAY)
+				drawn_collision_objects_ids[collision_object.id] = true
+			}
+		}
+
+		// Draw all other geometry
+		for hash_key in spatial_hash_map {
+			if hash_key == active_hash_key do continue
+
+			cell := &spatial_hash_map[hash_key]
+			for &collision_object in cell.objects {
+				has_been_drawn := collision_object.id in drawn_collision_objects_ids
+				if (!has_been_drawn) {
+					draw_collision_object(&collision_object, rl.LIGHTGRAY, rl.GRAY)
+					drawn_collision_objects_ids[collision_object.id] = true
+				}
+			}
 		}
 
 		for t in active_cell_tris {
@@ -608,6 +757,23 @@ main :: proc() {
 		}
 
 
+		/*
+		active_cell_items := spatial_hash_map[hash_key].items
+
+		for shape in objects {
+			color := rl.RED
+			for active_cell_item in active_cell_items {
+				if active_cell_item.id == shape.id {
+					color = rl.GREEN
+					break
+				}
+			}
+
+			// draw_collision_shape(shape, &color)
+		}
+
+		*/
+
 		rl.EndMode3D()
 
 		rl.DrawFPS(4, 4)
@@ -616,6 +782,50 @@ main :: proc() {
 
 		rl.EndDrawing()
 	}
+}
+
+ray_triangle_intersect :: proc(
+	ray_pos: ^Vector,
+	ray_dir: ^Vector,
+	tri: ^Collision_Triangle,
+) -> bool {
+	ab := tri.points.y - tri.points.x
+	ac := tri.points.z - tri.points.x
+	cb := tri.points.y - tri.points.z
+	some_point_on_triangle := tri.points.x
+
+	tri_normal := linalg.vector_cross3(ab, ac)
+
+	ray_tri_normal_dot := linalg.vector_dot(ray_dir^, tri_normal)
+	if abs(ray_tri_normal_dot) < 0.0001 do return false
+
+	t :=
+		(linalg.vector_dot(some_point_on_triangle - ray_pos^, tri_normal)) /
+		linalg.vector_dot(ray_dir^, tri_normal)
+
+	p := ray_pos^ + ray_dir^ * t
+
+	A_to_point := p - tri.points.x
+	B_to_point := p - tri.points.y
+	C_to_point := p - tri.points.z
+
+
+	t1 := linalg.vector_cross3(A_to_point, ac)
+	t2 := linalg.vector_cross3(B_to_point, -ab)
+	t3 := linalg.vector_cross3(C_to_point, cb)
+
+
+	hit :=
+		linalg.vector_dot(tri_normal, t1) > 0 &&
+		linalg.vector_dot(tri_normal, t2) > 0 &&
+		linalg.vector_dot(tri_normal, t3) > 0
+
+	/*
+	color: rl.Color = rl.RED
+	if hit do color = rl.GREEN
+	rl.DrawSphere(p, 2.0, color) // TODO REMOVE!!! 
+	*/
+	return hit
 }
 
 
