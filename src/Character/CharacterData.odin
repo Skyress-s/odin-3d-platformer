@@ -1,22 +1,23 @@
 package Character
 
 import MotionComponent "../Physics/MotionComponent"
+import spat "../Spatial"
 
 Grounded :: struct {
-    Slowed: bool
+	glide: bool,
 }
 
 Airborne :: struct {
-    Speed: f16
+	speed: f16,
 }
 
 State :: union {
-    Grounded,
-    Airborne
+	Grounded,
+	Airborne,
 }
 
 CharacternData :: struct {
-    using Motion: MotionComponent.MotionComponent,
-    CurrentState : State
-
+	using motion:    MotionComponent.MotionComponent,
+	current_state:   State,
+	hooked_position: spat.Vector,
 }
