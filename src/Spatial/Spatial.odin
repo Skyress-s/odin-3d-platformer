@@ -104,10 +104,19 @@ Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key) {
 
 }
 
+Hash_Float :: proc(v: f32) -> Hash_Int {
+	return cast(Hash_Int)(math.floor(v / cast(f32)HASH_CELL_SIZE_METERS))
+}
+
 Hash_Location :: proc(vec: Vector) -> (ret_val: Hash_Key) {
+	ret_val.x = Hash_Float(vec.x)
+	ret_val.y = Hash_Float(vec.y)
+	ret_val.z = Hash_Float(vec.z)
+	/*
 	ret_val.x = cast(Hash_Int)(math.floor(vec.x / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.y = cast(Hash_Int)(math.floor(vec.y / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.z = cast(Hash_Int)(math.floor(vec.z / cast(f32)HASH_CELL_SIZE_METERS))
+	*/
 	return
 }
 
@@ -441,6 +450,18 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 }
 
+Ray :: struct {
+	origin: Vector,
+	end:    Vector,
+}
+
+make_ray_with_origin_end :: proc(origin, end: Vector) -> Ray {
+	return Ray{origin, end}
+}
+
+make_ray_with_origin_direction_distance :: proc(origin, direction: Vector, distance: f32) -> Ray {
+	return Ray{origin, direction * distance}
+}
 
 ray_triangle_intersect :: proc(
 	ray_pos: ^Vector,
@@ -526,4 +547,15 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	v := vb * denom
 	w := vc * denom
 	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
+}
+
+calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+	hash_start := Hash_Location(ray.origin)
+	hash_end := Hash_Location(ray.end)
+	if hash_start == hash_end {
+		cells[hash_start] = true
+	}
+
+
+	return cells
 }
