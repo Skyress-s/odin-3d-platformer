@@ -577,6 +577,10 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
 	}
 
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.x) do vector_length_one_hash_cell_walked.x = 0
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.y) do vector_length_one_hash_cell_walked.y = 0
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.z) do vector_length_one_hash_cell_walked.z = 0
+
 
 	current_point := ray.origin
 
@@ -619,24 +623,24 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
 
 		// TODO this is way more comparisons than we need, this is just to get it working 
-		if (length_X < length_Y && length_X < length_Z) {
+		if (length_X <= length_Y && length_X <= length_Z) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
 			current_point =
 				current_point + direction * (percent_X * HASH_CELL_SIZE_METERS_FLOAT / direction.x)
 			current_hash.x += dirs.x
 
-		} else if (length_Y < length_X && length_Y < length_Z) {
+		} else if (length_Y <= length_X && length_Y <= length_Z) {
 			// current_point = current_point + (gradient * (length_Y / gradient.y))
 			current_point =
 				current_point + direction * (percent_Y * HASH_CELL_SIZE_METERS_FLOAT / direction.y)
 			current_hash.y += dirs.y
 
-		} else if (length_Z < length_X && length_Z < length_Y) {
+		} else if (length_Z <= length_X && length_Z <= length_Y) {
 			// current_point = current_point + (gradient * (length_Z / gradient.z))
 			current_point =
 				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
 			current_hash.z += dirs.z
-		} else {unreachable()}
+		} else {panic(fmt.aprintf("no oaky man {} {} {}", length_X, length_Y, length_Z))}
 
 		cells[current_hash] = true
 	}

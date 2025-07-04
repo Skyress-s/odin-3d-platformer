@@ -202,7 +202,7 @@ main :: proc() {
 		{
 			distance := spat.HASH_CELL_SIZE_METERS_FLOAT * 5.3
 			ray := spat.make_ray_with_origin_end(
-			spat.Vector{4, 75, 1}, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
+			spat.Vector{-distance, 75, 1}, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
 			spat.Vector{-distance, -distance, distance},
 			)
 
