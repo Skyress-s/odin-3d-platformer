@@ -619,19 +619,19 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
 
 		// TODO this is way more comparisons than we need, this is just to get it working 
-		if (length_X <= length_Y && length_X <= length_Z) {
+		if (length_X < length_Y && length_X < length_Z) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
 			current_point =
 				current_point + direction * (percent_X * HASH_CELL_SIZE_METERS_FLOAT / direction.x)
 			current_hash.x += dirs.x
 
-		} else if (length_Y <= length_X && length_Y <= length_Z) {
+		} else if (length_Y < length_X && length_Y < length_Z) {
 			// current_point = current_point + (gradient * (length_Y / gradient.y))
 			current_point =
 				current_point + direction * (percent_Y * HASH_CELL_SIZE_METERS_FLOAT / direction.y)
 			current_hash.y += dirs.y
 
-		} else if (length_Z <= length_X && length_Z <= length_Y) {
+		} else if (length_Z < length_X && length_Z < length_Y) {
 			// current_point = current_point + (gradient * (length_Z / gradient.z))
 			current_point =
 				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
