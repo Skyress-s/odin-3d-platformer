@@ -588,15 +588,16 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 			HASH_CELL_SIZE_METERS_FLOAT
 
 
-		next_X_hash := current_hash.x + dirs.x
-		next_Y_hash := current_hash.y + dirs.y
-		next_Z_hash := current_hash.z + dirs.z
+		next_X_hash := current_hash.x + 1
+		next_Y_hash := current_hash.y + 1
+		next_Z_hash := current_hash.z + 1
 
 		percent_X := linalg.unlerp(
 			Unhash_Coordinate(next_X_hash),
 			Unhash_Coordinate(current_hash.x),
 			current_point.x,
 		)
+		if dirs.x == -1 do percent_X = 1 - percent_X
 		length_X := vector_length_one_hash_cell_walked.x * percent_X
 
 		percent_Y := linalg.unlerp(
@@ -604,6 +605,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 			Unhash_Coordinate(current_hash.y),
 			current_point.y,
 		)
+		if dirs.y == -1 do percent_Y = 1 - percent_Y
 		length_Y := vector_length_one_hash_cell_walked.y * percent_Y
 
 		percent_Z := linalg.unlerp(
@@ -611,6 +613,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 			Unhash_Coordinate(current_hash.z),
 			current_point.z,
 		)
+		if dirs.z == -1 do percent_Z = 1 - percent_Z
 		length_Z := vector_length_one_hash_cell_walked.z * percent_Z
 
 		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
