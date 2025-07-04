@@ -199,6 +199,22 @@ main :: proc() {
 
 		active_cell_objects := &active_cell.objects
 
+		{
+			distance := spat.HASH_CELL_SIZE_METERS_FLOAT * 5.3
+			ray := spat.make_ray_with_origin_end(
+			spat.Vector{4, 1, 1}, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
+			spat.Vector{distance, distance, distance},
+			)
+
+			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
+			cells := spat.calculate_hashes_by_ray(ray)
+
+			for cell in cells {
+				spat.Draw_Hash_Cell_Bounds(cell, rl.RED)
+			}
+		}
+
+
 		collide_with_tri :: proc(
 			t: ^spat.Collision_Triangle,
 			vel: ^spat.Vector,

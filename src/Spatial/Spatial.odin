@@ -82,7 +82,7 @@ key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
 	return {x, y, z}
 }
 
-Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key) {
+Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key, color: rl.Color = rl.GREEN) {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
 	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
 	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
@@ -555,43 +555,92 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 	if hash_start == hash_end {
 		cells[hash_start] = true
+		return cells
 	}
 
-	start_to_end := ray.origin - ray.end
-
+	start_to_end := ray.end - ray.origin
 	assert(
 		linalg.vector_length(start_to_end) > 0,
 		"Not expected, consider adding early bail here if this is happening",
 	)
 
-	gradient := linalg.vector_normalize(start_to_end)
+	direction := linalg.vector_normalize(start_to_end)
+	dirs: [3]Hash_Int = {
+		direction.x > 0.0 ? 1 : -1, // todo
+		direction.y > 0.0 ? 1 : -1,
+		direction.z > 0.0 ? 1 : -1,
+	}
+
+	scaling_grad_per_unit := Vector {
+		HASH_CELL_SIZE_METERS_FLOAT / direction.x,
+		HASH_CELL_SIZE_METERS_FLOAT / direction.y,
+		HASH_CELL_SIZE_METERS_FLOAT / direction.z,
+	}
+
+	vector_length_one_hash_cell_walked := Vector {
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.x),
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.y),
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
+	}
 
 
 	current_point := ray.origin
-	current_hash := Hash_Location(current_point)
-	next_X_hash := current_hash.x + 1
-	next_Y_hash := current_hash.y + 1
-	next_Z_hash := current_hash.z + 1
 
-	percent_X := linalg.unlerp(cast(f32)next_X_hash, cast(f32)current_hash.x, current_point.x)
-	length_X := gradient.x
-
-	percent_Y := linalg.unlerp(cast(f32)next_Y_hash, cast(f32)current_hash.y, current_point.y)
-	length_Y := gradient.y
-
-	percent_Z := linalg.unlerp(cast(f32)next_Y_hash, cast(f32)current_hash.y, current_point.y)
-	length_Z := gradient.z*
 
 	// TODO this is way more comparisons than we need, this is just to get it working 
 
-	if (length_X < length_Y && length_X < length_Z) {
-		current_point = 
+	for current_hash := Hash_Location(current_point); current_hash != hash_end; {
 
-	} else if (length_Y < length_X && length_Y < length_Z) {
+		next_X_hash := current_hash.x + dirs.x
+		next_Y_hash := current_hash.y + dirs.y
+		next_Z_hash := current_hash.z + dirs.z
 
-	} else if (length_Z < length_X && length_Z < length_Y) {
 
+		percent_X := linalg.unlerp(
+			Unhash_Coordinate(next_X_hash),
+			Unhash_Coordinate(current_hash.x),
+			current_point.x,
+		)
+		length_X := vector_length_one_hash_cell_walked.x * percent_X
+
+		percent_Y := linalg.unlerp(
+			Unhash_Coordinate(next_Y_hash),
+			Unhash_Coordinate(current_hash.y),
+			current_point.y,
+		)
+		length_Y := vector_length_one_hash_cell_walked.y * percent_Y
+
+		percent_Z := linalg.unlerp(
+			Unhash_Coordinate(next_Z_hash),
+			Unhash_Coordinate(current_hash.z),
+			current_point.z,
+		)
+		length_Z := vector_length_one_hash_cell_walked.z * percent_Z
+
+		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
+
+		if (length_X <= length_Y && length_X <= length_Z) {
+			// current_point = current_point + (gradient * (length_X / gradient.x))
+			current_point =
+				current_point + direction * (percent_X * HASH_CELL_SIZE_METERS_FLOAT / direction.x)
+			current_hash.x += dirs.x
+
+		} else if (length_Y <= length_X && length_Y <= length_Z) {
+			// current_point = current_point + (gradient * (length_Y / gradient.y))
+			current_point =
+				current_point + direction * (percent_Y * HASH_CELL_SIZE_METERS_FLOAT / direction.y)
+			current_hash.y += dirs.y
+
+		} else if (length_Z <= length_X && length_Z <= length_Y) {
+			// current_point = current_point + (gradient * (length_Z / gradient.z))
+			current_point =
+				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
+			current_hash.z += dirs.z
+		} else {unreachable()}
+
+		cells[current_hash] = true
 	}
+
 	// hmmmm
 
 	// delta := (ray.end - ray.origin)
