@@ -57,6 +57,7 @@ Hash_Cell :: struct {
 Hash_Int :: i32
 
 HASH_CELL_SIZE_METERS :: 1 << 5 // 256
+HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
@@ -104,20 +105,31 @@ Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key) {
 
 }
 
-Hash_Float :: proc(v: f32) -> Hash_Int {
+Hash_Coordinate :: proc(v: f32) -> Hash_Int {
 	return cast(Hash_Int)(math.floor(v / cast(f32)HASH_CELL_SIZE_METERS))
 }
 
+Unhash_Coordinate :: proc(hash: Hash_Int) -> f32 {
+	return cast(f32)hash * HASH_CELL_SIZE_METERS
+}
+
 Hash_Location :: proc(vec: Vector) -> (ret_val: Hash_Key) {
-	ret_val.x = Hash_Float(vec.x)
-	ret_val.y = Hash_Float(vec.y)
-	ret_val.z = Hash_Float(vec.z)
+	ret_val.x = Hash_Coordinate(vec.x)
+	ret_val.y = Hash_Coordinate(vec.y)
+	ret_val.z = Hash_Coordinate(vec.z)
 	/*
 	ret_val.x = cast(Hash_Int)(math.floor(vec.x / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.y = cast(Hash_Int)(math.floor(vec.y / cast(f32)HASH_CELL_SIZE_METERS))
 	ret_val.z = cast(Hash_Int)(math.floor(vec.z / cast(f32)HASH_CELL_SIZE_METERS))
 	*/
 	return
+}
+
+Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
+	location.x = Unhash_Coordinate(hash_key.x)
+	location.y = Unhash_Coordinate(hash_key.y)
+	location.z = Unhash_Coordinate(hash_key.z)
+	return location
 }
 
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
@@ -450,18 +462,6 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 }
 
-Ray :: struct {
-	origin: Vector,
-	end:    Vector,
-}
-
-make_ray_with_origin_end :: proc(origin, end: Vector) -> Ray {
-	return Ray{origin, end}
-}
-
-make_ray_with_origin_direction_distance :: proc(origin, direction: Vector, distance: f32) -> Ray {
-	return Ray{origin, direction * distance}
-}
 
 ray_triangle_intersect :: proc(
 	ray_pos: ^Vector,
@@ -552,9 +552,50 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
+
 	if hash_start == hash_end {
 		cells[hash_start] = true
 	}
+
+	start_to_end := ray.origin - ray.end
+
+	assert(
+		linalg.vector_length(start_to_end) > 0,
+		"Not expected, consider adding early bail here if this is happening",
+	)
+
+	gradient := linalg.vector_normalize(start_to_end)
+
+
+	current_point := ray.origin
+	current_hash := Hash_Location(current_point)
+	next_X_hash := current_hash.x + 1
+	next_Y_hash := current_hash.y + 1
+	next_Z_hash := current_hash.z + 1
+
+	percent_X := linalg.unlerp(cast(f32)next_X_hash, cast(f32)current_hash.x, current_point.x)
+	length_X := gradient.x
+
+	percent_Y := linalg.unlerp(cast(f32)next_Y_hash, cast(f32)current_hash.y, current_point.y)
+	length_Y := gradient.y
+
+	percent_Z := linalg.unlerp(cast(f32)next_Y_hash, cast(f32)current_hash.y, current_point.y)
+	length_Z := gradient.z*
+
+	// TODO this is way more comparisons than we need, this is just to get it working 
+
+	if (length_X < length_Y && length_X < length_Z) {
+		current_point = 
+
+	} else if (length_Y < length_X && length_Y < length_Z) {
+
+	} else if (length_Z < length_X && length_Z < length_Y) {
+
+	}
+	// hmmmm
+
+	// delta := (ray.end - ray.origin)
+	// delta_x, delta_y := delta.x, delta.y
 
 
 	return cells
