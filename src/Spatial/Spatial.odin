@@ -552,9 +552,9 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
+	cells[hash_start] = true
 
 	if hash_start == hash_end {
-		cells[hash_start] = true
 		return cells
 	}
 

@@ -15,7 +15,6 @@ import rlgl "vendor:raylib/rlgl"
 
 
 main :: proc() {
-
 	test: [dynamic]int = make([dynamic]int)
 	append(&test, 4, 97, 7)
 
