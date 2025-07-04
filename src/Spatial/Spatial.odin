@@ -571,12 +571,6 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		direction.z > 0.0 ? 1 : -1,
 	}
 
-	scaling_grad_per_unit := Vector {
-		HASH_CELL_SIZE_METERS_FLOAT / direction.x,
-		HASH_CELL_SIZE_METERS_FLOAT / direction.y,
-		HASH_CELL_SIZE_METERS_FLOAT / direction.z,
-	}
-
 	vector_length_one_hash_cell_walked := Vector {
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.x),
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.y),
@@ -587,14 +581,16 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	current_point := ray.origin
 
 
-	// TODO this is way more comparisons than we need, this is just to get it working 
-
 	for current_hash := Hash_Location(current_point); current_hash != hash_end; {
+		min, max: f32 =
+			Unhash_Coordinate(current_hash.x),
+			Unhash_Coordinate(current_hash.x) +
+			HASH_CELL_SIZE_METERS_FLOAT
+
 
 		next_X_hash := current_hash.x + dirs.x
 		next_Y_hash := current_hash.y + dirs.y
 		next_Z_hash := current_hash.z + dirs.z
-
 
 		percent_X := linalg.unlerp(
 			Unhash_Coordinate(next_X_hash),
@@ -619,6 +615,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
 
+		// TODO this is way more comparisons than we need, this is just to get it working 
 		if (length_X <= length_Y && length_X <= length_Z) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
 			current_point =
