@@ -463,11 +463,10 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 }
 
 
-ray_triangle_intersect :: proc(
-	ray_pos: ^Vector,
-	ray_dir: ^Vector,
-	tri: ^Collision_Triangle,
-) -> bool {
+ray_triangle_intersect :: proc(ray: ^Ray, tri: ^Collision_Triangle) -> bool {
+	ray_dir := linalg.vector_normalize(ray.end - ray.origin)
+	ray_pos := ray.origin
+
 	ab := tri.points.y - tri.points.x
 	ac := tri.points.z - tri.points.x
 	cb := tri.points.y - tri.points.z
@@ -475,14 +474,14 @@ ray_triangle_intersect :: proc(
 
 	tri_normal := linalg.vector_cross3(ab, ac)
 
-	ray_tri_normal_dot := linalg.vector_dot(ray_dir^, tri_normal)
+	ray_tri_normal_dot := linalg.vector_dot(ray_dir, tri_normal)
 	if abs(ray_tri_normal_dot) < 0.0001 do return false
 
 	t :=
-		(linalg.vector_dot(some_point_on_triangle - ray_pos^, tri_normal)) /
-		linalg.vector_dot(ray_dir^, tri_normal)
+		(linalg.vector_dot(some_point_on_triangle - ray_pos, tri_normal)) /
+		linalg.vector_dot(ray_dir, tri_normal)
 
-	p := ray_pos^ + ray_dir^ * t
+	p := ray_pos + ray_dir * t
 
 	A_to_point := p - tri.points.x
 	B_to_point := p - tri.points.y
@@ -499,9 +498,7 @@ ray_triangle_intersect :: proc(
 		linalg.vector_dot(tri_normal, t2) > 0 &&
 		linalg.vector_dot(tri_normal, t3) > 0
 
-	color: rl.Color = rl.RED
-	if hit do color = rl.GREEN
-	rl.DrawSphere(p, 2.0, color) // TODO REMOVE!!! 
+	if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		 
 	return hit
 }
 

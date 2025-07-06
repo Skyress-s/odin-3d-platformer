@@ -196,22 +196,21 @@ main :: proc() {
 		active_cell := spatial_hash_map[active_hash_key]
 		// Collide with cubes / planes
 
-
 		active_cell_objects := &active_cell.objects
 
 		{
-			distance := spat.HASH_CELL_SIZE_METERS_FLOAT * 5.3
-			/*
-			ray := spat.make_ray_with_origin_end(
-			spat.Vector{-distance, 75, 1}, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
-			spat.Vector{-distance, -distance, distance},
-			)
-			*/
-
 			ray := spat.make_ray_with_origin_end(
 				cam.position, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
 				cam.position + linalg.vector_normalize0(cam.target - cam.position) * 100,
 			)
+
+			for &object in active_cell_objects {
+				for &tri in object.tris {
+					if spat.ray_triangle_intersect(&ray, &tri) {
+					}
+				}
+			}
+
 
 			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
 			cells := spat.calculate_hashes_by_ray(ray)
@@ -276,17 +275,6 @@ main :: proc() {
 			rl.DrawLine3D(points[1], points[2], edge_color)
 
 		}
-
-		test := linalg.vector_normalize(cam.target - cam.position)
-		collision_tri := spat.Collision_Triangle {
-			{spat.Vector{0, 0, 0}, spat.Vector{10, 0, 0}, spat.Vector{0, 0, 10}},
-		}
-
-		rl.DrawSphere(collision_tri.points.x, 2, rl.GREEN)
-		rl.DrawSphere(collision_tri.points.y, 2, rl.GREEN)
-		rl.DrawSphere(collision_tri.points.z, 2, rl.GREEN)
-
-		spat.ray_triangle_intersect(&cam.position, &test, &collision_tri)
 
 		draw_collision_object :: proc(
 			collision_object: ^spat.Collision_Object,
