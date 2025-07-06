@@ -203,21 +203,30 @@ main :: proc() {
 				cam.position, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
 				cam.position + linalg.vector_normalize0(cam.target - cam.position) * 100,
 			)
-
-			for &object in active_cell_objects {
-				for &tri in object.tris {
-					if spat.ray_triangle_intersect(&ray, &tri) {
-					}
-				}
-			}
-
-
 			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
 			cells := spat.calculate_hashes_by_ray(ray)
 
 			for cell in cells {
 				spat.Draw_Hash_Cell_Bounds(cell, rl.RED)
 			}
+
+
+			/*
+			object_in_ray_path: [dynamic]^spat.Collision_Object = {}
+			for hash in cells {
+
+				append_elems(&object_in_ray_path, &spatial_hash_map[hash].objects)
+			}
+			*/
+			for &object in active_cell_objects {
+				for &tri in object.tris {
+					if spat.ray_triangle_intersect(&ray, &tri) {
+
+					}
+				}
+			}
+
+
 		}
 
 
