@@ -549,6 +549,7 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
 }
 
+// Watch "One Lone Coder"s tutorial for how to improve this. 
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
@@ -577,9 +578,10 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
 	}
 
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.x) do vector_length_one_hash_cell_walked.x = 0
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.y) do vector_length_one_hash_cell_walked.y = 0
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.z) do vector_length_one_hash_cell_walked.z = 0
+	// Todo, this is very much *not optimal, but works for now*
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.x) do vector_length_one_hash_cell_walked.x = max(f32)
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.y) do vector_length_one_hash_cell_walked.y = max(f32)
+	if math.is_nan_f32(vector_length_one_hash_cell_walked.z) do vector_length_one_hash_cell_walked.z = max(f32)
 
 
 	current_point := ray.origin
