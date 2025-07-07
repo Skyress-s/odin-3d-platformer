@@ -211,22 +211,19 @@ main :: proc() {
 			}
 
 
-			/*
 			object_in_ray_path: [dynamic]^spat.Collision_Object = {}
 			for hash in cells {
-
-				append_elems(&object_in_ray_path, &spatial_hash_map[hash].objects)
-			}
-			*/
-			for &object in active_cell_objects {
-				for &tri in object.tris {
-					if spat.ray_triangle_intersect(&ray, &tri) {
-
-					}
+				for &object in spatial_hash_map[hash].objects { 	// I hate this 
+					append_elem(&object_in_ray_path, &object)
 				}
 			}
 
-
+			for &object in object_in_ray_path {
+				for &tri in object.tris {
+					if spat.ray_triangle_intersect(&ray, &tri) {
+					}
+				}
+			}
 		}
 
 
