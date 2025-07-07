@@ -147,6 +147,12 @@ main :: proc() {
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 10, 10}, {10, 10, 10}, {10, 0, 20})
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 10, 30})
 
+	i += 1
+	obj1 := spat.Collision_Object{spat.get_collision_id(), tris}
+
+	// spat.add_collision_object_to_spatial_hash_grid()
+
+
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground({40, 30, 50, 255})
@@ -206,24 +212,17 @@ main :: proc() {
 			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
 			cells := spat.calculate_hashes_by_ray(ray)
 
+
+			ok, id, location := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
+			if ok {
+				rl.DrawSphere(location, 2.0, rl.YELLOW)
+			}
+
 			for cell in cells {
 				spat.Draw_Hash_Cell_Bounds(cell, rl.RED)
 			}
 
 
-			object_in_ray_path: [dynamic]^spat.Collision_Object = {}
-			for hash in cells {
-				for &object in spatial_hash_map[hash].objects { 	// I hate this 
-					append_elem(&object_in_ray_path, &object)
-				}
-			}
-
-			for &object in object_in_ray_path {
-				for &tri in object.tris {
-					if spat.ray_triangle_intersect(&ray, &tri) {
-					}
-				}
-			}
 		}
 
 
@@ -256,9 +255,11 @@ main :: proc() {
 		}
 
 		// Collide
+		/*
 		for &t in tris {
 			collide_with_tri(&t, &vel, &cam)
 		}
+		*/
 
 		for &collision_object in active_cell_objects {
 

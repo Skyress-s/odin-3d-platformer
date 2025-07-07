@@ -75,6 +75,11 @@ Hash_Key :: struct {
 	y: Hash_Int,
 	z: Hash_Int,
 }
+
+
+Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
+
+
 key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
 	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
@@ -358,7 +363,30 @@ is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Tri
 	return false
 }
 
-get_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
+
+	bound: Bound = {}
+
+	bound.min = Vector{max(f32), max(f32), max(f32)}
+	bound.max = Vector{min(f32), min(f32), min(f32)}
+
+	for &tri in tris {
+		/*#unroll*/for p in tri.points { 	// todo how to unroll
+			if p.x > bound.max.x do bound.max.x = p.x
+			if p.x < bound.min.x do bound.min.x = p.x
+
+			if p.y > bound.max.y do bound.max.y = p.y
+			if p.y < bound.min.y do bound.min.y = p.y
+
+			if p.z > bound.max.z do bound.max.z = p.z
+			if p.z < bound.min.z do bound.min.z = p.z
+		}
+	}
+
+	return bound
+}
+
+calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
 
 	min_hash := Hash_Location(bound.min)
 	hash_keys[min_hash] = true
@@ -397,30 +425,9 @@ get_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
 	return hash_keys
 }
 
-get_overlapping_cells :: proc(bound: Bound) -> (cells: map[Hash_Key]bool) {
-
-	using bound
-	points := [8]Vector {
-		Vector{min.x, min.y, min.z},
-		Vector{max.x, min.y, min.z},
-		Vector{max.x, max.y, min.z},
-		Vector{max.x, max.y, max.z},
-		Vector{min.x, max.y, max.z},
-		Vector{min.x, min.y, max.z},
-		Vector{max.x, min.y, max.z},
-		Vector{min.x, max.y, min.z},
-	}
-
-
-	for v in points {
-		cells[Hash_Location(v)] = true
-	}
-	return
-}
-
 add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
 	bounds := get_bounds(shape^)
-	potential_hash_keys := get_overlapping_cells2(bounds)
+	potential_hash_keys := calculate_overlapping_cells2(bounds)
 
 	/*
 	for potential_hash_key in potential_hash_keys {
@@ -450,6 +457,20 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 	}
 }
 
+add_collision_object_to_spatial_hash_grid :: proc(
+	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
+	spatial_hash_grid: ^Spatial_Hash_Grid,
+) {
+	collision_object_id := get_collision_id()
+
+	bound := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
+
+	hash_keys := calculate_overlapping_cells2(bound)
+
+	// todo fix this
+
+
+}
 shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {
 	switch &s in shape.shape {
 	case Box:
@@ -463,7 +484,13 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 }
 
 
-ray_triangle_intersect :: proc(ray: ^Ray, tri: ^Collision_Triangle) -> bool {
+ray_triangle_intersect :: proc(
+	ray: ^Ray,
+	tri: ^Collision_Triangle,
+) -> (
+	valid: bool,
+	location: Vector,
+) {
 	ray_dir := linalg.vector_normalize(ray.end - ray.origin)
 	ray_pos := ray.origin
 
@@ -475,7 +502,7 @@ ray_triangle_intersect :: proc(ray: ^Ray, tri: ^Collision_Triangle) -> bool {
 	tri_normal := linalg.vector_cross3(ab, ac)
 
 	ray_tri_normal_dot := linalg.vector_dot(ray_dir, tri_normal)
-	if abs(ray_tri_normal_dot) < 0.0001 do return false
+	if abs(ray_tri_normal_dot) < 0.0001 do return false, Vector{}
 
 	t :=
 		(linalg.vector_dot(some_point_on_triangle - ray_pos, tri_normal)) /
@@ -499,7 +526,9 @@ ray_triangle_intersect :: proc(ray: ^Ray, tri: ^Collision_Triangle) -> bool {
 		linalg.vector_dot(tri_normal, t3) > 0
 
 	if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		 
-	return hit
+	valid = hit
+	location = p
+	return valid, location
 }
 
 // Real Time collision detection 5.1.5
@@ -547,6 +576,7 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 }
 
 // Watch "One Lone Coder"s tutorial for how to improve this. 
+// todo this can probably return a array of hashes. So we can searsh through the closest cells first.
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
