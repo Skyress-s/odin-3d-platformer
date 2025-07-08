@@ -468,7 +468,16 @@ add_collision_object_to_spatial_hash_grid :: proc(
 	hash_keys := calculate_overlapping_cells2(bound)
 
 	// todo fix this
-
+	for hash_key in hash_keys {
+		collision_object := Collision_Object{collision_object_id, tris}
+		test := &spatial_hash_grid[hash_key] // wtf
+		if test == nil {
+			// fmt.println("Emty cell, creating new one...")
+			spatial_hash_grid[hash_key] = {}
+			test = &spatial_hash_grid[hash_key]
+		}
+		append_elem(&test.objects, collision_object)
+	}
 
 }
 shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {

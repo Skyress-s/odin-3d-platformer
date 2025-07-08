@@ -147,8 +147,7 @@ main :: proc() {
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 10, 10}, {10, 10, 10}, {10, 0, 20})
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 10, 30})
 
-	i += 1
-	obj1 := spat.Collision_Object{spat.get_collision_id(), tris}
+	spat.add_collision_object_to_spatial_hash_grid(tris, &spatial_hash_map)
 
 	// spat.add_collision_object_to_spatial_hash_grid()
 
@@ -194,6 +193,8 @@ main :: proc() {
 		if rl.IsKeyPressed(.SPACE) do vel.y = 15
 
 
+		platform_bounds := spat.calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
+		rl.DrawBoundingBox(platform_bounds, rl.GREEN)
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
@@ -293,11 +294,13 @@ main :: proc() {
 		}
 
 		rl.DrawCubeV(cam.position + forward * 10, 0.25, rl.BLACK)
+
+		/*
 		for &t in tris {
 
 			draw_collision_tri(&t, rl.LIGHTGRAY, rl.GRAY)
 		}
-
+		*/
 		drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
 
 		for &collision_object in active_cell_objects {
