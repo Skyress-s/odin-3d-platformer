@@ -20,4 +20,5 @@ CharacternData :: struct {
 	using motion:    MotionComponent.MotionComponent,
 	current_state:   State,
 	hooked_position: spat.Vector,
+	is_hooked:       bool,
 }

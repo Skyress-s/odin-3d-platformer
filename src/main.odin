@@ -184,6 +184,21 @@ main :: proc() {
 		if rl.IsKeyDown(.Q) do vel.y -= dt * SPEED
 
 		if rl.IsMouseButtonPressed(.LEFT) {
+			if char_data.is_hooked {
+				char_data.is_hooked = false
+			} else {
+				ray := spat.make_ray_with_origin_direction_distance(
+					cam.position,
+					linalg.vector_normalize(cam.target - cam.position),
+					12.0,
+				)
+				ok, id, locaation := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
+				if ok {
+
+					char_data.hooked_position = locaation
+					char_data.is_hooked = true
+				}
+			}
 
 		}
 
@@ -192,17 +207,14 @@ main :: proc() {
 
 		if rl.IsKeyPressed(.SPACE) do vel.y = 15
 
-
-		platform_bounds := spat.calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
-		rl.DrawBoundingBox(platform_bounds, rl.GREEN)
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
 
 		//get_overlapping_cells(cam.position)
 		active_hash_key := spat.Hash_Location(cam.position)
 		active_cell := spatial_hash_map[active_hash_key]
-		// Collide with cubes / planes
 
+		// Collide with cubes / planes
 		active_cell_objects := &active_cell.objects
 
 		{
@@ -261,12 +273,23 @@ main :: proc() {
 			collide_with_tri(&t, &vel, &cam)
 		}
 		*/
+		rl.DrawCubeWires(char_data.hooked_position, 4, 4, 4, rl.RAYWHITE)
+		rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+
 
 		for &collision_object in active_cell_objects {
 
 			for &t in collision_object.tris {
 				collide_with_tri(&t, &vel, &cam)
+			}
 
+		}
+		// Handle rope logic
+		if char_data.is_hooked {
+			direction_to_hook := linalg.vector_normalize(char_data.hooked_position - cam.position)
+			distance := linalg.distance(char_data.hooked_position, cam.position)
+			if distance > 50 {
+				vel += direction_to_hook * 240 * dt
 			}
 
 		}

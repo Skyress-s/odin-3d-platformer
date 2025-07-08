@@ -12,7 +12,7 @@ make_ray_with_origin_end :: proc(origin, end: Vector) -> Ray {
 }
 
 make_ray_with_origin_direction_distance :: proc(origin, direction: Vector, distance: f32) -> Ray {
-	return Ray{origin, direction * distance}
+	return Ray{origin, origin + direction * distance}
 }
 
 ray_intersect_spatial_hash_grid :: proc(
