@@ -17,8 +17,9 @@ State :: union {
 }
 
 CharacternData :: struct {
-	using motion:    MotionComponent.MotionComponent,
-	current_state:   State,
-	hooked_position: spat.Vector,
-	is_hooked:       bool,
+	using motion:           MotionComponent.MotionComponent,
+	current_state:          State,
+	hooked_position:        spat.Vector,
+	is_hooked:              bool,
+	start_distance_to_hook: f32,
 }

@@ -197,6 +197,10 @@ main :: proc() {
 
 					char_data.hooked_position = locaation
 					char_data.is_hooked = true
+					char_data.start_distance_to_hook = linalg.distance(
+						char_data.hooked_position,
+						cam.position,
+					)
 				}
 			}
 
@@ -273,8 +277,10 @@ main :: proc() {
 			collide_with_tri(&t, &vel, &cam)
 		}
 		*/
-		rl.DrawCubeWires(char_data.hooked_position, 4, 4, 4, rl.RAYWHITE)
-		rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+		if char_data.is_hooked {
+
+			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+		}
 
 
 		for &collision_object in active_cell_objects {
@@ -288,8 +294,23 @@ main :: proc() {
 		if char_data.is_hooked {
 			direction_to_hook := linalg.vector_normalize(char_data.hooked_position - cam.position)
 			distance := linalg.distance(char_data.hooked_position, cam.position)
-			if distance > 50 {
-				vel += direction_to_hook * 240 * dt
+			if distance > char_data.start_distance_to_hook {
+				distance_over_max := (distance - char_data.start_distance_to_hook)
+				distance_over_max = max(distance_over_max, 0.0)
+
+
+				// huh, this is shit
+				right := linalg.vector_cross3(vel, direction_to_hook)
+				forward := linalg.vector_cross3(direction_to_hook, right)
+				forward = linalg.vector_normalize(forward)
+
+				new_vel_length := linalg.vector_dot(vel, forward)
+				vel = forward * new_vel_length
+				// todo, momentum not conserved
+				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
+				// what i want in a ideal world:
+				// - [C]ontinous [C]ollision [D]etection
+				// - Energy is conserverd,  
 			}
 
 		}
@@ -304,8 +325,8 @@ main :: proc() {
 			rl.DrawLine3D(points[0], points[1], edge_color)
 			rl.DrawLine3D(points[0], points[2], edge_color)
 			rl.DrawLine3D(points[1], points[2], edge_color)
-
 		}
+
 
 		draw_collision_object :: proc(
 			collision_object: ^spat.Collision_Object,
