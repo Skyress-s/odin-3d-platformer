@@ -26,6 +26,8 @@ ray_intersect_spatial_hash_grid :: proc(
 
 	dist: f32 = max(f32)
 	hashes := calculate_hashes_by_ray(ray^)
+	ray_length := linalg.distance(ray.origin, ray.end)
+	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
 
 	for hash in hashes {
 		hash_cell, ok := &hash_grid[hash]
@@ -34,8 +36,16 @@ ray_intersect_spatial_hash_grid :: proc(
 			for &tri in object.tris {
 				ok, intersect_location := ray_triangle_intersect(ray, &tri)
 				if ok {
+					is_in_front := linalg.vector_dot(
+						ray_direction,
+						intersect_location - ray.origin,
+					)
+
 					new_distance := linalg.distance(intersect_location, ray.origin)
-					if new_distance < dist {
+
+					if ((new_distance < dist) &&
+						   (is_in_front > 0) &&
+						   (linalg.distance(ray.origin, intersect_location) < ray_length)) {
 						hit = true
 						dist = new_distance
 						id = object.id

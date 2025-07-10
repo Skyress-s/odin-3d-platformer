@@ -27,8 +27,6 @@ main :: proc() {
 	char_data.current_state = character.Airborne{}
 	player_vel_verlet_comp: verlet.Velocity_Verlet_Component = {}
 	player_vel_verlet_comp.position = spat.Vector{5, 1, 5}
-	fmt.println(player_vel_verlet_comp)
-
 
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
@@ -71,6 +69,17 @@ main :: proc() {
 	spat.add_shape_to_hash_map(&box3, &spatial_hash_map)
 	objects[box3] = true
 
+	for box_num in 0 ..= 5 {
+		i += 1
+		grapple_bar_box := spat.Collision_Shape {
+			i,
+			{{cast(f32)(box_num * 90 + 100), 0, 0}, {}, {1, 1, 1}},
+			spat.Box{{3, 3, 40}},
+		}
+		spat.add_shape_to_hash_map(&grapple_bar_box, &spatial_hash_map)
+
+	}
+
 
 	/*
 	i += 1
@@ -102,8 +111,6 @@ main :: proc() {
 	// spatial_hash_tree[Hash_Location(&{0, 0, 0})] = {}
 	//spatial_hash_tree[Hash_Location(&{0, 2, 4})] = {}
 	// spatial_hash_tree[Hash_Location_For_Cell(&{1,1,9})] = }
-
-	fmt.println(spatial_hash_map)
 
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
@@ -179,6 +186,7 @@ main :: proc() {
 		xz_forward := forward
 		xz_forward.y = 0
 		xz_forward = linalg.vector_normalize(xz_forward)
+
 		if rl.IsKeyDown(.W) do player_vel_verlet_comp.velocity += xz_forward * dt * SPEED
 		if rl.IsKeyDown(.S) do player_vel_verlet_comp.velocity -= xz_forward * dt * SPEED
 		if rl.IsKeyDown(.D) do player_vel_verlet_comp.velocity -= right * dt * SPEED
@@ -194,12 +202,15 @@ main :: proc() {
 				ray := spat.make_ray_with_origin_direction_distance(
 					cam.position,
 					linalg.vector_normalize(cam.target - cam.position),
-					12.0,
+					10020.0,
 				)
-				ok, id, locaation := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
+				ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
+					&spatial_hash_map,
+					&ray,
+				)
 				if ok {
 
-					char_data.hooked_position = locaation
+					char_data.hooked_position = hook_hit_location
 					char_data.is_hooked = true
 					char_data.start_distance_to_hook = linalg.distance(
 						char_data.hooked_position,
@@ -213,7 +224,31 @@ main :: proc() {
 		// gravity
 		// vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
 
-		if rl.IsKeyPressed(.SPACE) do player_vel_verlet_comp.velocity.y = 15
+
+		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
+		if rl.IsKeyPressed(.SPACE) && ok {
+
+			player_vel_verlet_comp.velocity.y = 15
+
+		}
+
+		// Update character specific stuff
+		{
+			ray := spat.make_ray_with_origin_direction_distance(
+				player_vel_verlet_comp.position,
+				spat.Vector{0, -1, 0},
+				RAD + 0.5,
+			)
+
+			ok, id, location := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
+
+			if ok {
+				char_data.current_state = character.Grounded{}
+			} else {
+				char_data.current_state = character.Airborne{}
+			}
+
+		}
 
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
@@ -233,7 +268,6 @@ main :: proc() {
 			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
 
 			cells := spat.calculate_hashes_by_ray(ray)
-			fmt.println(ray)
 
 			ok, id, location := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
 			if ok {
@@ -319,8 +353,7 @@ main :: proc() {
 
 		}
 
-
-		verlet.velocity_verlet(&player_vel_verlet_comp, spat.Vector{0, -10, 0}, dt)
+		verlet.velocity_verlet(&player_vel_verlet_comp, spat.Vector{0, -30, 0}, dt)
 		cam.position += player_vel_verlet_comp.velocity * dt
 		cam.position = player_vel_verlet_comp.position
 		cam.target = cam.position + forward
@@ -419,6 +452,7 @@ main :: proc() {
 			20,
 			rl.WHITE,
 		)
+		rl.DrawText(fmt.ctprintf("%v", char_data.current_state), 4, 60, 20, rl.WHITE)
 
 		rl.EndDrawing()
 	}
