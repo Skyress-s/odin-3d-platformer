@@ -4,6 +4,7 @@ import character "Character"
 import p "Physics"
 import spat "Spatial"
 
+import verlet "Physics/verlet"
 import "base:builtin"
 import intrinsics "base:intrinsics"
 import "core:fmt"
@@ -24,6 +25,9 @@ main :: proc() {
 
 	char_data: character.CharacternData
 	char_data.current_state = character.Airborne{}
+	player_vel_verlet_comp: verlet.Velocity_Verlet_Component = {}
+	player_vel_verlet_comp.position = spat.Vector{5, 1, 5}
+	fmt.println(player_vel_verlet_comp)
 
 
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
@@ -122,7 +126,7 @@ main :: proc() {
 	}
 	vela: linalg.Vector3f16 = {1, 2, 3}
 
-	vel: rl.Vector3
+	// vel: rl.Vector3
 
 	tris: [dynamic]spat.Collision_Triangle
 	cubes: [dynamic]rl.BoundingBox
@@ -175,13 +179,13 @@ main :: proc() {
 		xz_forward := forward
 		xz_forward.y = 0
 		xz_forward = linalg.vector_normalize(xz_forward)
-		if rl.IsKeyDown(.W) do vel += xz_forward * dt * SPEED
-		if rl.IsKeyDown(.S) do vel -= xz_forward * dt * SPEED
-		if rl.IsKeyDown(.D) do vel -= right * dt * SPEED
-		if rl.IsKeyDown(.A) do vel += right * dt * SPEED
+		if rl.IsKeyDown(.W) do player_vel_verlet_comp.velocity += xz_forward * dt * SPEED
+		if rl.IsKeyDown(.S) do player_vel_verlet_comp.velocity -= xz_forward * dt * SPEED
+		if rl.IsKeyDown(.D) do player_vel_verlet_comp.velocity -= right * dt * SPEED
+		if rl.IsKeyDown(.A) do player_vel_verlet_comp.velocity += right * dt * SPEED
 
-		if rl.IsKeyDown(.E) do vel.y += dt * SPEED
-		if rl.IsKeyDown(.Q) do vel.y -= dt * SPEED
+		if rl.IsKeyDown(.E) do player_vel_verlet_comp.velocity += dt * SPEED
+		if rl.IsKeyDown(.Q) do player_vel_verlet_comp.velocity -= dt * SPEED
 
 		if rl.IsMouseButtonPressed(.LEFT) {
 			if char_data.is_hooked {
@@ -207,9 +211,9 @@ main :: proc() {
 		}
 
 		// gravity
-		vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
+		// vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
 
-		if rl.IsKeyPressed(.SPACE) do vel.y = 15
+		if rl.IsKeyPressed(.SPACE) do player_vel_verlet_comp.velocity.y = 15
 
 		// damping
 		// vel *= 1.0 / (1.0 + dt * 1.5)
@@ -227,8 +231,9 @@ main :: proc() {
 				cam.position + linalg.vector_normalize0(cam.target - cam.position) * 100,
 			)
 			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
-			cells := spat.calculate_hashes_by_ray(ray)
 
+			cells := spat.calculate_hashes_by_ray(ray)
+			fmt.println(ray)
 
 			ok, id, location := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
 			if ok {
@@ -238,7 +243,6 @@ main :: proc() {
 			for cell in cells {
 				spat.Draw_Hash_Cell_Bounds(cell, rl.RED)
 			}
-
 
 		}
 
@@ -286,7 +290,7 @@ main :: proc() {
 		for &collision_object in active_cell_objects {
 
 			for &t in collision_object.tris {
-				collide_with_tri(&t, &vel, &cam)
+				collide_with_tri(&t, &player_vel_verlet_comp.velocity, &cam)
 			}
 
 		}
@@ -300,12 +304,12 @@ main :: proc() {
 
 
 				// huh, this is shit
-				right := linalg.vector_cross3(vel, direction_to_hook)
+				right := linalg.vector_cross3(player_vel_verlet_comp.velocity, direction_to_hook)
 				forward := linalg.vector_cross3(direction_to_hook, right)
 				forward = linalg.vector_normalize(forward)
 
-				new_vel_length := linalg.vector_dot(vel, forward)
-				vel = forward * new_vel_length
+				new_vel_length := linalg.vector_dot(player_vel_verlet_comp.velocity, forward)
+				player_vel_verlet_comp.velocity = forward * new_vel_length
 				// todo, momentum not conserved
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
@@ -316,7 +320,9 @@ main :: proc() {
 		}
 
 
-		cam.position += vel * dt
+		verlet.velocity_verlet(&player_vel_verlet_comp, spat.Vector{0, -10, 0}, dt)
+		cam.position += player_vel_verlet_comp.velocity * dt
+		cam.position = player_vel_verlet_comp.position
 		cam.target = cam.position + forward
 
 		draw_collision_tri :: proc(t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
@@ -406,7 +412,13 @@ main :: proc() {
 
 		rl.DrawFPS(4, 4)
 
-		rl.DrawText(fmt.ctprintf("pos: %v, vel: %v", cam.position, vel), 4, 30, 20, rl.WHITE)
+		rl.DrawText(
+			fmt.ctprintf("pos: %v, vel: %v", cam.position, player_vel_verlet_comp.velocity),
+			4,
+			30,
+			20,
+			rl.WHITE,
+		)
 
 		rl.EndDrawing()
 	}

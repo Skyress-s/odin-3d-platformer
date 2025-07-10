@@ -678,7 +678,9 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 			current_point =
 				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
 			current_hash.z += dirs.z
-		} else {panic(fmt.aprintf("no oaky man {} {} {}", length_X, length_Y, length_Z))}
+		} else {
+			assert(1 == 0)
+			panic(fmt.aprintf("no oaky man {} {} {}", length_X, length_Y, length_Z))}
 
 		cells[current_hash] = true
 	}
