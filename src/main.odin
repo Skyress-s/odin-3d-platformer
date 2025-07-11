@@ -202,7 +202,7 @@ main :: proc() {
 				ray := spat.make_ray_with_origin_direction_distance(
 					cam.position,
 					linalg.vector_normalize(cam.target - cam.position),
-					10020.0,
+					100.0,
 				)
 				ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
 					&spatial_hash_map,
@@ -349,6 +349,8 @@ main :: proc() {
 				// what i want in a ideal world:
 				// - [C]ontinous [C]ollision [D]etection
 				// - Energy is conserverd,  
+			} else if distance * 0.995 < char_data.start_distance_to_hook {
+				char_data.start_distance_to_hook = distance
 			}
 
 		}
