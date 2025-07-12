@@ -7,6 +7,10 @@ Ray :: struct {
 	end:    Vector,
 }
 
+ray_direction :: proc(ray: Ray) -> Vector {
+	return linalg.vector_normalize(ray.end - ray.origin)
+}
+
 make_ray_with_origin_end :: proc(origin, end: Vector) -> Ray {
 	return Ray{origin, end}
 }

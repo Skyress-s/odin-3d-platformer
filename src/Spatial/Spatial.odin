@@ -585,7 +585,15 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 }
 
 // Watch "One Lone Coder"s tutorial for how to improve this. 
+// https://github.com/OneLoneCoder/Javidx9/blob/master/PixelGameEngine/SmallerProjects/OneLoneCoder_PGE_RayCastDDA.cpp
 // todo this can probably return a array of hashes. So we can searsh through the closest cells first.
+calculate_hashes_by_ray2 :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+	ray_dir := ray_direction(ray)
+
+
+	return cells
+}
+
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
