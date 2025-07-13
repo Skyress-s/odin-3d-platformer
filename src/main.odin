@@ -114,6 +114,7 @@ main :: proc() {
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(800, 600, "mph*0.5mv^2")
+	rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
@@ -166,9 +167,15 @@ main :: proc() {
 		dt := rl.GetFrameTime()
 
 
-		char_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015
-		char_data.look_angles.x += rl.GetMouseDelta().y * 0.0015
+		char_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015 // left and right
+		char_data.look_angles.x += rl.GetMouseDelta().y * 0.0015 // up and down
+		char_data.look_angles.x = linalg.clamp(
+			char_data.look_angles.x,
+			-math.PI * 0.499,
+			math.PI * 0.499,
+		)
 		rot, forward, right := character.calculate_stuff_from_look(&char_data)
+		fmt.println(forward)
 
 		SPEED :: 20
 		RAD :: 1
@@ -233,7 +240,7 @@ main :: proc() {
 			ok, id, location := spat.ray_intersect_spatial_hash_grid(&spatial_hash_map, &ray)
 
 			if ok {
-				char_data.current_state = character.Grounded{}
+				char_data.current_state = character.Grounded{10, 50}
 			} else {
 				char_data.current_state = character.Airborne{10, 30}
 			}
@@ -332,11 +339,14 @@ main :: proc() {
 					char_data.verlet_component.velocity,
 					direction_to_hook,
 				)
-				forward := linalg.vector_cross3(direction_to_hook, right)
-				forward = linalg.vector_normalize(forward)
+				hook_forward := linalg.vector_cross3(direction_to_hook, right)
+				hook_forward = linalg.vector_normalize(hook_forward)
 
-				new_vel_length := linalg.vector_dot(char_data.verlet_component.velocity, forward)
-				char_data.verlet_component.velocity = forward * new_vel_length
+				new_vel_length := linalg.vector_dot(
+					char_data.verlet_component.velocity,
+					hook_forward,
+				)
+				char_data.verlet_component.velocity = hook_forward * new_vel_length
 				// todo, momentum not conserved
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
@@ -349,10 +359,16 @@ main :: proc() {
 		}
 
 		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
-		// verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
+		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
 		cam.position += char_data.verlet_component.velocity * dt
 		cam.position = char_data.verlet_component.position
 		cam.target = cam.position + forward
+		cam.up = linalg.cross(forward, right)
+		fmt.printfln("pos {}  target {}", cam.position, cam.target)
+		assert(
+			linalg.length(cam.target - cam.position) > 0,
+			"camera target and position should never be equal",
+		)
 
 		draw_collision_tri :: proc(t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
 			using t

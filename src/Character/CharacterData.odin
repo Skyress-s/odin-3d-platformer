@@ -11,7 +11,7 @@ Axis_Float :: f32
 Axis_2D :: linalg.Vector2f32
 
 Grounded :: struct {
-	glide: bool,
+	allow_gain_max_speed, acceleration: f32,
 }
 
 Airborne :: struct {
@@ -42,6 +42,7 @@ handle_input :: proc(character_data: ^CharacternData, dt: f32) {
 		handle_movement_input_Airborne(character_data, &input_snapshot, dt)
 	case Grounded:
 		fmt.println("Grounded!")
+		handle_movement_input_Grounded(character_data, &input_snapshot, dt)
 	}
 }
 
@@ -127,16 +128,18 @@ handle_movement_input_Airborne :: proc(
 	rot, forward, right := calculate_stuff_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
+	if linalg.is_nan(forward) == true do return
 
 	// rules
 	//	- Cannot change movement beoynd a certain speed that should be very low
 	//	- Air strafing should be minimal, only slight changes allowed. (Should be tested and confirm if its fun or not)
 	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff 
-	velocity_xz: spat.Vector = char_data.verlet_component.velocity
-	velocity_xz.y = 0
-	speed_xz: f32 = linalg.length(velocity_xz)
+	velocity_before_xz: spat.Vector = char_data.verlet_component.velocity
+	velocity_before_xz.y = 0
+	speed_xz: f32 = linalg.length(velocity_before_xz)
 
 	state_airborne: ^Airborne = &char_data.current_state.(Airborne)
+	verlet_component: ^verlet.Velocity_Verlet_Component = &char_data.verlet_component
 	//char_data.verlet_component.velocity += forward * input_snapshot.movement.y
 
 
@@ -146,27 +149,66 @@ handle_movement_input_Airborne :: proc(
 		state_airborne.allow_gain_max_speed,
 	)
 
-	if speed_xz < state_airborne.allow_gain_max_speed {
-
-		diff := (state_airborne.allow_gain_max_speed - speed_xz)
-
-		added_vel: spat.Vector =
-			(input_snapshot.movement.x * right + input_snapshot.movement.y * forward) *
-			state_airborne.acceleration
-		added_vel *= dt
-		//added_vel = linalg.clamp_length(added_vel, allowed_speed_to_add)
-		//velocity_xz += spat.Vector{added_vel.x, 0, added_vel.y}
-		added_vel = linalg.clamp_length(added_vel, diff)
-
-		char_data.verlet_component.velocity.x += added_vel.x
-		char_data.verlet_component.velocity.z += added_vel.z
+	move_input := forward * input_snapshot.movement.y + right * input_snapshot.movement.x
+	move_input = linalg.normalize0(move_input)
+	movement_input_velocity: spat.Vector = move_input * state_airborne.acceleration
 
 
-		// gain speed
-		fmt.println("added speed!")
+	new_vel := velocity_before_xz + movement_input_velocity * dt
+	// to stop at EXATCT max speed when giving speed
+
+	// We allow the direction to change
+	if linalg.length(new_vel) > state_airborne.allow_gain_max_speed {
+		new_vel = linalg.clamp_length(new_vel, linalg.length(velocity_before_xz))
 	}
 
+	verlet_component.velocity.x = new_vel.x
+	verlet_component.velocity.z = new_vel.z
+}
 
-	//velocity_xz.y = char_data.verlet_component.velocity.y
-	//char_data.verlet_component.velocity = velocity_xz
+handle_movement_input_Grounded :: proc(
+	char_data: ^CharacternData,
+	input_snapshot: ^Input_Snapshot,
+	dt: f32,
+) {
+
+	rot, forward, right := calculate_stuff_from_look(char_data)
+	forward.y = 0
+	forward = linalg.normalize(forward)
+	if linalg.is_nan(forward) == true do return
+
+	// rules
+	//	- Cannot change movement beoynd a certain speed that should be very low
+	//	- Air strafing should be minimal, only slight changes allowed. (Should be tested and confirm if its fun or not)
+	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff 
+	velocity_before_xz: spat.Vector = char_data.verlet_component.velocity
+	velocity_before_xz.y = 0
+	speed_xz: f32 = linalg.length(velocity_before_xz)
+
+	state_airborne: ^Grounded = &char_data.current_state.(Grounded)
+	verlet_component: ^verlet.Velocity_Verlet_Component = &char_data.verlet_component
+	//char_data.verlet_component.velocity += forward * input_snapshot.movement.y
+
+
+	fmt.printfln(
+		"speed_xz %f, allow_gain_max_speed %f",
+		speed_xz,
+		state_airborne.allow_gain_max_speed,
+	)
+
+	move_input := forward * input_snapshot.movement.y + right * input_snapshot.movement.x
+	move_input = linalg.normalize0(move_input)
+	movement_input_velocity: spat.Vector = move_input * state_airborne.acceleration
+
+
+	new_vel := velocity_before_xz + movement_input_velocity * dt
+	// to stop at EXATCT max speed when giving speed
+
+	// We allow the direction to change
+	if linalg.length(new_vel) > state_airborne.allow_gain_max_speed {
+		new_vel = linalg.clamp_length(new_vel, linalg.length(velocity_before_xz))
+	}
+
+	verlet_component.velocity.x = new_vel.x
+	verlet_component.velocity.z = new_vel.z
 }
