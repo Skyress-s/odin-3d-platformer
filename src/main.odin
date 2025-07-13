@@ -235,7 +235,7 @@ main :: proc() {
 			if ok {
 				char_data.current_state = character.Grounded{}
 			} else {
-				char_data.current_state = character.Airborne{100, 10}
+				char_data.current_state = character.Airborne{10, 30}
 			}
 
 		}
@@ -348,8 +348,8 @@ main :: proc() {
 
 		}
 
-		// verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
-		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
+		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
+		// verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
 		cam.position += char_data.verlet_component.velocity * dt
 		cam.position = char_data.verlet_component.position
 		cam.target = cam.position + forward

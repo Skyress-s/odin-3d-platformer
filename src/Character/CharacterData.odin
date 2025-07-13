@@ -70,6 +70,7 @@ Input_Snapshot :: struct {
 	movement:  Axis_2D,
 }
 
+// todo terrible name
 calculate_stuff_from_look :: proc(
 	character_data: ^CharacternData,
 ) -> (
@@ -108,7 +109,7 @@ make_input_snapshot :: proc() -> (input_snapshot: Input_Snapshot) {
 	else if rl.IsMouseButtonReleased(.LEFT) do input_snapshot.fire_hook = Released{}
 	else do input_snapshot.fire_hook = Nothing{}
 
-	input_snapshot.movement.x = (rl.IsKeyDown(.D) ? 1 : 0) + (rl.IsKeyDown(.A) ? -1 : 0)
+	input_snapshot.movement.x = (rl.IsKeyDown(.A) ? 1 : 0) + (rl.IsKeyDown(.D) ? -1 : 0)
 	input_snapshot.movement.y = (rl.IsKeyDown(.W) ? 1 : 0) + (rl.IsKeyDown(.S) ? -1 : 0)
 
 	input_snapshot.jump = make_input_state_from_one_key(rl.KeyboardKey.SPACE)
@@ -126,16 +127,7 @@ handle_movement_input_Airborne :: proc(
 	rot, forward, right := calculate_stuff_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
-	rl.DrawLine3D(
-		char_data.verlet_component.position + spat.Vector{0, -3, 0},
-		char_data.verlet_component.position + forward * 5.0,
-		rl.GREEN,
-	)
-	rl.DrawLine3D(
-		char_data.verlet_component.position + spat.Vector{0, -3, 0},
-		char_data.verlet_component.position + right * 5.0,
-		rl.RED,
-	)
+
 	// rules
 	//	- Cannot change movement beoynd a certain speed that should be very low
 	//	- Air strafing should be minimal, only slight changes allowed. (Should be tested and confirm if its fun or not)
@@ -161,12 +153,13 @@ handle_movement_input_Airborne :: proc(
 		added_vel: spat.Vector =
 			(input_snapshot.movement.x * right + input_snapshot.movement.y * forward) *
 			state_airborne.acceleration
+		added_vel *= dt
 		//added_vel = linalg.clamp_length(added_vel, allowed_speed_to_add)
 		//velocity_xz += spat.Vector{added_vel.x, 0, added_vel.y}
 		added_vel = linalg.clamp_length(added_vel, diff)
 
-		char_data.verlet_component.velocity.x += added_vel.x * dt
-		char_data.verlet_component.velocity.z += added_vel.z * dt
+		char_data.verlet_component.velocity.x += added_vel.x
+		char_data.verlet_component.velocity.z += added_vel.z
 
 
 		// gain speed
