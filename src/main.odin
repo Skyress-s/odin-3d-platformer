@@ -25,8 +25,7 @@ main :: proc() {
 
 	char_data: character.CharacternData
 	char_data.current_state = character.Airborne{}
-	player_vel_verlet_comp: verlet.Velocity_Verlet_Component = {}
-	player_vel_verlet_comp.position = spat.Vector{5, 1, 5}
+	char_data.verlet_component.position = spat.Vector{5, 1, 5}
 
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
@@ -123,17 +122,13 @@ main :: proc() {
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
 
-	look_angles: rl.Vector2 = 0
 	cam: rl.Camera3D = {
 		position   = {5, 1, 5},
 		target     = {0, 0, 3},
 		up         = {0, 3, 0},
-		fovy       = 90,
+		fovy       = 110,
 		projection = .PERSPECTIVE,
 	}
-	vela: linalg.Vector3f16 = {1, 2, 3}
-
-	// vel: rl.Vector3
 
 	tris: [dynamic]spat.Collision_Triangle
 	cubes: [dynamic]rl.BoundingBox
@@ -170,23 +165,14 @@ main :: proc() {
 
 		dt := rl.GetFrameTime()
 
-		rot :=
-			linalg.quaternion_from_euler_angle_y_f32(look_angles.y) *
-			linalg.quaternion_from_euler_angle_x_f32(look_angles.x)
 
-		forward := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{0, 0, 1})
-		right := linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{1, 0, 0})
-
-		look_angles.y -= rl.GetMouseDelta().x * 0.0015
-		look_angles.x += rl.GetMouseDelta().y * 0.0015
+		char_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015
+		char_data.look_angles.x += rl.GetMouseDelta().y * 0.0015
+		rot, forward, right := character.calculate_stuff_from_look(&char_data)
 
 		SPEED :: 20
 		RAD :: 1
-
-		xz_forward := forward
-		xz_forward.y = 0
-		xz_forward = linalg.vector_normalize(xz_forward)
-
+		/*
 		if rl.IsKeyDown(.W) do player_vel_verlet_comp.velocity += xz_forward * dt * SPEED
 		if rl.IsKeyDown(.S) do player_vel_verlet_comp.velocity -= xz_forward * dt * SPEED
 		if rl.IsKeyDown(.D) do player_vel_verlet_comp.velocity -= right * dt * SPEED
@@ -194,6 +180,10 @@ main :: proc() {
 
 		if rl.IsKeyDown(.E) do player_vel_verlet_comp.velocity += dt * SPEED
 		if rl.IsKeyDown(.Q) do player_vel_verlet_comp.velocity -= dt * SPEED
+		*/
+
+		character.handle_input(&char_data, dt)
+		fmt.println("added speed! : ", char_data.verlet_component.velocity)
 
 		if rl.IsMouseButtonPressed(.LEFT) {
 			if char_data.is_hooked {
@@ -228,14 +218,14 @@ main :: proc() {
 		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
 		if rl.IsKeyPressed(.SPACE) && ok {
 
-			player_vel_verlet_comp.velocity.y = 15
+			char_data.verlet_component.velocity.y = 15
 
 		}
 
 		// Update character specific stuff
 		{
 			ray := spat.make_ray_with_origin_direction_distance(
-				player_vel_verlet_comp.position,
+				char_data.verlet_component.position,
 				spat.Vector{0, -1, 0},
 				RAD + 0.5,
 			)
@@ -245,7 +235,7 @@ main :: proc() {
 			if ok {
 				char_data.current_state = character.Grounded{}
 			} else {
-				char_data.current_state = character.Airborne{}
+				char_data.current_state = character.Airborne{100, 10}
 			}
 
 		}
@@ -324,7 +314,7 @@ main :: proc() {
 		for &collision_object in active_cell_objects {
 
 			for &t in collision_object.tris {
-				collide_with_tri(&t, &player_vel_verlet_comp.velocity, &cam)
+				collide_with_tri(&t, &char_data.verlet_component.velocity, &cam)
 			}
 
 		}
@@ -338,12 +328,15 @@ main :: proc() {
 
 
 				// huh, this is shit
-				right := linalg.vector_cross3(player_vel_verlet_comp.velocity, direction_to_hook)
+				right := linalg.vector_cross3(
+					char_data.verlet_component.velocity,
+					direction_to_hook,
+				)
 				forward := linalg.vector_cross3(direction_to_hook, right)
 				forward = linalg.vector_normalize(forward)
 
-				new_vel_length := linalg.vector_dot(player_vel_verlet_comp.velocity, forward)
-				player_vel_verlet_comp.velocity = forward * new_vel_length
+				new_vel_length := linalg.vector_dot(char_data.verlet_component.velocity, forward)
+				char_data.verlet_component.velocity = forward * new_vel_length
 				// todo, momentum not conserved
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
@@ -355,9 +348,10 @@ main :: proc() {
 
 		}
 
-		verlet.velocity_verlet(&player_vel_verlet_comp, spat.Vector{0, -30, 0}, dt)
-		cam.position += player_vel_verlet_comp.velocity * dt
-		cam.position = player_vel_verlet_comp.position
+		// verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
+		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
+		cam.position += char_data.verlet_component.velocity * dt
+		cam.position = char_data.verlet_component.position
 		cam.target = cam.position + forward
 
 		draw_collision_tri :: proc(t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
@@ -448,13 +442,32 @@ main :: proc() {
 		rl.DrawFPS(4, 4)
 
 		rl.DrawText(
-			fmt.ctprintf("pos: %v, vel: %v", cam.position, player_vel_verlet_comp.velocity),
+			fmt.ctprintf("pos: %v, vel: %v", cam.position, char_data.verlet_component.velocity),
 			4,
 			30,
 			20,
 			rl.WHITE,
 		)
-		rl.DrawText(fmt.ctprintf("%v", char_data.current_state), 4, 60, 20, rl.WHITE)
+		rl.DrawText(
+			fmt.ctprintf("velocity: %f", linalg.length(char_data.verlet_component.velocity)),
+			4,
+			60,
+			20,
+			rl.WHITE,
+		)
+		{
+			vel_xz := char_data.verlet_component.velocity
+			vel_xz.y = 0
+			rl.DrawText(
+				fmt.ctprintf("velocity_xz: %f", linalg.length(vel_xz)),
+				4,
+				90,
+				20,
+				rl.WHITE,
+			)
+		}
+
+		rl.DrawText(fmt.ctprintf("%v", char_data.current_state), 4, 120, 20, rl.WHITE)
 
 		rl.EndDrawing()
 	}

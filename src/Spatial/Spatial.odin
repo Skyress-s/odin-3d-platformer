@@ -666,7 +666,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		if dirs.z == -1 do percent_Z = 1 - percent_Z
 		length_Z := vector_length_one_hash_cell_walked.z * percent_Z
 
-		fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
+		//fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
 
 		// TODO this is way more comparisons than we need, this is just to get it working 
 		if (length_X <= length_Y && length_X <= length_Z) {
