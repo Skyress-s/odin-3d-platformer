@@ -218,9 +218,6 @@ main :: proc() {
 
 		}
 
-		// gravity
-		// vel.y -= dt * 30 * (vel.y < 0.0 ? 2 : 1)
-
 
 		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
 		if rl.IsKeyPressed(.SPACE) && ok {
@@ -281,22 +278,24 @@ main :: proc() {
 		collide_with_tri :: proc(
 			t: ^spat.Collision_Triangle,
 			vel: ^spat.Vector,
-			cam: ^rl.Camera3D,
+			char_data: ^character.CharacternData,
 		) {
+			using char_data
+
 			closest := spat.closest_point_on_triangle(
-				cam.position,
+				verlet_component.position,
 				t.points[0],
 				t.points[1],
 				t.points[2],
 			)
-			diff := cam.position - closest
+			diff := verlet_component.position - closest
 			dist := linalg.length(diff)
 			normal := diff / dist
 
 			rl.DrawCubeV(closest, 0.05, dist > RAD ? rl.ORANGE : rl.WHITE)
 
 			if dist < RAD {
-				cam.position += normal * (RAD - dist)
+				verlet_component.position += normal * (RAD - dist)
 				// project velocity to the normal plane, if moving towards it
 				vel_normal_dot: f32 = linalg.dot(vel^, normal)
 				if vel_normal_dot < 0 {
@@ -317,11 +316,12 @@ main :: proc() {
 			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
 		}
 
+		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
 
 		for &collision_object in active_cell_objects {
 
 			for &t in collision_object.tris {
-				collide_with_tri(&t, &char_data.verlet_component.velocity, &cam)
+				collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data)
 			}
 
 		}
@@ -358,7 +358,6 @@ main :: proc() {
 
 		}
 
-		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
 		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
 		cam.position += char_data.verlet_component.velocity * dt
 		cam.position = char_data.verlet_component.position
@@ -457,17 +456,18 @@ main :: proc() {
 
 		rl.DrawFPS(4, 4)
 
+		debug_text_row_spacing: i32 = 30
 		rl.DrawText(
 			fmt.ctprintf("pos: %v, vel: %v", cam.position, char_data.verlet_component.velocity),
 			4,
-			30,
+			debug_text_row_spacing,
 			20,
 			rl.WHITE,
 		)
 		rl.DrawText(
 			fmt.ctprintf("velocity: %f", linalg.length(char_data.verlet_component.velocity)),
 			4,
-			60,
+			debug_text_row_spacing * 2,
 			20,
 			rl.WHITE,
 		)
@@ -477,13 +477,52 @@ main :: proc() {
 			rl.DrawText(
 				fmt.ctprintf("velocity_xz: %f", linalg.length(vel_xz)),
 				4,
-				90,
+				debug_text_row_spacing * 3,
 				20,
 				rl.WHITE,
 			)
 		}
 
-		rl.DrawText(fmt.ctprintf("%v", char_data.current_state), 4, 120, 20, rl.WHITE)
+		rl.DrawText(
+			fmt.ctprintf("%v", char_data.current_state),
+			4,
+			debug_text_row_spacing * 4,
+			20,
+			rl.WHITE,
+		)
+
+		{
+			// Total energy of the player
+			m: f32 = 0.01
+			potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+			kinetic_energy :=
+				0.5 *
+				m *
+				linalg.length(char_data.verlet_component.velocity) *
+				linalg.length(char_data.verlet_component.velocity)
+			total_energy := potential_energy + kinetic_energy
+			rl.DrawText(
+				fmt.ctprintf("Potential: {}", potential_energy),
+				4,
+				debug_text_row_spacing * 5,
+				20,
+				rl.WHITE,
+			)
+			rl.DrawText(
+				fmt.ctprintf("Kinetic: {}", kinetic_energy),
+				4,
+				debug_text_row_spacing * 6,
+				20,
+				rl.WHITE,
+			)
+			rl.DrawText(
+				fmt.ctprintf("Total: {}", total_energy),
+				4,
+				debug_text_row_spacing * 7,
+				20,
+				rl.WHITE,
+			)
+		}
 
 		rl.EndDrawing()
 	}
