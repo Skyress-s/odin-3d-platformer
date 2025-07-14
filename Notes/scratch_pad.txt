@@ -1,0 +1,14 @@
+----------------------------------------------------------------
+# Implement proper verlet intergration
+----------------------------------------------------------------
+
+From conversation with https://github.com/plantepotte
+I see now that my original implementation was extremely naive. And seems to only kinda work when gravity is constant, which it is currently in the game. But might not be forever. (thats what i get for watching a youtube video and almost copypasting code haha)
+My hero
+
+Velocity-verlet blir
+1. Beregn akselerasjonen a1 ved nåværende posisjon (a1=F1/m),
+2. Estimer ny posisjon ved å anta konstant akselerasjon mellom nåværende og neste physics-tick (p2 = p1 + v1*dt + 0.5*a1*dt²),
+3. Beregn akselerasjonen a2 ved nye posisjonen utifra kreftene som virker ved nye posisjonen (a2 = F2/m).,
+4. Estimer ny hastighet ved å anta konstant akselerasjon mellom nåværende og neste physics-tick. Men bruk gjennomsnitt av a1 og a2 som akselerasjonen (v2 = v1 + 0.5*(a1 + a2)*dt).
+
