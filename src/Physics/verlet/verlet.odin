@@ -4,9 +4,28 @@ import spat "../../Spatial"
 
 
 Velocity_Verlet_Component :: struct {
-	position, velocity: spat.Vector,
+	position, velocity, acceleration: spat.Vector,
 }
 
+// Do the first half of the timestep of leapfrog
+velocity_verlet_leap :: proc(component: ^Velocity_Verlet_Component, dt: f32) {
+	// using leapfrog verlet intergration
+	// todo translate
+	// beregn ny posisjon et halvt tick fram i tid:
+	component.position += component.velocity * dt / 2
+}
+
+// Do the second half of the timestep of leapfrog
+velocity_verlet_frog :: proc(component: ^Velocity_Verlet_Component, dt: f32) {
+
+	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen, 
+	// og bruk den til å beregne ny hastighet
+	component.velocity += component.acceleration * dt
+
+	// beregn den faktiske nye posisjonen et halvt tick til fram i tid
+	component.position += component.velocity * dt / 2
+	component.acceleration = {}
+}
 
 velocity_verlet_homegenus_gravity :: proc(
 	component: ^Velocity_Verlet_Component,

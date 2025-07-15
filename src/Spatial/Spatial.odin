@@ -165,7 +165,7 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color) {
 
 	bounds := get_bounds(collision_shape)
-	fmt.println(bounds)
+	//fmt.println(bounds)
 	rl.DrawBoundingBox(bounds, rl.YELLOW)
 
 	rlgl.PushMatrix()
@@ -623,19 +623,24 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	}
 
 	// Todo, this is very much *not optimal, but works for now*
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.x) do vector_length_one_hash_cell_walked.x = max(f32)
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.y) do vector_length_one_hash_cell_walked.y = max(f32)
-	if math.is_nan_f32(vector_length_one_hash_cell_walked.z) do vector_length_one_hash_cell_walked.z = max(f32)
+	//if math.is_nan_f32(vector_length_one_hash_cell_walked.x) do vector_length_one_hash_cell_walked.x = max(f32)
+	//if math.is_nan_f32(vector_length_one_hash_cell_walked.y) do vector_length_one_hash_cell_walked.y = max(f32)
+	//if math.is_nan_f32(vector_length_one_hash_cell_walked.z) do vector_length_one_hash_cell_walked.z = max(f32)
+	/*
+	fmt.printfln("vector_length_one_hash_cell_walked {}", vector_length_one_hash_cell_walked)
+	fmt.printfln(
+		"{} {} {}",
+		1 < vector_length_one_hash_cell_walked.x,
+		1 < vector_length_one_hash_cell_walked.y,
+		1 < vector_length_one_hash_cell_walked.z,
+	)
+	*/
 
 
 	current_point := ray.origin
 
 
 	for current_hash := Hash_Location(current_point); current_hash != hash_end; {
-		min, max: f32 =
-			Unhash_Coordinate(current_hash.x),
-			Unhash_Coordinate(current_hash.x) +
-			HASH_CELL_SIZE_METERS_FLOAT
 
 
 		next_X_hash := current_hash.x + 1
@@ -666,30 +671,54 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		if dirs.z == -1 do percent_Z = 1 - percent_Z
 		length_Z := vector_length_one_hash_cell_walked.z * percent_Z
 
-		//fmt.printfln("{} {} {}", percent_X, percent_Y, percent_Z)
+
+		/*
+		fmt.printfln("current hash {}", current_hash)
+		fmt.printfln("current point {}", current_point)
+		fmt.printfln("current prosent {} {} {}", percent_X, percent_Y, percent_Z)
+		fmt.printfln("current length {} {} {}", length_X, length_Y, length_Z)
+		*/
 
 		// TODO this is way more comparisons than we need, this is just to get it working 
-		if (length_X <= length_Y && length_X <= length_Z) {
+		if (!math.is_nan(vector_length_one_hash_cell_walked.x) &&
+			   !(length_X > length_Y || length_X > length_Z)) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
 			current_point =
 				current_point + direction * (percent_X * HASH_CELL_SIZE_METERS_FLOAT / direction.x)
 			current_hash.x += dirs.x
 
-		} else if (length_Y <= length_X && length_Y <= length_Z) {
+		} else if ((!math.is_nan(vector_length_one_hash_cell_walked.y)) &&
+			   !(length_Y > length_X || length_Y > length_Z)) {
 			// current_point = current_point + (gradient * (length_Y / gradient.y))
 			current_point =
 				current_point + direction * (percent_Y * HASH_CELL_SIZE_METERS_FLOAT / direction.y)
 			current_hash.y += dirs.y
 
-		} else if (length_Z <= length_X && length_Z <= length_Y) {
+		} else if (!math.is_nan(vector_length_one_hash_cell_walked.z) &&
+			   !(length_Z > length_X || length_Z > length_Y)) {
 			// current_point = current_point + (gradient * (length_Z / gradient.z))
 			current_point =
 				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
 			current_hash.z += dirs.z
 		} else {
-			assert(1 == 0)
-			panic(fmt.aprintf("no oaky man {} {} {}", length_X, length_Y, length_Z))}
-
+			assert(
+				1 == 0,
+				fmt.aprintf(
+					"lengths: {} {} {}, percents {} {} {}, hash cells {} {} {} {}, current_point: {}",
+					length_X,
+					length_Y,
+					length_Z,
+					percent_X,
+					percent_Y,
+					percent_Z,
+					current_hash,
+					next_X_hash,
+					next_Y_hash,
+					next_Z_hash,
+					current_point,
+				),
+			)
+		}
 		cells[current_hash] = true
 	}
 

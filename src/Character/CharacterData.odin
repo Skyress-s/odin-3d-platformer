@@ -35,13 +35,10 @@ CharacternData :: struct {
 
 handle_input :: proc(character_data: ^CharacternData, dt: f32) {
 	input_snapshot: Input_Snapshot = make_input_snapshot()
-	fmt.println(input_snapshot)
 	switch state in character_data.current_state {
 	case Airborne:
-		fmt.println("AirBorne!")
 		handle_movement_input_Airborne(character_data, &input_snapshot, dt)
 	case Grounded:
-		fmt.println("Grounded!")
 		handle_movement_input_Grounded(character_data, &input_snapshot, dt)
 	}
 }
@@ -142,13 +139,6 @@ handle_movement_input_Airborne :: proc(
 	verlet_component: ^verlet.Velocity_Verlet_Component = &char_data.verlet_component
 	//char_data.verlet_component.velocity += forward * input_snapshot.movement.y
 
-
-	fmt.printfln(
-		"speed_xz %f, allow_gain_max_speed %f",
-		speed_xz,
-		state_airborne.allow_gain_max_speed,
-	)
-
 	move_input := forward * input_snapshot.movement.y + right * input_snapshot.movement.x
 	move_input = linalg.normalize0(move_input)
 	movement_input_velocity: spat.Vector = move_input * state_airborne.acceleration
@@ -189,12 +179,6 @@ handle_movement_input_Grounded :: proc(
 	verlet_component: ^verlet.Velocity_Verlet_Component = &char_data.verlet_component
 	//char_data.verlet_component.velocity += forward * input_snapshot.movement.y
 
-
-	fmt.printfln(
-		"speed_xz %f, allow_gain_max_speed %f",
-		speed_xz,
-		state_airborne.allow_gain_max_speed,
-	)
 
 	move_input := forward * input_snapshot.movement.y + right * input_snapshot.movement.x
 	move_input = linalg.normalize0(move_input)

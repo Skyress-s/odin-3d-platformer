@@ -3,10 +3,12 @@ package main
 import character "Character"
 import p "Physics"
 import spat "Spatial"
+import "base:runtime"
 
 import verlet "Physics/verlet"
 import "base:builtin"
 import intrinsics "base:intrinsics"
+import "core:debug/trace"
 import "core:fmt"
 import "core:io"
 import "core:math"
@@ -14,8 +16,42 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
+global_trace_ctx: trace.Context
+
+debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #caller_location) -> ! {
+	runtime.print_caller_location(loc)
+	runtime.print_string(" ")
+	runtime.print_string(prefix)
+	if len(message) > 0 {
+		runtime.print_string(": ")
+		runtime.print_string(message)
+	}
+	runtime.print_byte('\n')
+
+	ctx := &global_trace_ctx
+	if !trace.in_resolve(ctx) {
+		buf: [64]trace.Frame
+		runtime.print_string("Debug Trace:\n")
+		frames := trace.frames(ctx, 1, buf[:])
+		for f, i in frames {
+			fl := trace.resolve(ctx, f, context.temp_allocator)
+			if fl.loc.file_path == "" && fl.loc.line == 0 {
+				continue
+			}
+			runtime.print_caller_location(fl.loc)
+			runtime.print_string(" - frame ")
+			runtime.print_int(i)
+			runtime.print_byte('\n')
+		}
+	}
+	runtime.trap()
+}
 
 main :: proc() {
+	trace.init(&global_trace_ctx)
+	defer trace.destroy(&global_trace_ctx)
+
+	context.assertion_failure_proc = debug_trace_assertion_failure_proc
 
 	test: [dynamic]int = make([dynamic]int)
 	append(&test, 4, 97, 7)
@@ -25,7 +61,7 @@ main :: proc() {
 
 	char_data: character.CharacternData
 	char_data.current_state = character.Airborne{}
-	char_data.verlet_component.position = spat.Vector{5, 1, 5}
+	char_data.verlet_component.position = spat.Vector{0, 0, 0}
 
 	// key := Hash_Location(&{100.4, 7.9, 8.0})
 	// new_location := key_to_corner_location(&key)
@@ -199,7 +235,6 @@ main :: proc() {
 		}
 
 		character.handle_input(&char_data, dt)
-		fmt.println("added speed! : ", char_data.verlet_component.velocity)
 
 		if rl.IsMouseButtonPressed(.LEFT) {
 			if char_data.is_hooked {
@@ -227,13 +262,6 @@ main :: proc() {
 
 		}
 
-
-		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
-		if rl.IsKeyPressed(.SPACE) && ok {
-
-			char_data.verlet_component.velocity.y = 15
-
-		}
 
 		// Update character specific stuff
 		{
@@ -288,6 +316,7 @@ main :: proc() {
 			t: ^spat.Collision_Triangle,
 			vel: ^spat.Vector,
 			char_data: ^character.CharacternData,
+			dt: f32,
 		) {
 			using char_data
 
@@ -308,7 +337,10 @@ main :: proc() {
 				// project velocity to the normal plane, if moving towards it
 				vel_normal_dot: f32 = linalg.dot(vel^, normal)
 				if vel_normal_dot < 0 {
-					vel^ -= normal * vel_normal_dot
+					diff := (vel^ - normal * vel_normal_dot) - verlet_component.velocity
+					acceleration := diff / dt
+					verlet_component.acceleration += acceleration
+					//vel^ -= normal * vel_normal_dot
 				}
 			}
 
@@ -325,16 +357,27 @@ main :: proc() {
 			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
 		}
 
-		verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
+		verlet.velocity_verlet_leap(&char_data.verlet_component, dt)
+		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
 
 		for &collision_object in active_cell_objects {
 
 			for &t in collision_object.tris {
-				collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data)
+				collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data, dt)
 			}
 
 		}
-		// Handle rope logic
+
+		// Jumping
+		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
+		if rl.IsKeyPressed(.SPACE) && ok {
+
+			// char_data.verlet_component.velocity.y = 15
+			char_data.verlet_component.acceleration.y += 15 / dt
+
+		}
+
+		// Grappling Hook
 		if char_data.is_hooked {
 			direction_to_hook := linalg.vector_normalize(char_data.hooked_position - cam.position)
 			distance := linalg.distance(char_data.hooked_position, cam.position)
@@ -358,12 +401,18 @@ main :: proc() {
 				)
 
 				// Should we lose momentum or not? Kinda hacky atm.
+				target_velocity: spat.Vector
 				if new_vel_length < linalg.length(char_data.verlet_component.velocity) * 0.8 {
-					char_data.verlet_component.velocity = hook_forward * new_vel_length
+					//char_data.verlet_component.velocity = hook_forward * new_vel_length
+					target_velocity = hook_forward * new_vel_length
 				} else {
-					char_data.verlet_component.velocity =
+					//char_data.verlet_component.velocity =
+					//hook_forward * linalg.length(char_data.verlet_component.velocity)
+					target_velocity =
 						hook_forward * linalg.length(char_data.verlet_component.velocity)
 				}
+				acc := (target_velocity - char_data.verlet_component.velocity) / dt
+				char_data.verlet_component.acceleration += acc
 				// Enegry is now conserved, but its quite hard coded
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
@@ -375,7 +424,10 @@ main :: proc() {
 
 		}
 
-		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
+		// Add gravity
+		char_data.verlet_component.acceleration += {0, -30, 0}
+
+		verlet.velocity_verlet_frog(&char_data.verlet_component, dt)
 		assert(
 			linalg.length(cam.target - cam.position) > 0,
 			"camera target and position should never be equal",
