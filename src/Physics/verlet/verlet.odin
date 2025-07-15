@@ -7,29 +7,27 @@ Velocity_Verlet_Component :: struct {
 	position, velocity: spat.Vector,
 }
 
-velocity_verlet_no_component :: proc(
-	position, velocity: ^spat.Vector,
-	acceleration: spat.Vector,
+
+velocity_verlet_homegenus_gravity :: proc(
+	component: ^Velocity_Verlet_Component,
+	gravity: spat.Vector,
 	dt: f32,
 ) {
-	position^ += velocity^ * dt + 0.5 * acceleration * dt * dt
-	velocity^ += acceleration * dt
-}
-velocity_verlet_with_component :: proc(
-	velocity_verlet_component: ^Velocity_Verlet_Component,
-	acceleration: spat.Vector,
-	dt: f32,
-) {
-	velocity_verlet_no_component(
-		&velocity_verlet_component.position,
-		&velocity_verlet_component.velocity,
-		acceleration,
-		dt,
-	)
+	// using leapfrog verlet intergration
+	// todo translate
+	// beregn ny posisjon et halvt tick fram i tid:
+	component.position += component.velocity * dt / 2
+
+	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen, 
+	// og bruk den til å beregne ny hastighet
+	component.velocity += gravity * dt // todo this is dogshit 
+
+	// beregn den faktiske nye posisjonen et halvt tick til fram i tid
+	component.position += component.velocity * dt / 2
 }
 
 
+// In case we need to perform velocity verlet when we dont have the component or non uniform gravitational fields.
 velocity_verlet :: proc {
-	velocity_verlet_with_component,
-	velocity_verlet_no_component,
+	velocity_verlet_homegenus_gravity,
 }

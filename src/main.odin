@@ -113,8 +113,8 @@ main :: proc() {
 
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	rl.InitWindow(800, 600, "mph*0.5mv^2")
-	rl.ToggleBorderlessWindowed()
+	rl.InitWindow(1200, 900, "mph*0.5mv^2")
+	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
@@ -175,7 +175,9 @@ main :: proc() {
 			math.PI * 0.499,
 		)
 		rot, forward, right := character.calculate_stuff_from_look(&char_data)
-		fmt.println(forward)
+		cam.position = char_data.verlet_component.position
+		cam.target = cam.position + forward
+		cam.up = linalg.cross(forward, right)
 
 		SPEED :: 20
 		RAD :: 1
@@ -188,6 +190,13 @@ main :: proc() {
 		if rl.IsKeyDown(.E) do player_vel_verlet_comp.velocity += dt * SPEED
 		if rl.IsKeyDown(.Q) do player_vel_verlet_comp.velocity -= dt * SPEED
 		*/
+
+		if rl.IsKeyDown(.R) {
+			char_data.verlet_component.position = {1, 5, 1}
+			char_data.verlet_component.velocity = {}
+			cam.position = char_data.verlet_component.position
+
+		}
 
 		character.handle_input(&char_data, dt)
 		fmt.println("added speed! : ", char_data.verlet_component.velocity)
@@ -342,12 +351,20 @@ main :: proc() {
 				hook_forward := linalg.vector_cross3(direction_to_hook, right)
 				hook_forward = linalg.vector_normalize(hook_forward)
 
+
 				new_vel_length := linalg.vector_dot(
 					char_data.verlet_component.velocity,
 					hook_forward,
 				)
-				char_data.verlet_component.velocity = hook_forward * new_vel_length
-				// todo, momentum not conserved
+
+				// Should we lose momentum or not? Kinda hacky atm.
+				if new_vel_length < linalg.length(char_data.verlet_component.velocity) * 0.8 {
+					char_data.verlet_component.velocity = hook_forward * new_vel_length
+				} else {
+					char_data.verlet_component.velocity =
+						hook_forward * linalg.length(char_data.verlet_component.velocity)
+				}
+				// Enegry is now conserved, but its quite hard coded
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
 				// - [C]ontinous [C]ollision [D]etection
@@ -359,11 +376,6 @@ main :: proc() {
 		}
 
 		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -0, 0}, dt)
-		cam.position += char_data.verlet_component.velocity * dt
-		cam.position = char_data.verlet_component.position
-		cam.target = cam.position + forward
-		cam.up = linalg.cross(forward, right)
-		fmt.printfln("pos {}  target {}", cam.position, cam.target)
 		assert(
 			linalg.length(cam.target - cam.position) > 0,
 			"camera target and position should never be equal",
