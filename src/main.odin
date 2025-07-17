@@ -339,8 +339,8 @@ main :: proc() {
 				if vel_normal_dot < 0 {
 					diff := (vel^ - normal * vel_normal_dot) - verlet_component.velocity
 					acceleration := diff / dt
-					verlet_component.acceleration += acceleration
-					//vel^ -= normal * vel_normal_dot
+					//verlet_component.acceleration += acceleration
+					verlet_component.velocity -= normal * vel_normal_dot
 				}
 			}
 
