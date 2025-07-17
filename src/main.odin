@@ -379,7 +379,8 @@ main :: proc() {
 
 		// Grappling Hook
 		if char_data.is_hooked {
-			direction_to_hook := linalg.vector_normalize(char_data.hooked_position - cam.position)
+			to_hook := (char_data.hooked_position - char_data.verlet_component.position)
+			direction_to_hook := linalg.vector_normalize(to_hook)
 			distance := linalg.distance(char_data.hooked_position, cam.position)
 			if distance > char_data.start_distance_to_hook {
 				distance_over_max := (distance - char_data.start_distance_to_hook)
@@ -417,7 +418,7 @@ main :: proc() {
 				// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
 				// what i want in a ideal world:
 				// - [C]ontinous [C]ollision [D]etection
-				// - Energy is conserverd,  
+				// - Energy is conserverd
 			} else if distance * 0.995 < char_data.start_distance_to_hook {
 				char_data.start_distance_to_hook = distance
 			}
