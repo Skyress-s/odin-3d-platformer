@@ -5,6 +5,7 @@ import p "Physics"
 import spat "Spatial"
 import "base:runtime"
 
+import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
 import "base:builtin"
 import intrinsics "base:intrinsics"
@@ -190,7 +191,7 @@ main :: proc() {
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 10, 10}, {10, 10, 10}, {10, 0, 20})
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 10, 30})
 
-	spat.add_collision_object_to_spatial_hash_grid(tris, &spatial_hash_map)
+	spat.add_collision_object_to_spatial_hash_grid(tris, &spatial_hash_map, true)
 
 	// spat.add_collision_object_to_spatial_hash_grid()
 
@@ -296,7 +297,7 @@ main :: proc() {
 				cam.position, //spat.Vector{245, 354, 300},//spat.Vector{245 * 2, 354 * 2, 300 * 2},
 				cam.position + linalg.vector_normalize0(cam.target - cam.position) * 100,
 			)
-			rl.DrawLine3D(ray.origin, ray.end, rl.RED)
+			//rl.DrawLine3D(ray.origin, ray.end, rl.RED)
 
 			cells := spat.calculate_hashes_by_ray(ray)
 
@@ -347,11 +348,6 @@ main :: proc() {
 		}
 
 		// Collide
-		/*
-		for &t in tris {
-			collide_with_tri(&t, &vel, &cam)
-		}
-		*/
 		if char_data.is_hooked {
 
 			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
@@ -362,15 +358,18 @@ main :: proc() {
 
 		for &collision_object in active_cell_objects {
 
+			if !cc.is_blocking(collision_object.collision_channels) do continue
+
 			for &t in collision_object.tris {
-				collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data, dt)
+				//collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data, dt)
 			}
 
 		}
 
 		// Jumping
 		_, ok := char_data.current_state.(character.Grounded) // awwwww yes!
-		if rl.IsKeyPressed(.SPACE) && ok {
+		// if rl.IsKeyPressed(.SPACE) && ok {
+		if rl.IsKeyPressed(.SPACE) {
 
 			// char_data.verlet_component.velocity.y = 15
 			char_data.verlet_component.acceleration.y += 15 / dt
@@ -423,6 +422,10 @@ main :: proc() {
 				char_data.start_distance_to_hook = distance
 			}
 
+		}
+
+		if len(active_cell_objects) > 0 {
+			if (spat.is_inside_object(&active_cell_objects[0], &char_data.verlet_component.position)) do fmt.println("INSIDE OBJECT")
 		}
 
 		// Add gravity

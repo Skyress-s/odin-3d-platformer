@@ -1,5 +1,6 @@
 package Spatial
 
+import cc "../Physics/collision_channel"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -46,8 +47,10 @@ Collision_Triangle :: struct {
 }
 
 Collision_Object :: struct {
-	id:   u16,
-	tris: [dynamic]Collision_Triangle,
+	id:                 u16,
+	collision_channels: u16,
+	tris:               [dynamic]Collision_Triangle,
+	// Might be more efficient to store the objects another place, then we save a bound here?
 }
 
 Hash_Cell :: struct {
@@ -363,6 +366,7 @@ is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Tri
 	return false
 }
 
+// TODO: this is not working with some object currently
 calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 
 	bound: Bound = {}
@@ -425,7 +429,11 @@ calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]b
 	return hash_keys
 }
 
-add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]Hash_Cell) {
+add_shape_to_hash_map :: proc(
+	shape: ^Collision_Shape,
+	hash_map: ^map[Hash_Key]Hash_Cell,
+	blocking_geo: bool = true,
+) {
 	bounds := get_bounds(shape^)
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
 
@@ -434,6 +442,8 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 
 	}
 	*/
+	collision_channel: cc.CHANNEL_SIZE =
+		blocking_geo ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
 
 	collision_object_id := get_collision_id()
 
@@ -446,7 +456,7 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 		}
 		tris := shape_get_collision_tris(shape)
 
-		col_obs := Collision_Object{collision_object_id, {}}
+		col_obs := Collision_Object{collision_object_id, collision_channel, {}}
 
 
 		for &t in tris {
@@ -460,7 +470,10 @@ add_shape_to_hash_map :: proc(shape: ^Collision_Shape, hash_map: ^map[Hash_Key]H
 add_collision_object_to_spatial_hash_grid :: proc(
 	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
 	spatial_hash_grid: ^Spatial_Hash_Grid,
+	blocking: bool = true,
 ) {
+	collision_channels: cc.CHANNEL_SIZE =
+		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
 	collision_object_id := get_collision_id()
 
 	bound := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
@@ -469,7 +482,7 @@ add_collision_object_to_spatial_hash_grid :: proc(
 
 	// todo fix this
 	for hash_key in hash_keys {
-		collision_object := Collision_Object{collision_object_id, tris}
+		collision_object := Collision_Object{collision_object_id, collision_channels, tris}
 		test := &spatial_hash_grid[hash_key] // wtf
 		if test == nil {
 			// fmt.println("Emty cell, creating new one...")
@@ -492,6 +505,51 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 }
 
+is_inside_object :: proc(collision_object: ^Collision_Object, location: ^Vector) -> bool {
+	// If we shoot a ray straight up, that is longer than the longest size of the Bounds. If we hit a odd number of tris, we are inside it.
+
+	bounds: Bound = calculate_bounds_from_tris(collision_object.tris)
+	longest_size := linalg.length(bounds.max - bounds.min)
+	ray: Ray = make_ray_with_origin_direction_distance(location^, Vector{0, 1, 0}, longest_size)
+	hits := ray_trace_object_multi(&ray, collision_object)
+
+	fmt.printfln("num tris {}", len(collision_object.tris))
+	fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)
+	return (len(hits) % 2) == 1
+}
+
+ray_trace_object_single :: proc(
+	ray: ^Ray,
+	collision_object: ^Collision_Object,
+) -> (
+	hit: bool,
+	location: Vector,
+) {
+
+	for &tri in collision_object.tris {
+		if hit, location = ray_triangle_intersect(ray, &tri); hit == true {
+			return hit, location
+		}
+	}
+
+	return hit, location
+}
+
+// TODO: Can make more efficient vairants, that preallocates the array. 
+ray_trace_object_multi :: proc(
+	ray: ^Ray,
+	collision_object: ^Collision_Object,
+) -> (
+	hits: [dynamic]Vector,
+) {
+	for &tri in collision_object.tris {
+		if ok, location := ray_triangle_intersect(ray, &tri); ok == true {
+			append_elem(&hits, location)
+		}
+	}
+
+	return hits
+}
 
 ray_triangle_intersect :: proc(
 	ray: ^Ray,
