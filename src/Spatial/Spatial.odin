@@ -544,7 +544,10 @@ ray_trace_object_multi :: proc(
 ) {
 	for &tri in collision_object.tris {
 		if ok, location := ray_triangle_intersect(ray, &tri); ok == true {
-			append_elem(&hits, location)
+			// make sure collision is in front of ray.
+			if linalg.dot((location - ray.origin), ray_direction(ray^)) > 0 {
+				append_elem(&hits, location)
+			}
 		}
 	}
 

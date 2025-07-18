@@ -86,6 +86,13 @@ main :: proc() {
 	spat.add_shape_to_hash_map(&box2, &spatial_hash_map)
 	objects[box2] = true
 
+	{
+		i += 1
+		box3 := spat.Collision_Shape{i, {{0, -10, 0}, {}, {1, 1, 1}}, spat.Box{{150.0, 1.0, 150}}}
+		spat.add_shape_to_hash_map(&box3, &spatial_hash_map)
+		objects[box3] = true
+	}
+
 
 	i += 1
 	sphere1 := spat.Collision_Shape{i, {{17, 6, 9}, {}, {1, 1, 1}}, spat.Sphere{5.0}}
@@ -102,7 +109,7 @@ main :: proc() {
 	q2 := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {1, -1, 1})
 	box3 := spat.Collision_Shape{i, {{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}}
 	//box3 := Collision_Shape{i, {{-32, 0, 0}, q, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
-	spat.add_shape_to_hash_map(&box3, &spatial_hash_map)
+	spat.add_shape_to_hash_map(&box3, &spatial_hash_map, false)
 	objects[box3] = true
 
 	for box_num in 0 ..= 5 {
@@ -361,7 +368,7 @@ main :: proc() {
 			if !cc.is_blocking(collision_object.collision_channels) do continue
 
 			for &t in collision_object.tris {
-				//collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data, dt)
+				collide_with_tri(&t, &char_data.verlet_component.velocity, &char_data, dt)
 			}
 
 		}
@@ -424,8 +431,9 @@ main :: proc() {
 
 		}
 
-		if len(active_cell_objects) > 0 {
-			if (spat.is_inside_object(&active_cell_objects[0], &char_data.verlet_component.position)) do fmt.println("INSIDE OBJECT")
+		if len(active_cell_objects) > 1 {
+			fmt.printfln("num objects: {}", len(active_cell_objects))
+			if (spat.is_inside_object(&active_cell_objects[1], &char_data.verlet_component.position)) do fmt.println("INSIDE OBJECT")
 		}
 
 		// Add gravity
