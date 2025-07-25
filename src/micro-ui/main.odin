@@ -1,4 +1,4 @@
-package microui
+package gameui
 
 import "core:c"
 import "core:fmt"
@@ -49,8 +49,8 @@ key_map := [mu.Key][2]rl.KeyboardKey {
 }
 
 
-maain :: proc() {
-	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE, rl.ConfigFlag.WINDOW_UNFOCUSED})
+main :: proc() {
+	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
 	rl.InitWindow(state.screen_width, state.screen_height, "microui-raylib-odin")
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(180)
@@ -102,6 +102,11 @@ maain :: proc() {
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
+
+		if rl.IsKeyPressed(rl.KeyboardKey.F) {
+
+			rl.ToggleBorderlessWindowed()
+		}
 
 		if ((rl.GetScreenWidth() != state.screen_width) ||
 			   (rl.GetScreenHeight() != state.screen_height)) {
@@ -314,6 +319,7 @@ construct_button_positionts_unit_circle :: proc(
 all_windows :: proc(ctx: ^mu.Context) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 
+
 	if mu.window(
 		ctx,
 		"My cool Pie test window",
@@ -328,10 +334,18 @@ all_windows :: proc(ctx: ^mu.Context) {
 		},
 	) {
 
+		WIDGET_SIZE :: mu.Vec2{800, 800}
+		center := mu.Rect {
+			rl.GetScreenWidth() / 2 - WIDGET_SIZE.x / 2,
+			rl.GetScreenHeight() / 2 - WIDGET_SIZE.y / 2,
+			WIDGET_SIZE.x,
+			WIDGET_SIZE.y,
+		}
 		BUTTON_WIDTH :: 120
 		BUTTON_HEIGHT :: 30
 
 		// We first do this as simple as possible with some buttons. Can possibly be its own control after a while? Or maybe this is enough?
+		mu.get_current_container(ctx).rect = center
 		current_container_rect := mu.get_current_container(ctx).rect
 		locations := construct_button_positionts_unit_circle(
 		8,
@@ -351,6 +365,7 @@ all_windows :: proc(ctx: ^mu.Context) {
 		}
 	}
 
+	/*
 	if mu.window(ctx, "Demo Window", {40, 40, 300, 450}, opts) {
 		if .ACTIVE in mu.header(ctx, "Window Info") {
 			win := mu.get_current_container(ctx)
@@ -509,4 +524,5 @@ all_windows :: proc(ctx: ^mu.Context) {
 			mu.draw_rect(ctx, mu.layout_next(ctx), ctx.style.colors[col])
 		}
 	}
+*/
 }
