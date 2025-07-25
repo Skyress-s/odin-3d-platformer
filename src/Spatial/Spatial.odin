@@ -274,14 +274,14 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 		y := size.y
 		z := size.z
 		points := [8]Vector {
-			Vector{x, y, z},
-			Vector{-x, y, z},
-			Vector{-x, -y, z},
-			Vector{-x, -y, -z},
-			Vector{x, -y, -z},
-			Vector{x, y, -z},
-			Vector{x, -y, z},
-			Vector{-x, y, -z},
+			Vector{x, y, z} / 2,
+			Vector{-x, y, z} / 2,
+			Vector{-x, -y, z} / 2,
+			Vector{-x, -y, -z} / 2,
+			Vector{x, -y, -z} / 2,
+			Vector{x, y, -z} / 2,
+			Vector{x, -y, z} / 2,
+			Vector{-x, y, -z} / 2,
 		}
 
 		maxX, maxY, maxZ, minX, minY, minZ: f32 =
