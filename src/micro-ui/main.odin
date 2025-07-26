@@ -3,6 +3,7 @@ package gameui
 import "core:c"
 import "core:fmt"
 import "core:math"
+import "core:math/linalg"
 import "core:strings"
 import "core:unicode/utf8"
 
@@ -356,9 +357,24 @@ all_windows :: proc(ctx: ^mu.Context) {
 		)
 
 		for &loc, i in locations {
-			mu.layout_set_next(ctx, mu.Rect{loc.x, loc.y, BUTTON_WIDTH, BUTTON_HEIGHT}, true)
-			message := fmt.aprintf("Button {}", i)
+			button_rect := mu.Rect{loc.x, loc.y, BUTTON_WIDTH, BUTTON_HEIGHT}
+			mu.layout_set_next(ctx, button_rect, true)
+
+
+			message := fmt.aprintf("But {}", i)
 			button_result := mu.button(ctx, message)
+
+			button_id := mu.get_id(ctx, message)
+			// mu.update_control(ctx, button_id, button_rect)
+
+			mouse_pos := rl.Vector2{cast(f32)ctx.mouse_pos.x, cast(f32)ctx.mouse_pos.y}
+			button_pos := rl.Vector2{cast(f32)button_rect.x, cast(f32)button_rect.y}
+			if (linalg.vector_length(mouse_pos - button_pos)) < 250 {
+				ctx.focus_id = button_id
+				fmt.println("YEAH", rl.GetTime())
+				write_log(message)
+			}
+
 			if button_result != nil {
 				write_log(message)
 			}
