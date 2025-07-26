@@ -363,32 +363,39 @@ all_windows :: proc(ctx: ^mu.Context) {
 				button_rect.x + current_container_rect.x,
 				button_rect.y + current_container_rect.y,
 			}
-			mu.layout_set_next(ctx, button_rect, true)
+			message := fmt.aprintf("button {}", i)
 
-			message := fmt.aprintf("Button {}", i)
 			button_id := mu.get_id(ctx, message)
-			// mu.update_control(ctx, button_id, button_rect)
 
-			mouse_pos := rl.Vector2{cast(f32)ctx.mouse_pos.x, cast(f32)ctx.mouse_pos.y}
+			mu.layout_set_next(ctx, button_rect, true)
+			r := mu.layout_next(ctx)
+			mu.draw_control_frame(ctx, button_id, r, .BUTTON, {mu.Opt.ALIGN_CENTER})
+
+			mu.layout_set_next(ctx, button_rect, true)
+			button_result := mu.button(ctx, message, .NONE, {.NO_FRAME})
+
+
+			mouse_pos := rl.Vector2 {
+				cast(f32)ctx.mouse_pos.x - BUTTON_WIDTH / 2,
+				cast(f32)ctx.mouse_pos.y - BUTTON_HEIGHT / 2,
+			}
+
 			button_pos := rl.Vector2 {
 				cast(f32)screen_space_button_rect.x,
 				cast(f32)screen_space_button_rect.y,
 			}
 			if (linalg.vector_length(mouse_pos - button_pos)) < 100 {
 
-				mu.set_focus(ctx, button_id)
 				ctx.hover_id = button_id
-				fmt.println(mouse_pos, " ", screen_space_button_rect)
-				fmt.println("dist ", linalg.vector_length(mouse_pos - button_pos))
-				fmt.println("Button ", i)
-				write_log(message)
-			}
+				if ctx.mouse_down_bits != nil {
+					mu.set_focus(ctx, button_id)
+				}
 
-			button_result := mu.button(ctx, message, .NONE, {})
+			}
 
 
 			if button_result != nil {
-				write_log(message)
+				write_log(fmt.aprintf("{} {}", "Bazinga!", message))
 			}
 		}
 	}
@@ -493,35 +500,6 @@ all_windows :: proc(ctx: ^mu.Context) {
 	}
 
 
-	if mu.window(ctx, "Log Window", {350, 40, 300, 200}, opts) {
-		mu.layout_row(ctx, {-1}, -28)
-		mu.begin_panel(ctx, "Log")
-		mu.layout_row(ctx, {-1}, -1)
-		mu.text(ctx, read_log())
-		if state.log_buf_updated {
-			panel := mu.get_current_container(ctx)
-			panel.scroll.y = panel.content_size.y
-			state.log_buf_updated = false
-		}
-		mu.end_panel(ctx)
-
-		@(static) buf: [128]byte
-		@(static) buf_len: int
-		submitted := false
-		mu.layout_row(ctx, {-70, -1})
-		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-			mu.set_focus(ctx, ctx.last_id)
-			submitted = true
-		}
-		if .SUBMIT in mu.button(ctx, "Submit") {
-			submitted = true
-		}
-		if submitted {
-			write_log(string(buf[:buf_len]))
-			buf_len = 0
-		}
-	}
-
 	if mu.window(ctx, "Style Window", {350, 250, 300, 240}) {
 		@(static) colors := [mu.Color_Type]string {
 			.TEXT         = "text",
@@ -553,4 +531,33 @@ all_windows :: proc(ctx: ^mu.Context) {
 		}
 	}
 */
+
+	if mu.window(ctx, "Log Window", {350, 40, 300, 200}, opts) {
+		mu.layout_row(ctx, {-1}, -28)
+		mu.begin_panel(ctx, "Log")
+		mu.layout_row(ctx, {-1}, -1)
+		mu.text(ctx, read_log())
+		if state.log_buf_updated {
+			panel := mu.get_current_container(ctx)
+			panel.scroll.y = panel.content_size.y
+			state.log_buf_updated = false
+		}
+		mu.end_panel(ctx)
+
+		@(static) buf: [128]byte
+		@(static) buf_len: int
+		submitted := false
+		mu.layout_row(ctx, {-70, -1})
+		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+			mu.set_focus(ctx, ctx.last_id)
+			submitted = true
+		}
+		if .SUBMIT in mu.button(ctx, "Submit") {
+			submitted = true
+		}
+		if submitted {
+			write_log(string(buf[:buf_len]))
+			buf_len = 0
+		}
+	}
 }
