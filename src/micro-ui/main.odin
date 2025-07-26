@@ -358,22 +358,34 @@ all_windows :: proc(ctx: ^mu.Context) {
 
 		for &loc, i in locations {
 			button_rect := mu.Rect{loc.x, loc.y, BUTTON_WIDTH, BUTTON_HEIGHT}
+
+			screen_space_button_rect := mu.Vec2 {
+				button_rect.x + current_container_rect.x,
+				button_rect.y + current_container_rect.y,
+			}
 			mu.layout_set_next(ctx, button_rect, true)
 
-
-			message := fmt.aprintf("But {}", i)
-			button_result := mu.button(ctx, message)
-
+			message := fmt.aprintf("Button {}", i)
 			button_id := mu.get_id(ctx, message)
 			// mu.update_control(ctx, button_id, button_rect)
 
 			mouse_pos := rl.Vector2{cast(f32)ctx.mouse_pos.x, cast(f32)ctx.mouse_pos.y}
-			button_pos := rl.Vector2{cast(f32)button_rect.x, cast(f32)button_rect.y}
-			if (linalg.vector_length(mouse_pos - button_pos)) < 250 {
-				ctx.focus_id = button_id
-				fmt.println("YEAH", rl.GetTime())
+			button_pos := rl.Vector2 {
+				cast(f32)screen_space_button_rect.x,
+				cast(f32)screen_space_button_rect.y,
+			}
+			if (linalg.vector_length(mouse_pos - button_pos)) < 100 {
+
+				mu.set_focus(ctx, button_id)
+				ctx.hover_id = button_id
+				fmt.println(mouse_pos, " ", screen_space_button_rect)
+				fmt.println("dist ", linalg.vector_length(mouse_pos - button_pos))
+				fmt.println("Button ", i)
 				write_log(message)
 			}
+
+			button_result := mu.button(ctx, message, .NONE, {})
+
 
 			if button_result != nil {
 				write_log(message)
