@@ -253,7 +253,7 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 	rl.ClearBackground(rl.RAYWHITE)
 
 	// Draw 3D stuff
-	rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
+	//rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
 
 	// Draw our UI on top
 	rl.DrawTextureRec(
@@ -316,6 +316,47 @@ construct_button_positionts_unit_circle :: proc(
 	return locations
 }
 
+singned_angle :: proc(v1, v2: rl.Vector2) -> f32 {
+	dot := v1.x * v2.x + v1.y * v2.y
+	det := v1.x * v2.y - v1.y * v2.x // equivalent to 2D cross product (scalar)
+	return math.atan2(det, dot) // atan2 returns signed angle
+}
+
+which_pie_is_position_in :: proc(
+	mouse_position: mu.Vec2,
+	center: mu.Vec2,
+	num: u8,
+	deadzone: f32,
+) -> (
+	ok: bool,
+	index: u8,
+) {
+	UP :: rl.Vector2{1, 0}
+	half_segment := ((math.PI * 2) / cast(f32)num) / 2
+	mouse_position_float := rl.Vector2{cast(f32)mouse_position.x, cast(f32)mouse_position.y}
+	center_float := rl.Vector2{cast(f32)center.x, cast(f32)center.y}
+
+	if linalg.distance(mouse_position_float, center_float) < deadzone do return false, 0
+
+
+	//angle := linalg.angle_between(UP, mouse_position_float - center_float)
+	angle := singned_angle(UP, mouse_position_float - center_float)
+
+	angle += half_segment
+	if angle < 0 do angle = (math.PI * 2) + (angle)
+
+	normalized_angle := angle / (2 * math.PI)
+	normalized_angle *= (cast(f32)num)
+
+	//fmt.println("angle ", angle)
+
+	index = cast(u8)normalized_angle
+	//fmt.println("index ", index)
+
+	ok = true
+	return ok, index
+}
+
 
 all_windows :: proc(ctx: ^mu.Context) {
 	@(static) opts := mu.Options{.NO_CLOSE}
@@ -336,7 +377,8 @@ all_windows :: proc(ctx: ^mu.Context) {
 	) {
 
 		WIDGET_SIZE :: mu.Vec2{800, 800}
-		center := mu.Rect {
+		center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
+		pie_widget_corner := mu.Rect {
 			rl.GetScreenWidth() / 2 - WIDGET_SIZE.x / 2,
 			rl.GetScreenHeight() / 2 - WIDGET_SIZE.y / 2,
 			WIDGET_SIZE.x,
@@ -346,7 +388,7 @@ all_windows :: proc(ctx: ^mu.Context) {
 		BUTTON_HEIGHT :: 30
 
 		// We first do this as simple as possible with some buttons. Can possibly be its own control after a while? Or maybe this is enough?
-		mu.get_current_container(ctx).rect = center
+		mu.get_current_container(ctx).rect = pie_widget_corner
 		current_container_rect := mu.get_current_container(ctx).rect
 		locations := construct_button_positionts_unit_circle(
 		8,
@@ -355,6 +397,10 @@ all_windows :: proc(ctx: ^mu.Context) {
 			current_container_rect.h - BUTTON_HEIGHT - 10,
 		},
 		)
+
+		ok, index := which_pie_is_position_in(ctx.mouse_pos, mu.Vec2{center.x, center.y}, 8, 40)
+		fmt.printfln("ok {}, index {}", ok, index)
+
 
 		for &loc, i in locations {
 			button_rect := mu.Rect{loc.x, loc.y, BUTTON_WIDTH, BUTTON_HEIGHT}
@@ -384,7 +430,8 @@ all_windows :: proc(ctx: ^mu.Context) {
 				cast(f32)screen_space_button_rect.x,
 				cast(f32)screen_space_button_rect.y,
 			}
-			if (linalg.vector_length(mouse_pos - button_pos)) < 100 {
+			//if (linalg.vector_length(mouse_pos - button_pos)) < 100 {
+			if (cast(u8)i == index) {
 
 				ctx.hover_id = button_id
 				if ctx.mouse_down_bits != nil {
