@@ -1,0 +1,14 @@
+
+
+## What's up bitches?
+### Welcome to my domain
+
+---
+
+Want to do list:
+
+[] Make a single triangle
+[] Implement vertex buffer for all geo (maybe not immediately).
+[] Make shader playground
+[] Play
+
