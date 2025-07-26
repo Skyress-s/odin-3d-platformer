@@ -51,12 +51,7 @@ key_map := [mu.Key][2]rl.KeyboardKey {
 // TODO: Add state for raylib data needed for ui. So we can easily create function for init and (defer) deinit. 
 
 
-main :: proc() {
-	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
-	rl.InitWindow(state.screen_width, state.screen_height, "microui-raylib-odin")
-	defer rl.CloseWindow()
-	rl.SetTargetFPS(180)
-
+init_game_ui :: proc(ctx: ^mu.Context) {
 	ctx := &state.mu_ctx
 	mu.init(ctx, set_clipboard = proc(user_data: rawptr, text: string) -> (ok: bool) {
 			cstr := strings.clone_to_cstring(text)
@@ -79,7 +74,6 @@ main :: proc() {
 		c.int(mu.DEFAULT_ATLAS_WIDTH),
 		c.int(mu.DEFAULT_ATLAS_HEIGHT),
 	)
-	defer rl.UnloadRenderTexture(state.atlas_texture)
 
 	image := rl.GenImageColor(
 		c.int(mu.DEFAULT_ATLAS_WIDTH),
@@ -100,7 +94,23 @@ main :: proc() {
 	rl.EndTextureMode()
 
 	state.screen_texture = rl.LoadRenderTexture(state.screen_width, state.screen_height)
-	defer rl.UnloadRenderTexture(state.screen_texture)
+}
+
+deinit_game_ui :: proc() {
+	rl.UnloadRenderTexture(state.atlas_texture)
+	rl.UnloadRenderTexture(state.screen_texture)
+}
+
+main :: proc() {
+	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
+	rl.InitWindow(state.screen_width, state.screen_height, "microui-raylib-odin")
+	defer rl.CloseWindow()
+	rl.SetTargetFPS(180)
+
+	ctx := &state.mu_ctx
+
+	init_game_ui(&state.mu_ctx)
+	defer deinit_game_ui()
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)

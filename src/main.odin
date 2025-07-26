@@ -136,7 +136,6 @@ main :: proc() {
 	spat.add_shape_to_hash_map(&cylinder1, &spatial_hash_map)
 	objects[cylinder1] = true
 
-
 	i += 1
 	q2 := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {1, -1, 1})
 	box3 := spat.Collision_Shape{i, {{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}}
