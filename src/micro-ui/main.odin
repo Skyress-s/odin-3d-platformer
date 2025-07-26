@@ -48,6 +48,7 @@ key_map := [mu.Key][2]rl.KeyboardKey {
 	.C         = {.C, .KEY_NULL},
 	.V         = {.V, .KEY_NULL},
 }
+// TODO: Add state for raylib data needed for ui. So we can easily create function for init and (defer) deinit. 
 
 
 main :: proc() {
