@@ -132,6 +132,15 @@ main :: proc() {
 		mu.end(ctx)
 
 		render(ctx)
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.RAYWHITE)
+
+		// Draw 3D stuff
+		rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
+
+		draw_ui()
+
+		rl.EndDrawing()
 	}
 }
 
@@ -260,11 +269,11 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 		}
 	}
 	rl.EndTextureMode()
-	rl.BeginDrawing()
-	rl.ClearBackground(rl.RAYWHITE)
 
-	// Draw 3D stuff
-	//rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
+}
+
+// Should be called after BeginDrawing() and before rl.EndDrawing()
+draw_ui :: proc() {
 
 	// Draw our UI on top
 	rl.DrawTextureRec(
@@ -273,7 +282,6 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 		position = {0, 0},
 		tint = rl.WHITE,
 	)
-	rl.EndDrawing()
 }
 
 u8_slider :: proc(ctx: ^mu.Context, val: ^u8, lo, hi: u8) -> (res: mu.Result_Set) {

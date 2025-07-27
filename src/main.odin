@@ -4,6 +4,8 @@ import character "Character"
 import p "Physics"
 import spat "Spatial"
 import "base:runtime"
+import gameui "micro-ui"
+import mu "vendor:microui"
 
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
@@ -120,7 +122,7 @@ main :: proc() {
 
 	{
 		i += 1
-		box3 := spat.Collision_Shape{i, {{0, -10, 0}, {}, {1, 1, 1}}, spat.Box{{150.0, 1.0, 150}}}
+		box3 := spat.Collision_Shape{i, {{0, -20, 0}, {}, {1, 1, 1}}, spat.Box{{150.0, 10.0, 150}}}
 		spat.add_shape_to_hash_map(&box3, &spatial_hash_map)
 		objects[box3] = true
 	}
@@ -198,6 +200,9 @@ main :: proc() {
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
 
+	gameui.init_game_ui(&gameui.state.mu_ctx)
+	defer gameui.deinit_game_ui()
+
 	cam: rl.Camera3D = {
 		position   = {5, 1, 5},
 		target     = {0, 0, 3},
@@ -235,6 +240,23 @@ main :: proc() {
 
 
 	for !rl.WindowShouldClose() {
+		free_all(context.temp_allocator)
+
+
+		// game ui START
+		if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
+			   (rl.GetScreenHeight() != gameui.state.screen_height)) {
+			gameui.resize_ui()
+		}
+
+		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
+
+		mu.begin(&gameui.state.mu_ctx)
+		gameui.all_windows(&gameui.state.mu_ctx)
+		mu.end(&gameui.state.mu_ctx)
+		gameui.render(&gameui.state.mu_ctx)
+		// game ui END
+
 		rl.BeginDrawing()
 		rl.ClearBackground({40, 30, 50, 255})
 		rl.BeginMode3D(cam)
@@ -630,6 +652,8 @@ main :: proc() {
 				rl.WHITE,
 			)
 		}
+
+		//gameui.draw_ui()
 
 		rl.EndDrawing()
 	}
