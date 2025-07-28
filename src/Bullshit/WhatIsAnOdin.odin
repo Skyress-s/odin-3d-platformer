@@ -2,18 +2,18 @@ package Bullshit
 
 import "core:fmt"
 import "core:c"
-
 import gl "vendor:openGL"
 import "vendor:glfw"
 
 PROGRAMNAME::"I CREATED A WINDOW MOTHERFUCKERS WHAT ARE YOU GOING TO DO ABOUT IT????!"
-
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 
 running : b32 = true
 
 main :: proc() {
+
+    defer glfw.Terminate()
 
     if(glfw.Init() != true) {
     // Print Line
@@ -28,8 +28,6 @@ main :: proc() {
     glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, GL_MAJOR_VERSION)
     glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, GL_MINOR_VERSION)
 
-    defer glfw.Terminate()
-
     window := glfw.CreateWindow(512, 512, PROGRAMNAME, nil, nil)
     defer glfw.DestroyWindow(window)
 
@@ -38,10 +36,24 @@ main :: proc() {
         return
     }
 
+    // I don't know why this works
+    size_callback :: proc "c" (window: glfw.WindowHandle, width, height: i32) {
+        gl.Viewport(0, 0, width, height)
+    }
+
+    // I don't know why this works either
+    // It's also 100% unnessecary,
+    // but it works so I will keep it.
+    key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
+        if key == glfw.KEY_ESCAPE {
+            running = false
+        }
+    }
+
     glfw.MakeContextCurrent(window)
     glfw.SwapInterval(1)
-//  glfw.SetKeyCallback(window, key_callback)
-//  glfw.SetFramebufferSizeCallback(window, size_callback)
+    glfw.SetKeyCallback(window, key_callback)
+    glfw.SetFramebufferSizeCallback(window, size_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
 
 
