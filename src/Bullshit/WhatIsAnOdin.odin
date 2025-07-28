@@ -6,16 +6,16 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 
-PROGRAMNAME::"Program"
+PROGRAMNAME::"I CREATED A WINDOW MOTHERFUCKERS WHAT ARE YOU GOING TO DO ABOUT IT????!"
 
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 
 running : b32 = true
 
-WhatIsAnOdin :: proc() {
+main :: proc() {
 
-    if(glfw.Init() != 1) {
+    if(glfw.Init() != true) {
     // Print Line
         fmt.println("Failed to initialize GLFW")
         // Return early
@@ -40,19 +40,20 @@ WhatIsAnOdin :: proc() {
 
     glfw.MakeContextCurrent(window)
     glfw.SwapInterval(1)
-    glfw.SetKeyCallback(window, key_callback)
-    glfw.SetFramebufferSizeCallback(window, size_callback)
+//  glfw.SetKeyCallback(window, key_callback)
+//  glfw.SetFramebufferSizeCallback(window, size_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
 
-    init()
+
+// init()
 
     for (!glfw.WindowShouldClose(window) && running) {
     // Process waiting events in queue
     // https://www.glfw.org/docs/3.3/group__window.html#ga37bd57223967b4211d60ca1a0bf3c832
         glfw.PollEvents()
 
-        update()
-        draw()
+        // update()
+        // draw()
 
         // This function swaps the front and back buffers of the specified window.
         // See https://en.wikipedia.org/wiki/Multiple_buffering to learn more about Multiple buffering
@@ -60,6 +61,6 @@ WhatIsAnOdin :: proc() {
         glfw.SwapBuffers((window))
     }
 
-    exit()
+//  exit()
 
 }
