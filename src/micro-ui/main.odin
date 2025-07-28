@@ -51,6 +51,14 @@ key_map := [mu.Key][2]rl.KeyboardKey {
 // TODO: Add state for raylib data needed for ui. So we can easily create function for init and (defer) deinit. 
 
 
+get_text_width :: proc(font: mu.Font, text: string) -> (width: i32) {
+	return mu.default_atlas_text_width(font, text)
+}
+
+get_text_height :: proc(font: mu.Font) -> (width: i32) {
+	return mu.default_atlas_text_height(font)
+}
+
 init_game_ui :: proc(ctx: ^mu.Context) {
 	ctx := &state.mu_ctx
 	mu.init(ctx, set_clipboard = proc(user_data: rawptr, text: string) -> (ok: bool) {
@@ -67,8 +75,8 @@ init_game_ui :: proc(ctx: ^mu.Context) {
 			return
 		})
 
-	ctx.text_width = mu.default_atlas_text_width
-	ctx.text_height = mu.default_atlas_text_height
+	ctx.text_width = get_text_width
+	ctx.text_height = get_text_height
 
 	state.atlas_texture = rl.LoadRenderTexture(
 		c.int(mu.DEFAULT_ATLAS_WIDTH),
@@ -103,7 +111,7 @@ deinit_game_ui :: proc() {
 
 main :: proc() {
 	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
-	rl.InitWindow(state.screen_width, state.screen_height, "microui-raylib-odin")
+	rl.InitWindow(1000, 1000, "test")
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(180)
 
@@ -207,6 +215,16 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 		dst.width = f32(src.w)
 		dst.height = f32(src.h)
 
+		/*
+		rl.DrawTexturePro(
+			texture = state.atlas_texture.texture,
+			source = {f32(src.x), f32(src.y), f32(src.w), f32(src.h)},
+			dest = {dst.x, dst.y, 12, 24},
+			origin = {0, 0},
+			rotation = 0,
+			tint = rl.WHITE,
+		)
+		*/
 		rl.DrawTextureRec(
 			texture = state.atlas_texture.texture,
 			source = {f32(src.x), f32(src.y), f32(src.w), f32(src.h)},
@@ -380,6 +398,25 @@ which_pie_is_position_in :: proc(
 all_windows :: proc(ctx: ^mu.Context) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 
+
+	if mu.window(
+	ctx,
+	"stats",
+	mu.Rect{1000, 1000, 350, 700},
+	{
+		/*
+			mu.Opt.NO_FRAME,
+			mu.Opt.NO_INTERACT,
+			mu.Opt.NO_SCROLL,
+			mu.Opt.NO_CLOSE,
+			mu.Opt.NO_RESIZE,
+			mu.Opt.NO_TITLE,
+		*/
+	},
+	) {
+		mu.label(ctx, "hey")
+
+	}
 
 	if mu.window(
 		ctx,

@@ -1,5 +1,6 @@
 package Spatial
 
+import hms "../handle_map/handle_map_static"
 import "core:math/linalg"
 
 Ray :: struct {
@@ -21,6 +22,7 @@ make_ray_with_origin_direction_distance :: proc(origin, direction: Vector, dista
 
 ray_intersect_spatial_hash_grid :: proc(
 	hash_grid: ^Spatial_Hash_Grid,
+	collision_object_map: ^Collision_Object_Handle_Map,
 	ray: ^Ray,
 ) -> (
 	hit: bool,
@@ -33,11 +35,12 @@ ray_intersect_spatial_hash_grid :: proc(
 	ray_length := linalg.distance(ray.origin, ray.end)
 	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
 
+
 	for hash in hashes {
 		hash_cell, ok := &hash_grid[hash]
 		if !ok do continue
-		for &object in hash_cell.objects {
-			for &tri in object.tris {
+		for &object_id in hash_cell.objects_ids {
+			for &tri in hms.get(collision_object_map, object_id).tris {
 				ok, intersect_location := ray_triangle_intersect(ray, &tri)
 				if ok {
 					is_in_front := linalg.vector_dot(
@@ -52,7 +55,7 @@ ray_intersect_spatial_hash_grid :: proc(
 						   (linalg.distance(ray.origin, intersect_location) < ray_length)) {
 						hit = true
 						dist = new_distance
-						id = object.id
+						id = object_id
 						location = intersect_location
 					}
 				}

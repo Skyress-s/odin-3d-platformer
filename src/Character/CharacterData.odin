@@ -1,8 +1,11 @@
 package Character
 import "core:fmt"
 
+import cc "../Physics/collision_channel"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import hms "../handle_map/handle_map_static"
+import l "../level"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -31,9 +34,34 @@ CharacternData :: struct {
 	start_distance_to_hook: f32,
 	verlet_component:       verlet.Velocity_Verlet_Component,
 	look_angles:            rl.Vector2,
+	radius:                 f32,
 }
 
-handle_input :: proc(character_data: ^CharacternData, dt: f32) {
+
+update_character :: proc(
+	character_data: ^CharacternData,
+	level: ^l.Level,
+	cam: ^rl.Camera3D,
+	dt: f32,
+) {
+	character_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015 // left and right
+	character_data.look_angles.x += rl.GetMouseDelta().y * 0.0015 // up and down
+	character_data.look_angles.x = linalg.clamp(
+		character_data.look_angles.x,
+		-math.PI * 0.499,
+		math.PI * 0.499,
+	)
+	rot, forward, right := calculate_stuff_from_look(character_data)
+	cam.position = character_data.verlet_component.position
+	cam.target = cam.position + forward
+	cam.up = linalg.cross(forward, right)
+
+	if rl.IsKeyDown(.R) {
+		character_data.verlet_component.position = {1, 5, 1}
+		character_data.verlet_component.velocity = {}
+		cam.position = character_data.verlet_component.position
+
+	}
 	input_snapshot: Input_Snapshot = make_input_snapshot()
 	switch state in character_data.current_state {
 	case Airborne:
@@ -41,7 +69,172 @@ handle_input :: proc(character_data: ^CharacternData, dt: f32) {
 	case Grounded:
 		handle_movement_input_Grounded(character_data, &input_snapshot, dt)
 	}
+
+
+	if rl.IsMouseButtonPressed(.LEFT) {
+		if character_data.is_hooked {
+			character_data.is_hooked = false
+		} else {
+			ray := spat.make_ray_with_origin_direction_distance(
+				cam.position,
+				linalg.vector_normalize(cam.target - cam.position),
+				100.0,
+			)
+			ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
+				&level.spatial_hash_grid,
+				&level.collision_object_map,
+				&ray,
+			)
+			if ok {
+
+				character_data.hooked_position = hook_hit_location
+				character_data.is_hooked = true
+				character_data.start_distance_to_hook = linalg.distance(
+					character_data.hooked_position,
+					cam.position,
+				)
+			}
+		}
+
+	}
+	// Update character specific stuff
+	{
+		ray := spat.make_ray_with_origin_direction_distance(
+			character_data.verlet_component.position,
+			spat.Vector{0, -1, 0},
+			character_data.radius + 0.5,
+		)
+
+		ok, id, location := spat.ray_intersect_spatial_hash_grid(
+			&level.spatial_hash_grid,
+			&level.collision_object_map,
+			&ray,
+		)
+
+		if ok {
+			character_data.current_state = Grounded{10, 50}
+		} else {
+			character_data.current_state = Airborne{10, 30}
+		}
+
+	}
 }
+
+update_character_physics :: proc(
+	character_data: ^CharacternData,
+	level: ^l.Level,
+	cam: ^rl.Camera3D,
+	active_cell_objects_ids: ^[dynamic]spat.Collision_Object_Id,
+	dt: f32,
+) {
+	for &collision_object_id in active_cell_objects_ids {
+
+		coll_obj := hms.get(&level.collision_object_map, collision_object_id)
+		if !cc.is_blocking(coll_obj.collision_channels) do continue
+
+		for &t in coll_obj.tris {
+			collide_with_tri(&t, &character_data.verlet_component.velocity, character_data, dt)
+		}
+
+	}
+
+	// Jumping
+	_, ok := character_data.current_state.(Grounded) // awwwww yes!
+	// if rl.IsKeyPressed(.SPACE) && ok {
+	if rl.IsKeyPressed(.SPACE) {
+
+		// char_data.verlet_component.velocity.y = 15
+		character_data.verlet_component.acceleration.y += 15 / dt
+
+	}
+
+	// Grappling Hook
+	if character_data.is_hooked {
+		to_hook := (character_data.hooked_position - character_data.verlet_component.position)
+		direction_to_hook := linalg.vector_normalize(to_hook)
+		distance := linalg.distance(character_data.hooked_position, cam.position)
+		if distance > character_data.start_distance_to_hook {
+			distance_over_max := (distance - character_data.start_distance_to_hook)
+			distance_over_max = max(distance_over_max, 0.0)
+
+
+			// huh, this is shit
+			right := linalg.vector_cross3(
+				character_data.verlet_component.velocity,
+				direction_to_hook,
+			)
+			hook_forward := linalg.vector_cross3(direction_to_hook, right)
+			hook_forward = linalg.vector_normalize(hook_forward)
+
+
+			new_vel_length := linalg.vector_dot(
+				character_data.verlet_component.velocity,
+				hook_forward,
+			)
+
+			// Should we lose momentum or not? Kinda hacky atm.
+			target_velocity: spat.Vector
+			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 {
+				//char_data.verlet_component.velocity = hook_forward * new_vel_length
+				target_velocity = hook_forward * new_vel_length
+			} else {
+				//char_data.verlet_component.velocity =
+				//hook_forward * linalg.length(char_data.verlet_component.velocity)
+				target_velocity =
+					hook_forward * linalg.length(character_data.verlet_component.velocity)
+			}
+			acc := (target_velocity - character_data.verlet_component.velocity) / dt
+			character_data.verlet_component.acceleration += acc
+			// Enegry is now conserved, but its quite hard coded
+			// verlet intergration is supposed to conserve energy, will try to use that for this project perhaps?
+			// what i want in a ideal world:
+			// - [C]ontinous [C]ollision [D]etection
+			// - Energy is conserverd
+		} else if distance * 0.995 < character_data.start_distance_to_hook {
+			character_data.start_distance_to_hook = distance
+		}
+
+	}
+
+
+	// Add gravity
+	character_data.verlet_component.acceleration += {0, -30, 0}
+
+}
+collide_with_tri :: proc(
+	t: ^spat.Collision_Triangle,
+	vel: ^spat.Vector,
+	char_data: ^CharacternData,
+	dt: f32,
+) {
+	using char_data
+
+	closest := spat.closest_point_on_triangle(
+		verlet_component.position,
+		t.points[0],
+		t.points[1],
+		t.points[2],
+	)
+	diff := verlet_component.position - closest
+	dist := linalg.length(diff)
+	normal := diff / dist
+
+	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
+
+	if dist < char_data.radius {
+		verlet_component.position += normal * (char_data.radius - dist)
+		// project velocity to the normal plane, if moving towards it
+		vel_normal_dot: f32 = linalg.dot(vel^, normal)
+		if vel_normal_dot < 0 {
+			diff := (vel^ - normal * vel_normal_dot) - verlet_component.velocity
+			acceleration := diff / dt
+			//verlet_component.acceleration += acceleration
+			verlet_component.velocity -= normal * vel_normal_dot
+		}
+	}
+
+}
+
 
 Nothing :: struct {
 }
@@ -116,6 +309,7 @@ make_input_snapshot :: proc() -> (input_snapshot: Input_Snapshot) {
 	return input_snapshot
 }
 
+@(private)
 handle_movement_input_Airborne :: proc(
 	char_data: ^CharacternData,
 	input_snapshot: ^Input_Snapshot,

@@ -1,6 +1,7 @@
 package Spatial
 
 import cc "../Physics/collision_channel"
+import hms "../handle_map/handle_map_static"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -30,7 +31,6 @@ Cylinder :: struct {
 }
 
 Collision_Shape :: struct {
-	id:        i32,
 	transform: Transform,
 	shape:     union {
 		Box,
@@ -46,15 +46,16 @@ Collision_Triangle :: struct {
 	points: [3]Vector,
 }
 
-Collision_Object :: struct {
-	id:                 u16,
+Collision_Object_Id :: distinct hms.Handle
+
+Collision_Object_Data :: distinct struct {
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
-	// Might be more efficient to store the objects another place, then we save a bound here?
+	handle:             Collision_Object_Id,
 }
 
 Hash_Cell :: struct {
-	objects: [dynamic]Collision_Object,
+	objects_ids: [dynamic]Collision_Object_Id,
 }
 
 Hash_Int :: i32
@@ -64,15 +65,15 @@ HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
-Collision_Object_Id :: u16
 
+/*
 COLLISION_OBJECT_COUNTER: Collision_Object_Id = 0
 
 get_collision_id :: proc() -> Collision_Object_Id {
 	COLLISION_OBJECT_COUNTER += 1
 	return COLLISION_OBJECT_COUNTER
 }
-
+*/
 Hash_Key :: struct {
 	x: Hash_Int,
 	y: Hash_Int,
@@ -429,67 +430,51 @@ calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]b
 	return hash_keys
 }
 
+Collision_Object_Handle_Map :: distinct
+hms.Handle_Map(Collision_Object_Data, Collision_Object_Id, 1024)
+
+
 add_shape_to_hash_map :: proc(
-	shape: ^Collision_Shape,
+	collision_object_map: ^Collision_Object_Handle_Map,
 	hash_map: ^map[Hash_Key]Hash_Cell,
+	shape: ^Collision_Shape,
 	blocking_geo: bool = true,
 ) {
 	bounds := get_bounds(shape^)
-	potential_hash_keys := calculate_overlapping_cells2(bounds)
 
-	/*
-	for potential_hash_key in potential_hash_keys {
+	tris := shape_get_collision_tris(shape)
 
-	}
-	*/
-	collision_channel: cc.CHANNEL_SIZE =
-		blocking_geo ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
-
-	collision_object_id := get_collision_id()
-
-	for hash_key in potential_hash_keys {
-		cell := &hash_map[hash_key]
-		if cell == nil {
-			// fmt.println("Emty cell, creating new one...")
-			hash_map[hash_key] = {}
-			cell = &hash_map[hash_key]
-		}
-		tris := shape_get_collision_tris(shape)
-
-		col_obs := Collision_Object{collision_object_id, collision_channel, {}}
-
-
-		for &t in tris {
-			append_elem(&col_obs.tris, t) // todo huah tuah
-		}
-
-		append_elem(&cell.objects, col_obs)
-	}
+	create_and_add_collision_object_from_tris(collision_object_map, hash_map, tris, blocking_geo)
 }
 
-add_collision_object_to_spatial_hash_grid :: proc(
-	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
+create_and_add_collision_object_from_tris :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^Spatial_Hash_Grid,
+	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
 	blocking: bool = true,
 ) {
-	collision_channels: cc.CHANNEL_SIZE =
+
+
+	bounds := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
+
+	potential_hash_keys := calculate_overlapping_cells2(bounds)
+	collision_channel: cc.CHANNEL_SIZE =
 		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
-	collision_object_id := get_collision_id()
+	// Adding to handle map
+	collision_object_id := hms.add(
+		collision_object_map,
+		Collision_Object_Data{collision_channels = collision_channel, tris = tris},
+	)
 
-	bound := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
-
-	hash_keys := calculate_overlapping_cells2(bound)
-
-	// todo fix this
-	for hash_key in hash_keys {
-		collision_object := Collision_Object{collision_object_id, collision_channels, tris}
-		test := &spatial_hash_grid[hash_key] // wtf
-		if test == nil {
+	for hash_key in potential_hash_keys {
+		cell := &spatial_hash_grid[hash_key]
+		if cell == nil {
 			// fmt.println("Emty cell, creating new one...")
 			spatial_hash_grid[hash_key] = {}
-			test = &spatial_hash_grid[hash_key]
+			cell = &spatial_hash_grid[hash_key]
 		}
-		append_elem(&test.objects, collision_object)
+
+		append_elem(&cell.objects_ids, collision_object_id)
 	}
 
 }
@@ -505,8 +490,9 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 }
 
-is_inside_object :: proc(collision_object: ^Collision_Object, location: ^Vector) -> bool {
+is_inside_object :: proc(collision_object: ^Collision_Object_Data, location: ^Vector) -> bool {
 	// If we shoot a ray straight up, that is longer than the longest size of the Bounds. If we hit a odd number of tris, we are inside it.
+
 
 	bounds: Bound = calculate_bounds_from_tris(collision_object.tris)
 	longest_size := linalg.length(bounds.max - bounds.min)
@@ -520,7 +506,7 @@ is_inside_object :: proc(collision_object: ^Collision_Object, location: ^Vector)
 
 ray_trace_object_single :: proc(
 	ray: ^Ray,
-	collision_object: ^Collision_Object,
+	collision_object: ^Collision_Object_Data,
 ) -> (
 	hit: bool,
 	location: Vector,
@@ -538,7 +524,7 @@ ray_trace_object_single :: proc(
 // TODO: Can make more efficient vairants, that preallocates the array. 
 ray_trace_object_multi :: proc(
 	ray: ^Ray,
-	collision_object: ^Collision_Object,
+	collision_object: ^Collision_Object_Data,
 ) -> (
 	hits: [dynamic]Vector,
 ) {
@@ -595,7 +581,7 @@ ray_triangle_intersect :: proc(
 		linalg.vector_dot(tri_normal, t2) > 0 &&
 		linalg.vector_dot(tri_normal, t3) > 0
 
-	if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		 
+	// if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		 
 	valid = hit
 	location = p
 	return valid, location
