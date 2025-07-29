@@ -7,6 +7,7 @@ import "core:math/linalg"
 import "core:strings"
 import "core:unicode/utf8"
 
+import character "../Character"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 
@@ -50,13 +51,17 @@ key_map := [mu.Key][2]rl.KeyboardKey {
 }
 // TODO: Add state for raylib data needed for ui. So we can easily create function for init and (defer) deinit. 
 
+FONT_SIZE :: 20
 
 get_text_width :: proc(font: mu.Font, text: string) -> (width: i32) {
-	return mu.default_atlas_text_width(font, text)
+
+	return rl.MeasureText(strings.clone_to_cstring(text), FONT_SIZE)
+	// return mu.default_atlas_text_width(font, text)
 }
 
 get_text_height :: proc(font: mu.Font) -> (width: i32) {
-	return mu.default_atlas_text_height(font)
+	//return mu.default_atlas_text_height(font)
+	return FONT_SIZE
 }
 
 init_game_ui :: proc(ctx: ^mu.Context) {
@@ -136,7 +141,7 @@ main :: proc() {
 		handle_input_micro_ui(ctx)
 
 		mu.begin(ctx)
-		all_windows(ctx)
+		//all_windows(ctx)
 		mu.end(ctx)
 
 		render(ctx)
@@ -205,7 +210,9 @@ handle_input_micro_ui :: proc(ctx: ^mu.Context) {
 	}
 }
 
-render :: proc "contextless" (ctx: ^mu.Context) {
+render :: proc(
+	 /*"contextless"*/ctx: ^mu.Context,
+) {
 	render_texture :: proc "contextless" (
 		renderer: rl.RenderTexture2D,
 		dst: ^rl.Rectangle,
@@ -248,6 +255,15 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 	for variant in mu.next_command_iterator(ctx, &command_backing) {
 		switch cmd in variant {
 		case ^mu.Command_Text:
+			rl.DrawText(
+				strings.clone_to_cstring(cmd.str),
+				cmd.pos.x,
+				cmd.pos.y,
+				FONT_SIZE,
+				to_rl_color(cmd.color),
+			)
+
+		/*
 			dst := rl.Rectangle{f32(cmd.pos.x), f32(cmd.pos.y), 0, 0}
 			for ch in cmd.str {
 				if ch & 0xc0 != 0x80 {
@@ -257,6 +273,7 @@ render :: proc "contextless" (ctx: ^mu.Context) {
 					dst.x += dst.width
 				}
 			}
+*/
 		case ^mu.Command_Rect:
 			rl.DrawRectangle(
 				cmd.rect.x,
@@ -395,26 +412,28 @@ which_pie_is_position_in :: proc(
 }
 
 
-all_windows :: proc(ctx: ^mu.Context) {
+all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 
-
 	if mu.window(
-	ctx,
-	"stats",
-	mu.Rect{1000, 1000, 350, 700},
-	{
-		/*
+		ctx,
+		"stats",
+		mu.Rect{0, 0, rl.GetScreenWidth(), 700},
+		{
 			mu.Opt.NO_FRAME,
 			mu.Opt.NO_INTERACT,
 			mu.Opt.NO_SCROLL,
 			mu.Opt.NO_CLOSE,
 			mu.Opt.NO_RESIZE,
 			mu.Opt.NO_TITLE,
-		*/
-	},
+		},
 	) {
-		mu.label(ctx, "hey")
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprint("Position {}", char_data.verlet_component.position))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprint("Velocity {}", char_data.verlet_component.velocity))
 
 	}
 

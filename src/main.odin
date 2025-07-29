@@ -173,7 +173,7 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx)
+		gameui.all_windows(&gameui.state.mu_ctx, &char_data)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
@@ -289,16 +289,11 @@ render :: proc(
 
 	rl.EndMode3D()
 
-	rl.DrawFPS(4, 4)
+	// Draw UI babiiiiiii
+
+	// rl.DrawFPS(4, 4)
 
 	debug_text_row_spacing: i32 = 30
-	rl.DrawText(
-		fmt.ctprintf("pos: %v, vel: %v", cam.position, char_data.verlet_component.velocity),
-		4,
-		debug_text_row_spacing,
-		20,
-		rl.WHITE,
-	)
 	rl.DrawText(
 		fmt.ctprintf("velocity: %f", linalg.length(char_data.verlet_component.velocity)),
 		4,
