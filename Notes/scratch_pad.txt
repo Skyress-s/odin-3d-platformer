@@ -12,3 +12,18 @@ Velocity-verlet blir
 3. Beregn akselerasjonen a2 ved nye posisjonen utifra kreftene som virker ved nye posisjonen (a2 = F2/m).,
 4. Estimer ny hastighet ved å anta konstant akselerasjon mellom nåværende og neste physics-tick. Men bruk gjennomsnitt av a1 og a2 som akselerasjonen (v2 = v1 + 0.5*(a1 + a2)*dt).
 
+----------------------------------------------------------------
+# Level data file
+----------------------------------------------------------------
+I'm thinking this should be extremely naive to start with. (one man for fun project)
+- Json format, easy to read debug, can consider a binary blob later.
+
+{
+	{name: "SomeLevel"},
+	{objects: [
+		{type: "cube", transform: {px: 4, py: 0, pz: 1, q1: 1, q2:1, q3:1, q4:1, sx: 1, sy:1, sz:1}},
+		...
+	]},
+	{start_pos: transform: {px: 10, py: 0, pz: 2, q1: 1, q2:1, q3:1, q4:1, sx: 1, sy:1, sz:1}},
+	// other stuff like start parameters etc can be added later
+}
