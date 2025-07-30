@@ -74,7 +74,7 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 			fl := trace.resolve(ctx, f, context.temp_allocator)
 			if fl.loc.file_path == "" && fl.loc.line == 0 {
 				continue
-			}
+			}data
 			runtime.print_caller_location(fl.loc)
 			runtime.print_string(" - frame ")
 			runtime.print_int(i)
@@ -290,69 +290,6 @@ render :: proc(
 	rl.EndMode3D()
 
 	// Draw UI babiiiiiii
-
-	// rl.DrawFPS(4, 4)
-
-	debug_text_row_spacing: i32 = 30
-	rl.DrawText(
-		fmt.ctprintf("velocity: %f", linalg.length(char_data.verlet_component.velocity)),
-		4,
-		debug_text_row_spacing * 2,
-		20,
-		rl.WHITE,
-	)
-	{
-		vel_xz := char_data.verlet_component.velocity
-		vel_xz.y = 0
-		rl.DrawText(
-			fmt.ctprintf("velocity_xz: %f", linalg.length(vel_xz)),
-			4,
-			debug_text_row_spacing * 3,
-			20,
-			rl.WHITE,
-		)
-	}
-
-	rl.DrawText(
-		fmt.ctprintf("%v", char_data.current_state),
-		4,
-		debug_text_row_spacing * 4,
-		20,
-		rl.WHITE,
-	)
-
-	{
-		// Total energy of the player
-		m: f32 = 0.01
-		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
-		kinetic_energy :=
-			0.5 *
-			m *
-			linalg.length(char_data.verlet_component.velocity) *
-			linalg.length(char_data.verlet_component.velocity)
-		total_energy := potential_energy + kinetic_energy
-		rl.DrawText(
-			fmt.ctprintf("Potential: {}", potential_energy),
-			4,
-			debug_text_row_spacing * 5,
-			20,
-			rl.WHITE,
-		)
-		rl.DrawText(
-			fmt.ctprintf("Kinetic: {}", kinetic_energy),
-			4,
-			debug_text_row_spacing * 6,
-			20,
-			rl.WHITE,
-		)
-		rl.DrawText(
-			fmt.ctprintf("Total: {}", total_energy),
-			4,
-			debug_text_row_spacing * 7,
-			20,
-			rl.WHITE,
-		)
-	}
 
 	gameui.draw_ui()
 

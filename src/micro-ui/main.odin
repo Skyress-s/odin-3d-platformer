@@ -414,6 +414,7 @@ which_pie_is_position_in :: proc(
 
 all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 	@(static) opts := mu.Options{.NO_CLOSE}
+	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 
 	if mu.window(
 		ctx,
@@ -431,9 +432,74 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprint("Position {}", char_data.verlet_component.position))
+		mu.label(ctx, fmt.aprintf("Position {}", char_data.verlet_component.position))
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprint("Velocity {}", char_data.verlet_component.velocity))
+		mu.label(ctx, fmt.aprintf("Velocity {}", char_data.verlet_component.velocity))
+
+		mu.layout_row(ctx, {-1})
+		vel_xz := char_data.verlet_component.velocity
+		vel_xz.y = 0
+		mu.label(ctx, fmt.aprintf("Velocity_XZ {}", linalg.length(vel_xz)))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
+
+		m: f32 = 0.01
+		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+		kinetic_energy :=
+			0.5 *
+			m *
+			linalg.length(char_data.verlet_component.velocity) *
+			linalg.length(char_data.verlet_component.velocity)
+		total_energy := potential_energy + kinetic_energy
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Potential {}", potential_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Kinetic {}", kinetic_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
+
+
+	}
+
+	// Draw cross hair
+	{
+		crosshair_opts: mu.Options = {
+			mu.Opt.NO_INTERACT,
+			mu.Opt.NO_SCROLL,
+			mu.Opt.NO_CLOSE,
+			mu.Opt.NO_RESIZE,
+			mu.Opt.NO_TITLE,
+		}
+		/*
+		CROSSHAIR_LENGTH :: 15
+		CROSSHAIR_THICKNESS :: 2
+		crosshair_rect_v := mu.Rect {
+			center.x - CROSSHAIR_THICKNESS / 2,
+			center.y - CROSSHAIR_LENGTH / 2,
+			CROSSHAIR_THICKNESS,
+			CROSSHAIR_LENGTH,
+		}
+		crosshair_rect_h := mu.Rect {
+			center.x - CROSSHAIR_LENGTH / 2,
+			center.y - CROSSHAIR_THICKNESS / 2,
+			CROSSHAIR_LENGTH,
+			CROSSHAIR_THICKNESS,
+		}
+		mu.window(ctx, "crosshair", crosshair_rect_v, crosshair_opts)
+		mu.window(ctx, "crosshair", crosshair_rect_h, crosshair_opts)
+		*/
+		CROSSHAIR_DOT_SIZE :: 5
+		crosshair_rect := mu.Rect {
+			center.x - CROSSHAIR_DOT_SIZE / 2,
+			center.y - CROSSHAIR_DOT_SIZE / 2,
+			CROSSHAIR_DOT_SIZE,
+			CROSSHAIR_DOT_SIZE,
+		}
+		mu.window(ctx, "crosshair", crosshair_rect, crosshair_opts)
 
 	}
 
@@ -452,7 +518,6 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 	) {
 
 		WIDGET_SIZE :: mu.Vec2{800, 800}
-		center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 		pie_widget_corner := mu.Rect {
 			rl.GetScreenWidth() / 2 - WIDGET_SIZE.x / 2,
 			rl.GetScreenHeight() / 2 - WIDGET_SIZE.y / 2,
