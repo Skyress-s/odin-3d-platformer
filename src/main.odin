@@ -2,27 +2,24 @@ package main
 
 import character "Character"
 import p "Physics"
-import spat "Spatial"
-import "base:runtime"
-import l "level"
-import gameui "micro-ui"
-import "serialization"
-import mu "vendor:microui"
-
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
+import spat "Spatial"
 import "base:builtin"
 import intrinsics "base:intrinsics"
+import "base:runtime"
 import "core:debug/trace"
 import "core:fmt"
 import "core:io"
 import "core:math"
 import "core:math/linalg"
+import hms "handle_map/handle_map_static"
+import l "level"
+import gameui "micro-ui"
+import "serialization"
+import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
-
-import hms "handle_map/handle_map_static"
-
 /*
 global_trace_ctx: trace.Context
 
@@ -85,9 +82,6 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 	runtime.trap()
 }
 */
-
-Static_World_Object :: struct {
-}
 
 
 main :: proc() {

@@ -1,7 +1,9 @@
 #+feature dynamic-literals
 package serialization
 
+import spat "../Spatial"
 import l "../level"
+
 import "core:encoding/json"
 import "core:fmt"
 import os "core:os"
@@ -19,6 +21,7 @@ Result_Union :: union {
 @(private)
 Level_Serialization_Data :: struct {
 	name:    string,
+	//objects: [dynamic]spat.Collision_Object_Data,
 	objects: [dynamic]int,
 }
 
