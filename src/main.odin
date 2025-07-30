@@ -6,6 +6,7 @@ import spat "Spatial"
 import "base:runtime"
 import l "level"
 import gameui "micro-ui"
+import "serialization"
 import mu "vendor:microui"
 
 import cc "Physics/collision_channel"
@@ -102,6 +103,11 @@ main :: proc() {
 	char_data.verlet_component.position = spat.Vector{0, 0, 0}
 
 	current_level: l.Level
+	current_level.name = "test_level"
+
+	serialization.save_to_file_level(&current_level, "test.map")
+	loaded_level := serialization.load_from_file_level("test.map")
+	fmt.println("LOADED LEVEL: ", loaded_level)
 
 	//collision_objects: spat.Collision_Object_Handle_Map
 	//spatial_hash_map := make(map[spat.Hash_Key]spat.Hash_Cell)
