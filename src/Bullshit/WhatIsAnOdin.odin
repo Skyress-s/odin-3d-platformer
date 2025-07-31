@@ -58,6 +58,14 @@ main :: proc() {
 
 //  init()
 
+    // got absolutely no clue what this means, should prob look at it later
+    // program_id : u32; ok : bool
+    // if program_id, ok = gl.load_shaders("./triangle.vert", "./triangle.frag"); !ok {
+    //     fmt.println("Failed to load shaders.")
+    //     return
+    // }
+    // defer gl.DeleteProgram(program_id)
+
     // build and compile shader program
     // --------------------------------
     // variables for compilation error checking
@@ -123,15 +131,6 @@ main :: proc() {
     gl.BindBuffer(gl.ARRAY_BUFFER, 0) // safely unbind after VertexAttribPointer registers buffer object
     gl.BindVertexArray(0) // -||-
 
-    // got absolutely no clue what this means
-    // program_id : u32; ok : bool
-    // if program_id, ok = gl.load_shaders("./triangle.vert", "./triangle.frag"); !ok {
-    //     fmt.println("Failed to load shaders.")
-    //     return
-    // }
-    // defer gl.DeleteProgram(program_id)
-
-
     for (!glfw.WindowShouldClose(window) && running) {
 
         glfw.PollEvents()
@@ -145,10 +144,6 @@ main :: proc() {
 
         glfw.SwapBuffers((window))
     }
-
-//  exit()
-
-
 }
 
 // I don't know why this works
