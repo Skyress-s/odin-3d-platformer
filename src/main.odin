@@ -100,17 +100,18 @@ main :: proc() {
 	current_level.name = "test_level"
 
 
-	//collision_objects: spat.Collision_Object_Handle_Map
-	//spatial_hash_map := make(map[spat.Hash_Key]spat.Hash_Cell)
+	add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
 
-	//add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
+	current_level.start_position = {0, 0, 0}
+	current_level.start_look_direction = {1, 0, 0}
 
-	//serialization.save_to_file_level(&current_level, "test.map")
+	serialization.save_to_file_level(&current_level, "test.map")
 	loaded_level := serialization.load_from_file_level("test.map")
 
 	current_level = loaded_level
+	current_level.start_look_direction = linalg.normalize0(current_level.start_look_direction)
 
-	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
+	char_data.look_angles.x = rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
