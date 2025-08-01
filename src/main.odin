@@ -99,15 +99,16 @@ main :: proc() {
 	current_level: l.Level
 	current_level.name = "test_level"
 
-	serialization.save_to_file_level(&current_level, "test.map")
-	loaded_level := serialization.load_from_file_level("test.map")
-	fmt.println("LOADED LEVEL: ", loaded_level)
 
 	//collision_objects: spat.Collision_Object_Handle_Map
 	//spatial_hash_map := make(map[spat.Hash_Key]spat.Hash_Cell)
 
-	add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
+	//add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
 
+	//serialization.save_to_file_level(&current_level, "test.map")
+	loaded_level := serialization.load_from_file_level("test.map")
+
+	current_level = loaded_level
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
@@ -115,7 +116,6 @@ main :: proc() {
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
-
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
@@ -295,6 +295,13 @@ render :: proc(
 
 	rl.EndDrawing()
 
+}
+
+get_default_start_location_look_direction :: proc() -> (location, look_direction: spat.Vector) {
+
+	location = {0, 0, 0}
+	look_direction = {1, 0, 0}
+	return location, look_direction
 }
 
 add_debug_level_objects :: proc(

@@ -48,10 +48,14 @@ Collision_Triangle :: struct {
 
 Collision_Object_Id :: distinct hms.Handle
 
+
 Collision_Object_Data :: distinct struct {
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
-	handle:             Collision_Object_Id,
+}
+Collision_Object_Data_Runtime :: distinct struct {
+	using data: Collision_Object_Data,
+	handle:     Collision_Object_Id,
 }
 
 Hash_Cell :: struct {
@@ -431,7 +435,7 @@ calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]b
 }
 
 Collision_Object_Handle_Map :: distinct
-hms.Handle_Map(Collision_Object_Data, Collision_Object_Id, 1024)
+hms.Handle_Map(Collision_Object_Data_Runtime, Collision_Object_Id, 1024)
 
 
 add_shape_to_hash_map :: proc(
@@ -463,7 +467,7 @@ create_and_add_collision_object_from_tris :: proc(
 	// Adding to handle map
 	collision_object_id := hms.add(
 		collision_object_map,
-		Collision_Object_Data{collision_channels = collision_channel, tris = tris},
+		Collision_Object_Data_Runtime{collision_channels = collision_channel, tris = tris},
 	)
 
 	for hash_key in potential_hash_keys {
@@ -490,7 +494,10 @@ shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision
 
 }
 
-is_inside_object :: proc(collision_object: ^Collision_Object_Data, location: ^Vector) -> bool {
+is_inside_object :: proc(
+	collision_object: ^Collision_Object_Data_Runtime,
+	location: ^Vector,
+) -> bool {
 	// If we shoot a ray straight up, that is longer than the longest size of the Bounds. If we hit a odd number of tris, we are inside it.
 
 
@@ -506,7 +513,7 @@ is_inside_object :: proc(collision_object: ^Collision_Object_Data, location: ^Ve
 
 ray_trace_object_single :: proc(
 	ray: ^Ray,
-	collision_object: ^Collision_Object_Data,
+	collision_object: ^Collision_Object_Data_Runtime,
 ) -> (
 	hit: bool,
 	location: Vector,
@@ -524,7 +531,7 @@ ray_trace_object_single :: proc(
 // TODO: Can make more efficient vairants, that preallocates the array. 
 ray_trace_object_multi :: proc(
 	ray: ^Ray,
-	collision_object: ^Collision_Object_Data,
+	collision_object: ^Collision_Object_Data_Runtime,
 ) -> (
 	hits: [dynamic]Vector,
 ) {
