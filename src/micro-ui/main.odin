@@ -444,6 +444,9 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
 
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
+
 		m: f32 = 0.01
 		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
 		kinetic_energy :=

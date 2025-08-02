@@ -38,7 +38,8 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	level_serialization_data := Level_Serialization_Data {
 		name           = level.name,
 		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
-		start_position = {0, 0, 0},
+		start_position = level.start_position,
+		start_look_direction = level.start_look_direction
 	}
 
 	/*

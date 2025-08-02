@@ -13,9 +13,11 @@ import "core:fmt"
 import "core:io"
 import "core:math"
 import "core:math/linalg"
+import "editor_player"
 import hms "handle_map/handle_map_static"
 import l "level"
 import gameui "micro-ui"
+import "player_data"
 
 import "serialization"
 import mu "vendor:microui"
@@ -85,17 +87,26 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 */
 
 
+Player_Type_Union :: union #no_nil {
+	character.CharacternData,
+	editor_player.Editor_Player_Data,
+	// TODO: We can probably add the shared fields here, like the look angles?
+}
+
 main :: proc() {
 	// trace.init(&global_trace_ctx)
 	// defer trace.destroy(&global_trace_ctx)
 
 	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
-	char_data: character.CharacternData = {
+	player: Player_Type_Union = character.CharacternData {
 		radius = 1,
 	}
-		
-	char_data.current_state = character.Airborne{}
-	char_data.verlet_component.position = spat.Vector{0, 0, 0}
+
+	//{
+		char_data := &player.(character.CharacternData)
+		char_data.current_state = character.Airborne{}
+		char_data.verlet_component.position = spat.Vector{0, 0, 0}
+	//}
 
 	current_level: l.Level
 	current_level.name = "test_level"
@@ -104,7 +115,7 @@ main :: proc() {
 	add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
 
 	current_level.start_position = {0, 0, 0}
-	current_level.start_look_direction = {0, 1, 0}
+	current_level.start_look_direction = {1, 0, 1}
 
 	serialization.save_to_file_level(&current_level, "test.map")
 	loaded_level := serialization.load_from_file_level("test.map")
@@ -113,11 +124,13 @@ main :: proc() {
 	current_level.start_position = loaded_level.start_position
 	current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
-	// char_data.look_angles.x = math.acos_f32(current_level.start_look_direction.x)
-	// char_data.look_angles.y = math.PI / 2 + math.asin_f32(current_level.start_look_direction.y)
-	char_data.look_angles.x = math.asin_f32(current_level.start_look_direction.y)
 
-	char_data.look_angles.y = 0
+	// Set look angles
+	char_data.look_angles.x = -math.asin(current_level.start_look_direction.y)
+	char_data.look_angles.y = linalg.vector_angle_between(
+		spat.Vector{0, 0, 1},
+		current_level.start_look_direction,
+	)
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
@@ -144,10 +157,13 @@ main :: proc() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
 
+		switch &variant in player {
+		case character.CharacternData:
+			character.update_character(&variant, &current_level, dt)
+		case editor_player.Editor_Player_Data:
+			editor_player.update(&variant, dt)
+		}
 
-		character.update_character(&char_data, &current_level, &cam, dt)
-
-		//get_overlapping_cells(cam.position)
 		active_hash_key := spat.Hash_Location(cam.position)
 		active_cell := current_level.spatial_hash_grid[active_hash_key]
 
@@ -155,18 +171,32 @@ main :: proc() {
 		active_cell_objects_ids := &active_cell.objects_ids
 
 
-		verlet.velocity_verlet_leap(&char_data.verlet_component, dt)
-		//verlet.velocity_verlet(&char_data.verlet_component, spat.Vector{0, -30, 0}, dt)
+		// should we change to another state
+		if rl.IsKeyPressed(.F10) {
+			switch &v in player {
+			case character.CharacternData:
+				player = editor_player.Editor_Player_Data{}
+			case editor_player.Editor_Player_Data:
+				player = character.CharacternData {
+					current_state = character.Airborne{},
+				}
+			}
 
-		character.update_character_physics(
-			&char_data,
-			&current_level,
-			&cam,
-			active_cell_objects_ids,
-			dt,
-		)
+		}
 
-		verlet.velocity_verlet_frog(&char_data.verlet_component, dt)
+		switch &variant in player {
+		case character.CharacternData:
+			verlet.velocity_verlet_leap(&variant.verlet_component, dt)
+			character.update_character_physics(
+				&variant,
+				&current_level,
+				active_cell_objects_ids,
+				dt,
+			)
+			verlet.velocity_verlet_frog(&variant.verlet_component, dt)
+		case editor_player.Editor_Player_Data:
+		}
+
 		assert(
 			linalg.length(cam.target - cam.position) > 0,
 			"camera target and position should never be equal",
@@ -181,12 +211,22 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx, &char_data)
+		gameui.all_windows(&gameui.state.mu_ctx, char_data)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
 
-		render(&current_level, &char_data, &cam, &active_cell, active_hash_key)
+		switch &v in player {
+		case character.CharacternData:
+			_, forward, right := player_data.calculate_stuff_from_look(&v.look_angles)
+			cam.position = v.verlet_component.position
+			cam.target = cam.position + forward
+			cam.up = linalg.cross(forward, right)
+
+		case editor_player.Editor_Player_Data:
+
+		}
+		render(&current_level, char_data, &cam, &active_cell, active_hash_key)
 
 	}
 }

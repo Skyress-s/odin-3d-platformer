@@ -9,6 +9,7 @@ import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
 Vector :: rl.Vector3
+Vector2 :: rl.Vector2
 
 // Transform :: rl.Transform
 Transform :: struct {

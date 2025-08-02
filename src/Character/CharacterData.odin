@@ -6,12 +6,12 @@ import verlet "../Physics/verlet"
 import spat "../Spatial"
 import hms "../handle_map/handle_map_static"
 import l "../level"
+import "../input"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
+import "../player_data"
 
-Axis_Float :: f32
-Axis_2D :: linalg.Vector2f32
 
 Grounded :: struct {
 	allow_gain_max_speed, acceleration: f32,
@@ -21,7 +21,7 @@ Airborne :: struct {
 	allow_gain_max_speed, acceleration: f32,
 }
 
-State :: union {
+State :: union #no_nil {
 	Grounded,
 	Airborne,
 }
@@ -33,15 +33,19 @@ CharacternData :: struct {
 	is_hooked:              bool,
 	start_distance_to_hook: f32,
 	verlet_component:       verlet.Velocity_Verlet_Component,
-	look_angles:            rl.Vector2,
+
+	using look_angles: player_data.Player_Look_Data,
+	// look_angles:            rl.Vector2,
 	radius:                 f32,
 }
 
 
+@(private)
+cursor_enabled: bool = false
+
 update_character :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
-	cam: ^rl.Camera3D,
 	dt: f32,
 ) {
 	character_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015 // left and right
@@ -51,33 +55,38 @@ update_character :: proc(
 		-math.PI * 0.499,
 		math.PI * 0.499,
 	)
-	rot, forward, right := calculate_stuff_from_look(character_data)
-	cam.position = character_data.verlet_component.position
-	cam.target = cam.position + forward
-	cam.up = linalg.cross(forward, right)
+	rot, forward, right := player_data.calculate_stuff_from_look(character_data)
 
-	if rl.IsKeyDown(.R) {
+	if rl.IsKeyPressed(.R) {
 		character_data.verlet_component.position = {1, 5, 1}
 		character_data.verlet_component.velocity = {}
-		cam.position = character_data.verlet_component.position
-
 	}
-	input_snapshot: Input_Snapshot = make_input_snapshot()
-	switch state in character_data.current_state {
+
+	if rl.IsKeyPressed(.TAB) {
+		cursor_enabled = !cursor_enabled
+		if cursor_enabled {rl.EnableCursor()}
+		else {rl.DisableCursor()}
+		
+	}
+
+	input_snapshot: input.Input_Snapshot = input.make_input_snapshot()
+	fmt.println(input_snapshot)
+	switch &state in character_data.current_state {
 	case Airborne:
 		handle_movement_input_Airborne(character_data, &input_snapshot, dt)
 	case Grounded:
 		handle_movement_input_Grounded(character_data, &input_snapshot, dt)
 	}
 
+	player_position := character_data.verlet_component.position
 
 	if rl.IsMouseButtonPressed(.LEFT) {
 		if character_data.is_hooked {
 			character_data.is_hooked = false
 		} else {
 			ray := spat.make_ray_with_origin_direction_distance(
-				cam.position,
-				linalg.vector_normalize(cam.target - cam.position),
+				player_position,
+				linalg.vector_normalize(forward),
 				100.0,
 			)
 			ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
@@ -91,7 +100,7 @@ update_character :: proc(
 				character_data.is_hooked = true
 				character_data.start_distance_to_hook = linalg.distance(
 					character_data.hooked_position,
-					cam.position,
+					player_position,
 				)
 			}
 		}
@@ -123,10 +132,10 @@ update_character :: proc(
 update_character_physics :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
-	cam: ^rl.Camera3D,
 	active_cell_objects_ids: ^[dynamic]spat.Collision_Object_Id,
 	dt: f32,
 ) {
+	fmt.println("update_character_physics")
 	for &collision_object_id in active_cell_objects_ids {
 
 		coll_obj := hms.get(&level.collision_object_map, collision_object_id)
@@ -152,7 +161,7 @@ update_character_physics :: proc(
 	if character_data.is_hooked {
 		to_hook := (character_data.hooked_position - character_data.verlet_component.position)
 		direction_to_hook := linalg.vector_normalize(to_hook)
-		distance := linalg.distance(character_data.hooked_position, cam.position)
+		distance := linalg.distance(character_data.hooked_position, character_data.verlet_component.position)
 		if distance > character_data.start_distance_to_hook {
 			distance_over_max := (distance - character_data.start_distance_to_hook)
 			distance_over_max = max(distance_over_max, 0.0)
@@ -236,87 +245,14 @@ collide_with_tri :: proc(
 }
 
 
-Nothing :: struct {
-}
-
-Pressed :: struct {
-}
-Pressing :: struct {
-	hold_time: f32,
-}
-
-Released :: struct {
-}
-
-Input_state :: union {
-	Nothing,
-	Pressed,
-	Pressing,
-	Released,
-}
-
-Input_Snapshot :: struct {
-	jump:      Input_state,
-	fire_hook: Input_state,
-	movement:  Axis_2D,
-}
-
-// todo terrible name
-calculate_stuff_from_look :: proc(
-	character_data: ^CharacternData,
-) -> (
-	rot: linalg.Quaternionf32,
-	forward, right: linalg.Vector3f32,
-) {
-	rot =
-		linalg.quaternion_from_euler_angle_y_f32(character_data.look_angles.y) *
-		linalg.quaternion_from_euler_angle_x_f32(character_data.look_angles.x)
-
-	forward = linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{0, 0, 1})
-	right = linalg.quaternion128_mul_vector3(rot, linalg.Vector3f32{1, 0, 0})
-
-
-	xz_forward := forward
-	xz_forward.y = 0
-	xz_forward = linalg.normalize(xz_forward)
-
-	return rot, forward, right
-}
-
-make_input_state_from_one_key :: proc(key: rl.KeyboardKey) -> (state: Input_state) {
-	if rl.IsKeyDown(key) do state = Pressed{}
-	else if rl.IsKeyDown(key) do state = Pressing{}
-	else if rl.IsKeyReleased(key) do state = Released{}
-	else do state = Nothing{}
-
-	return state
-}
-
-make_input_snapshot :: proc() -> (input_snapshot: Input_Snapshot) {
-
-	// Fire hook / main ability 
-	if rl.IsMouseButtonPressed(.LEFT) do input_snapshot.fire_hook = Pressed{}
-	else if rl.IsMouseButtonDown(.LEFT) do input_snapshot.fire_hook = Pressing{}
-	else if rl.IsMouseButtonReleased(.LEFT) do input_snapshot.fire_hook = Released{}
-	else do input_snapshot.fire_hook = Nothing{}
-
-	input_snapshot.movement.x = (rl.IsKeyDown(.A) ? 1 : 0) + (rl.IsKeyDown(.D) ? -1 : 0)
-	input_snapshot.movement.y = (rl.IsKeyDown(.W) ? 1 : 0) + (rl.IsKeyDown(.S) ? -1 : 0)
-
-	input_snapshot.jump = make_input_state_from_one_key(rl.KeyboardKey.SPACE)
-
-
-	return input_snapshot
-}
-
 @(private)
 handle_movement_input_Airborne :: proc(
 	char_data: ^CharacternData,
-	input_snapshot: ^Input_Snapshot,
+	input_snapshot: ^input.Input_Snapshot,
 	dt: f32,
 ) {
 
-	rot, forward, right := calculate_stuff_from_look(char_data)
+	rot, forward, right := player_data.calculate_stuff_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
 	if linalg.is_nan(forward) == true do return
@@ -352,11 +288,11 @@ handle_movement_input_Airborne :: proc(
 
 handle_movement_input_Grounded :: proc(
 	char_data: ^CharacternData,
-	input_snapshot: ^Input_Snapshot,
+	input_snapshot: ^input.Input_Snapshot,
 	dt: f32,
 ) {
 
-	rot, forward, right := calculate_stuff_from_look(char_data)
+	rot, forward, right := player_data.calculate_stuff_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
 	if linalg.is_nan(forward) == true do return
