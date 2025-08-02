@@ -16,6 +16,7 @@ import "core:math/linalg"
 import hms "handle_map/handle_map_static"
 import l "level"
 import gameui "micro-ui"
+
 import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
@@ -89,10 +90,10 @@ main :: proc() {
 	// defer trace.destroy(&global_trace_ctx)
 
 	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
-
 	char_data: character.CharacternData = {
 		radius = 1,
 	}
+		
 	char_data.current_state = character.Airborne{}
 	char_data.verlet_component.position = spat.Vector{0, 0, 0}
 
@@ -103,15 +104,22 @@ main :: proc() {
 	add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
 
 	current_level.start_position = {0, 0, 0}
-	current_level.start_look_direction = {1, 0, 0}
+	current_level.start_look_direction = {0, 1, 0}
 
 	serialization.save_to_file_level(&current_level, "test.map")
 	loaded_level := serialization.load_from_file_level("test.map")
 
 	current_level = loaded_level
-	current_level.start_look_direction = linalg.normalize0(current_level.start_look_direction)
+	current_level.start_position = loaded_level.start_position
+	current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
-	char_data.look_angles.x = rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
+	// char_data.look_angles.x = math.acos_f32(current_level.start_look_direction.x)
+	// char_data.look_angles.y = math.PI / 2 + math.asin_f32(current_level.start_look_direction.y)
+	char_data.look_angles.x = math.asin_f32(current_level.start_look_direction.y)
+
+	char_data.look_angles.y = 0
+
+	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
@@ -131,7 +139,6 @@ main :: proc() {
 		fovy       = 110,
 		projection = .PERSPECTIVE,
 	}
-
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
