@@ -2,6 +2,7 @@ package player_data
 
 import spat "../Spatial"
 import "core:math/linalg"
+import "core:math"
 
 Player_Look_Data :: distinct struct{
 	using look_radians: spat.Vector2
@@ -27,4 +28,14 @@ calculate_stuff_from_look :: proc(
 	xz_forward = linalg.normalize(xz_forward)
 
 	return rot, forward, right
+}
+
+update_player_look_data :: proc(look_data: ^Player_Look_Data, delta_look: spat.Vector2, dt: f32){
+	look_data.look_radians.y -= delta_look.x * 0.0015 // left and right
+	look_data.look_radians.x += delta_look.y * 0.0015 // up and down
+	look_data.look_radians.x = linalg.clamp(
+		look_data.look_radians.x,
+		-math.PI * 0.499,
+		math.PI * 0.499,
+	)
 }

@@ -86,11 +86,9 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 }
 */
 
-
-Player_Type_Union :: union #no_nil {
-	character.CharacternData,
-	editor_player.Editor_Player_Data,
-	// TODO: We can probably add the shared fields here, like the look angles?
+Player_Mode :: enum {
+	Game,
+	Editor,
 }
 
 main :: proc() {
@@ -98,14 +96,15 @@ main :: proc() {
 	// defer trace.destroy(&global_trace_ctx)
 
 	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
-	player: Player_Type_Union = character.CharacternData {
+	player_mode := Player_Mode.Game
+	player_game := character.CharacternData {
 		radius = 1,
 	}
+	player_editor := editor_player.Editor_Player_Data{movement_speed = 30}
 
 	//{
-		char_data := &player.(character.CharacternData)
-		char_data.current_state = character.Airborne{}
-		char_data.verlet_component.position = spat.Vector{0, 0, 0}
+	player_game.current_state = character.Airborne{}
+	player_game.verlet_component.position = spat.Vector{0, 0, 0}
 	//}
 
 	current_level: l.Level
@@ -126,8 +125,8 @@ main :: proc() {
 
 
 	// Set look angles
-	char_data.look_angles.x = -math.asin(current_level.start_look_direction.y)
-	char_data.look_angles.y = linalg.vector_angle_between(
+	player_game.look_angles.x = -math.asin(current_level.start_look_direction.y)
+	player_game.look_angles.y = linalg.vector_angle_between(
 		spat.Vector{0, 0, 1},
 		current_level.start_look_direction,
 	)
@@ -157,11 +156,27 @@ main :: proc() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
 
-		switch &variant in player {
-		case character.CharacternData:
-			character.update_character(&variant, &current_level, dt)
-		case editor_player.Editor_Player_Data:
-			editor_player.update(&variant, dt)
+		// should we change to another state
+		if rl.IsKeyPressed(.F10) {
+			switch player_mode {
+			case Player_Mode.Game:
+				rl.EnableCursor()
+				player_editor.position = player_game.verlet_component.position
+				player_editor.look_radians = player_game.look_angles
+
+				player_mode = Player_Mode.Editor
+			case Player_Mode.Editor:
+				rl.DisableCursor()
+
+				player_mode = Player_Mode.Game
+			}
+		}
+
+		switch player_mode {
+		case Player_Mode.Game:
+			character.update_character(&player_game, &current_level, dt)
+		case Player_Mode.Editor:
+			editor_player.update(&player_editor, dt)
 		}
 
 		active_hash_key := spat.Hash_Location(cam.position)
@@ -171,30 +186,18 @@ main :: proc() {
 		active_cell_objects_ids := &active_cell.objects_ids
 
 
-		// should we change to another state
-		if rl.IsKeyPressed(.F10) {
-			switch &v in player {
-			case character.CharacternData:
-				player = editor_player.Editor_Player_Data{}
-			case editor_player.Editor_Player_Data:
-				player = character.CharacternData {
-					current_state = character.Airborne{},
-				}
-			}
 
-		}
-
-		switch &variant in player {
-		case character.CharacternData:
-			verlet.velocity_verlet_leap(&variant.verlet_component, dt)
+		switch player_mode {
+		case Player_Mode.Game:
+			verlet.velocity_verlet_leap(&player_game.verlet_component, dt)
 			character.update_character_physics(
-				&variant,
+				&player_game,
 				&current_level,
 				active_cell_objects_ids,
 				dt,
 			)
-			verlet.velocity_verlet_frog(&variant.verlet_component, dt)
-		case editor_player.Editor_Player_Data:
+			verlet.velocity_verlet_frog(&player_game.verlet_component, dt)
+		case Player_Mode.Editor:
 		}
 
 		assert(
@@ -211,22 +214,26 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx, char_data)
+		gameui.all_windows(&gameui.state.mu_ctx, &player_game)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
 
-		switch &v in player {
-		case character.CharacternData:
-			_, forward, right := player_data.calculate_stuff_from_look(&v.look_angles)
-			cam.position = v.verlet_component.position
+		// Update Camera
+		switch player_mode {
+		case Player_Mode.Game:
+			_, forward, right := player_data.calculate_stuff_from_look(&player_game.look_angles)
+			cam.position = player_game.verlet_component.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 
-		case editor_player.Editor_Player_Data:
-
+		case Player_Mode.Editor:
+			_, forward, right := player_data.calculate_stuff_from_look(&player_editor.look_data) 
+			cam.position = player_editor.position
+			cam.target = cam.position + forward
+			cam.up = linalg.cross(forward, right)
 		}
-		render(&current_level, char_data, &cam, &active_cell, active_hash_key)
+		render(&current_level, &player_game, &cam, &active_cell, active_hash_key)
 
 	}
 }

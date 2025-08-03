@@ -48,13 +48,7 @@ update_character :: proc(
 	level: ^l.Level,
 	dt: f32,
 ) {
-	character_data.look_angles.y -= rl.GetMouseDelta().x * 0.0015 // left and right
-	character_data.look_angles.x += rl.GetMouseDelta().y * 0.0015 // up and down
-	character_data.look_angles.x = linalg.clamp(
-		character_data.look_angles.x,
-		-math.PI * 0.499,
-		math.PI * 0.499,
-	)
+	player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	rot, forward, right := player_data.calculate_stuff_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
@@ -70,7 +64,6 @@ update_character :: proc(
 	}
 
 	input_snapshot: input.Input_Snapshot = input.make_input_snapshot()
-	fmt.println(input_snapshot)
 	switch &state in character_data.current_state {
 	case Airborne:
 		handle_movement_input_Airborne(character_data, &input_snapshot, dt)
@@ -135,7 +128,6 @@ update_character_physics :: proc(
 	active_cell_objects_ids: ^[dynamic]spat.Collision_Object_Id,
 	dt: f32,
 ) {
-	fmt.println("update_character_physics")
 	for &collision_object_id in active_cell_objects_ids {
 
 		coll_obj := hms.get(&level.collision_object_map, collision_object_id)

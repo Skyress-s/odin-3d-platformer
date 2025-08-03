@@ -370,7 +370,7 @@ construct_button_positionts_unit_circle :: proc(
 	return locations
 }
 
-singned_angle :: proc(v1, v2: rl.Vector2) -> f32 {
+signed_angle :: proc(v1, v2: rl.Vector2) -> f32 {
 	dot := v1.x * v2.x + v1.y * v2.y
 	det := v1.x * v2.y - v1.y * v2.x // equivalent to 2D cross product (scalar)
 	return math.atan2(det, dot) // atan2 returns signed angle
@@ -394,7 +394,7 @@ which_pie_is_position_in :: proc(
 
 
 	//angle := linalg.angle_between(UP, mouse_position_float - center_float)
-	angle := singned_angle(UP, mouse_position_float - center_float)
+	angle := signed_angle(UP, mouse_position_float - center_float)
 
 	angle += half_segment
 	if angle < 0 do angle = (math.PI * 2) + (angle)
@@ -542,7 +542,6 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		)
 
 		ok, index := which_pie_is_position_in(ctx.mouse_pos, mu.Vec2{center.x, center.y}, 8, 40)
-		fmt.printfln("ok {}, index {}", ok, index)
 
 
 		for &loc, i in locations {
