@@ -416,58 +416,6 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 
-	if mu.window(
-		ctx,
-		"stats",
-		mu.Rect{0, 0, rl.GetScreenWidth(), 700},
-		{
-			mu.Opt.NO_FRAME,
-			mu.Opt.NO_INTERACT,
-			mu.Opt.NO_SCROLL,
-			mu.Opt.NO_CLOSE,
-			mu.Opt.NO_RESIZE,
-			mu.Opt.NO_TITLE,
-		},
-	) {
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Position {}", char_data.verlet_component.position))
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Velocity {}", char_data.verlet_component.velocity))
-
-		mu.layout_row(ctx, {-1})
-		vel_xz := char_data.verlet_component.velocity
-		vel_xz.y = 0
-		mu.label(ctx, fmt.aprintf("Velocity_XZ {}", linalg.length(vel_xz)))
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
-
-		m: f32 = 0.01
-		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
-		kinetic_energy :=
-			0.5 *
-			m *
-			linalg.length(char_data.verlet_component.velocity) *
-			linalg.length(char_data.verlet_component.velocity)
-		total_energy := potential_energy + kinetic_energy
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Potential {}", potential_energy))
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Kinetic {}", kinetic_energy))
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
-
-
-	}
-
 	// Draw cross hair
 	{
 		crosshair_opts: mu.Options = {
@@ -502,10 +450,14 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 			CROSSHAIR_DOT_SIZE,
 			CROSSHAIR_DOT_SIZE,
 		}
-		mu.window(ctx, "crosshair", crosshair_rect, crosshair_opts)
+		if (mu.window(ctx, "crosshair", crosshair_rect, crosshair_opts)) {
+			mu.get_current_container(ctx).rect = crosshair_rect
+		}
 
 	}
 
+
+	/*
 	if mu.window(
 		ctx,
 		"My cool Pie test window",
@@ -588,7 +540,7 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 			}
 		}
 	}
-
+	 */
 	/*
 	if mu.window(ctx, "Demo Window", {40, 40, 300, 450}, opts) {
 		if .ACTIVE in mu.header(ctx, "Window Info") {
@@ -720,33 +672,104 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		}
 	}
 */
+	// CHEATS
+	{
+		rect := mu.Rect{rl.GetRenderWidth() - 400, 0, 400, 400}
+		if mu.window(ctx, "Cheat Window", rect, {mu.Opt.NO_CLOSE}) {
+			mu.get_current_container(ctx).rect = rect
+			mu.layout_row(ctx, {-1})
+			mu.checkbox(ctx, "cheat: air_jumping", &char_data.air_jumping_cheat)
 
-	if mu.window(ctx, "Log Window", {350, 40, 300, 200}, opts) {
-		mu.layout_row(ctx, {-1}, -28)
-		mu.begin_panel(ctx, "Log")
-		mu.layout_row(ctx, {-1}, -1)
-		mu.text(ctx, read_log())
-		if state.log_buf_updated {
-			panel := mu.get_current_container(ctx)
-			panel.scroll.y = panel.content_size.y
-			state.log_buf_updated = false
 		}
-		mu.end_panel(ctx)
+	}
+	{
+		rect := mu.Rect{rl.GetScreenWidth() - 300, rl.GetScreenHeight() - 200, 300, 200}
+		if mu.window(
+			ctx,
+			"Log Window",
+			rect,
+			opts,
+		) {
+			mu.get_current_container(ctx).rect = rect
+			mu.layout_row(ctx, {-1}, -28)
+			mu.begin_panel(ctx, "Log")
+			mu.layout_row(ctx, {-1}, -1)
+			mu.text(ctx, read_log())
+			if state.log_buf_updated {
+				panel := mu.get_current_container(ctx)
+				panel.scroll.y = panel.content_size.y
+				state.log_buf_updated = false
+			}
+			mu.end_panel(ctx)
 
-		@(static) buf: [128]byte
-		@(static) buf_len: int
-		submitted := false
-		mu.layout_row(ctx, {-70, -1})
-		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-			mu.set_focus(ctx, ctx.last_id)
-			submitted = true
+			@(static) buf: [128]byte
+			@(static) buf_len: int
+			submitted := false
+			mu.layout_row(ctx, {-70, -1})
+			if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+				mu.set_focus(ctx, ctx.last_id)
+				submitted = true
+			}
+			if .SUBMIT in mu.button(ctx, "Submit") {
+				submitted = true
+			}
+			if submitted {
+				write_log(string(buf[:buf_len]))
+				buf_len = 0
+			}
 		}
-		if .SUBMIT in mu.button(ctx, "Submit") {
-			submitted = true
-		}
-		if submitted {
-			write_log(string(buf[:buf_len]))
-			buf_len = 0
-		}
+	}
+
+	if mu.window(
+		ctx,
+		"stats",
+		mu.Rect{0, 0, rl.GetScreenWidth(), 700},
+		{
+			mu.Opt.NO_INTERACT,
+			mu.Opt.NO_SCROLL,
+			mu.Opt.NO_CLOSE,
+			mu.Opt.NO_FRAME,
+			mu.Opt.NO_RESIZE,
+			mu.Opt.NO_TITLE,
+		},
+	) {
+		mu.get_current_container(ctx).zindex = -100000
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Position {}", char_data.verlet_component.position))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Velocity {}", char_data.verlet_component.velocity))
+
+		mu.layout_row(ctx, {-1})
+		vel_xz := char_data.verlet_component.velocity
+		vel_xz.y = 0
+		mu.label(ctx, fmt.aprintf("Velocity_XZ {}", linalg.length(vel_xz)))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
+
+		m: f32 = 0.01
+		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+		kinetic_energy :=
+			0.5 *
+			m *
+			linalg.length(char_data.verlet_component.velocity) *
+			linalg.length(char_data.verlet_component.velocity)
+		total_energy := potential_energy + kinetic_energy
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Potential {}", potential_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Kinetic {}", kinetic_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
+
+
 	}
 }

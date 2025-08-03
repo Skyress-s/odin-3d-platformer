@@ -5,12 +5,12 @@ import cc "../Physics/collision_channel"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
 import hms "../handle_map/handle_map_static"
-import l "../level"
 import "../input"
+import l "../level"
+import "../player_data"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
-import "../player_data"
 
 
 Grounded :: struct {
@@ -33,22 +33,22 @@ CharacternData :: struct {
 	is_hooked:              bool,
 	start_distance_to_hook: f32,
 	verlet_component:       verlet.Velocity_Verlet_Component,
-
-	using look_angles: player_data.Player_Look_Data,
+	using look_angles:      player_data.Player_Look_Data,
 	// look_angles:            rl.Vector2,
 	radius:                 f32,
+
+	// Cheats
+	air_jumping_cheat:      bool,
 }
 
 
 @(private)
 cursor_enabled: bool = false
 
-update_character :: proc(
-	character_data: ^CharacternData,
-	level: ^l.Level,
-	dt: f32,
-) {
-	player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
+update_character :: proc(character_data: ^CharacternData, level: ^l.Level, dt: f32) {
+	if rl.IsCursorHidden() {
+		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
+	}
 	rot, forward, right := player_data.calculate_stuff_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
@@ -58,9 +58,8 @@ update_character :: proc(
 
 	if rl.IsKeyPressed(.TAB) {
 		cursor_enabled = !cursor_enabled
-		if cursor_enabled {rl.EnableCursor()}
-		else {rl.DisableCursor()}
-		
+		if cursor_enabled {rl.EnableCursor()} else {rl.DisableCursor()}
+
 	}
 
 	input_snapshot: input.Input_Snapshot = input.make_input_snapshot()
@@ -73,7 +72,7 @@ update_character :: proc(
 
 	player_position := character_data.verlet_component.position
 
-	if rl.IsMouseButtonPressed(.LEFT) {
+	if rl.IsMouseButtonPressed(.LEFT) && rl.IsCursorHidden() {
 		if character_data.is_hooked {
 			character_data.is_hooked = false
 		} else {
@@ -141,8 +140,7 @@ update_character_physics :: proc(
 
 	// Jumping
 	_, ok := character_data.current_state.(Grounded) // awwwww yes!
-	// if rl.IsKeyPressed(.SPACE) && ok {
-	if rl.IsKeyPressed(.SPACE) {
+	if rl.IsKeyPressed(.SPACE) && (ok || character_data.air_jumping_cheat) {
 
 		// char_data.verlet_component.velocity.y = 15
 		character_data.verlet_component.acceleration.y += 15 / dt
@@ -153,7 +151,10 @@ update_character_physics :: proc(
 	if character_data.is_hooked {
 		to_hook := (character_data.hooked_position - character_data.verlet_component.position)
 		direction_to_hook := linalg.vector_normalize(to_hook)
-		distance := linalg.distance(character_data.hooked_position, character_data.verlet_component.position)
+		distance := linalg.distance(
+			character_data.hooked_position,
+			character_data.verlet_component.position,
+		)
 		if distance > character_data.start_distance_to_hook {
 			distance_over_max := (distance - character_data.start_distance_to_hook)
 			distance_over_max = max(distance_over_max, 0.0)

@@ -100,7 +100,9 @@ main :: proc() {
 	player_game := character.CharacternData {
 		radius = 1,
 	}
-	player_editor := editor_player.Editor_Player_Data{movement_speed = 30}
+	player_editor := editor_player.Editor_Player_Data {
+		movement_speed = 30,
+	}
 
 	//{
 	player_game.current_state = character.Airborne{}
@@ -186,7 +188,6 @@ main :: proc() {
 		active_cell_objects_ids := &active_cell.objects_ids
 
 
-
 		switch player_mode {
 		case Player_Mode.Game:
 			verlet.velocity_verlet_leap(&player_game.verlet_component, dt)
@@ -228,33 +229,65 @@ main :: proc() {
 			cam.up = linalg.cross(forward, right)
 
 		case Player_Mode.Editor:
-			_, forward, right := player_data.calculate_stuff_from_look(&player_editor.look_data) 
+			_, forward, right := player_data.calculate_stuff_from_look(&player_editor.look_data)
 			cam.position = player_editor.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
-		render(&current_level, &player_game, &cam, &active_cell, active_hash_key)
+		render(&current_level, player_mode, &player_game, &cam, &active_cell, active_hash_key)
 
 	}
 }
 
 render :: proc(
 	level: ^l.Level,
+	player_mode: Player_Mode,
 	char_data: ^character.CharacternData,
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
 ) {
-	// RENDERING START
-
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	// Collide
-	if char_data.is_hooked {
 
-		rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+	switch player_mode {
+	case Player_Mode.Game:
+		if char_data.is_hooked {
+			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+			points: [2]spat.Vector2
+		}
+
+	case Player_Mode.Editor:
+		_, forward, _ := player_data.calculate_stuff_from_look(&char_data.look_angles)
+		player_verlet := &char_data.verlet_component
+
+		rl.DrawCylinder(
+			player_verlet.position - spat.Vector{0, char_data.radius, 0},
+			char_data.radius,
+			char_data.radius,
+			char_data.radius * 2,
+			8,
+			rl.GREEN,
+		)
+		rl.DrawLine3D(player_verlet.position, player_verlet.position + forward * 8, rl.RED)
+	}
+
+	player_verlet := &char_data.verlet_component
+	player_root_pos_for_drawing := player_verlet.position - spat.Vector{0, 0.1, 0}
+	rl.DrawLine3D(
+		player_root_pos_for_drawing,
+		player_verlet.position + player_verlet.velocity * 0.4,
+		rl.ORANGE,
+	)
+
+	// Draw rope
+	if char_data.is_hooked {
+		rl.DrawLine3D(
+		player_root_pos_for_drawing,
+		char_data.hooked_position,
+		rl.VIOLET)
 	}
 
 
