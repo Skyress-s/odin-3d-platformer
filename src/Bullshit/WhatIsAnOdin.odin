@@ -29,28 +29,6 @@ fragment_source:cstring = `#version 330 core
        FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
     }`;
 
-frame_counters :: struct {
-    last_time : f64,
-    nb_frames : i32
-}
-
-framecounter_init :: proc () -> frame_counters {
-    return frame_counters{glfw.GetTime(), 0}
-}
-
-framecounter_update :: proc(counters: ^frame_counters) {
-    for {
-        current_time : f64 = glfw.GetTime()
-        counters.nb_frames += 1
-
-        if (current_time - counters.last_time >= 1.0) {
-            fmt.printf("heyo, what's up") // "%f ms/frame\n", 1000.0/f64(nb_frames)
-            counters.nb_frames = 0
-            counters.last_time += 1.0
-        }
-    }
-}
-
 main :: proc() {
 
     defer glfw.Terminate()
@@ -168,7 +146,6 @@ main :: proc() {
     for (!glfw.WindowShouldClose(window) && running) {
 
         d.framecounter_update(&framecounter)
-        fmt.println(framecounter)
 
         glfw.PollEvents()
 
@@ -181,7 +158,7 @@ main :: proc() {
         // gl.DrawArrays(gl.TRIANGLES, 0, 3)
         gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
-        glfw.SwapBuffers((window))
+        glfw.SwapBuffers(window)
     }
 }
 

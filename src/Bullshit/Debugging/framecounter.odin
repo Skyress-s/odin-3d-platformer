@@ -17,7 +17,7 @@ framecounter_update :: proc(counters: ^frame_counters) {
     counters.nb_frames += 1
 
     if (current_time - counters.last_time >= 1.0) {
-        fmt.printf("heyo, what's up") // "%f ms/frame\n", 1000.0/f64(nb_frames)
+        fmt.printf("Frame Counter :: {} ms / frame \n", 1000.0 / f32(counters.nb_frames))
         counters.nb_frames = 0
         counters.last_time += 1.0
     }
