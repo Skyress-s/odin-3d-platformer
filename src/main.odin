@@ -181,7 +181,7 @@ main :: proc() {
 			editor_player.update(&player_editor, dt)
 		}
 
-		active_hash_key := spat.Hash_Location(cam.position)
+		active_hash_key := spat.Hash_Location(player_game.verlet_component.position)
 		active_cell := current_level.spatial_hash_grid[active_hash_key]
 
 		// Collide with cubes / planes
@@ -349,14 +349,15 @@ render :: proc(
 	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
-	hash_key := spat.Hash_Location((spat.Vector{cam.position.x, cam.position.y, cam.position.z}))
+
+
+	hash_key := spat.Hash_Location(player_verlet.position)
 	spat.Draw_Hash_Cell_Bounds(
 		hash_key,
 		// &Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
 	)
 
-	spat.Draw_Hash_Tree(level.spatial_hash_grid, &hash_key)
-
+	spat.draw_hash_grid_bounds_populated_cells(level.spatial_hash_grid, &hash_key)
 
 	/*
 		active_cell_items := spatial_hash_map[hash_key].items

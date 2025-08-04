@@ -10,11 +10,12 @@ import rlgl "vendor:raylib/rlgl"
 
 Vector :: rl.Vector3
 Vector2 :: rl.Vector2
+Quaternion :: quaternion128
 
 // Transform :: rl.Transform
 Transform :: struct {
 	translation: Vector,
-	rotation:    quaternion128,
+	rotation:    Quaternion,
 	scale:       Vector,
 }
 
@@ -202,7 +203,7 @@ draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color)
 }
 
 
-Draw_Hash_Tree :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key) { 	// todo, pass by ptr?
+draw_hash_grid_bounds_populated_cells :: proc(hash_tree: map[Hash_Key]Hash_Cell, active_cell: ^Hash_Key) { 	// todo, pass by ptr?
 	for Key in hash_tree {
 		// Draw_Hash_Cell_Bounds(&Vector{cast(f32)Key.x, cast(f32)Key.y, cast(f32)Key.z})
 		Draw_Hash_Cell_Bounds(Key)
