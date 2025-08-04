@@ -751,6 +751,12 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
+		
+		// Rope length
+		rope_length := linalg.distance(char_data.verlet_component.position, char_data.hooked_position)
+		mu.layout_row(ctx, {-1})
+		mu.text(ctx, fmt.aprintf("Rope Length {}", char_data.is_hooked ? rope_length : 0))
+
 
 		m: f32 = 0.01
 		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
