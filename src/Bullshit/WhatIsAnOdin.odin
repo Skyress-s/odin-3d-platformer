@@ -5,8 +5,9 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 import s "Shapes"
+import d "Debugging"
 
-PROGRAMNAME::"I CREATED A WINDOW!!! WHAT ARE YOU GOING TO DO ABOUT IT????!"
+PROGRAMNAME::"I CREATED A WINDOW!!! WHAT ARE YOU GOING TO DO ABOUT IT????!" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 SCR_WIDTH :: 800
@@ -51,7 +52,7 @@ main :: proc() {
     }
 
     glfw.MakeContextCurrent(window)
-    glfw.SwapInterval(1)
+    glfw.SwapInterval(1) // syncs rendering loop to monitor refresh rate
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetFramebufferSizeCallback(window, size_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
@@ -116,22 +117,35 @@ main :: proc() {
     gl.DeleteShader(fragmentShader)
 
     // VBO & VAO
-    VBO, VAO : u32
+    VBO, VAO, EBO : u32
     gl.GenBuffers(1, &VBO)
     gl.GenVertexArrays(1, &VAO)
+    gl.GenBuffers(1, &EBO)
 
+    // initialization code:
+    // 1. bind Vertex Array Object
     gl.BindVertexArray(VAO)
-
+    // 2. copy our vertices array in a vertex buffer for OpenGL to use
     gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-    gl.BufferData(gl.ARRAY_BUFFER, size_of(s.vertices), &s.vertices, gl.STATIC_DRAW)
-
+    gl.BufferData(gl.ARRAY_BUFFER, size_of(s.rectangle_vertices), &s.rectangle_vertices, gl.STATIC_DRAW)
+    // 3. copy our index array in an element buffer for OpenGL to use
+    gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+    gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size_of(s.rectangle_indices), &s.rectangle_indices, gl.STATIC_DRAW)
+    // 4. then set the vertex attributes pointers
     gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3* size_of(f32), cast(uintptr)0)
     gl.EnableVertexAttribArray(0)
 
+    // Unbind (optional, probably unnessecary because it adds a call)
     gl.BindBuffer(gl.ARRAY_BUFFER, 0) // safely unbind after VertexAttribPointer registers buffer object
     gl.BindVertexArray(0) // -||-
 
+//  Dev logic
+    // gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE) // enable wireframe
+    framecounter := d.framecounter_init()
+
     for (!glfw.WindowShouldClose(window) && running) {
+
+        d.framecounter_update(&framecounter)
 
         glfw.PollEvents()
 
@@ -140,9 +154,11 @@ main :: proc() {
 
         gl.UseProgram(shaderProgram)
         gl.BindVertexArray(VAO)
-        gl.DrawArrays(gl.TRIANGLES, 0, 3)
+        gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+        // gl.DrawArrays(gl.TRIANGLES, 0, 3)
+        gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
-        glfw.SwapBuffers((window))
+        glfw.SwapBuffers(window)
     }
 }
 
