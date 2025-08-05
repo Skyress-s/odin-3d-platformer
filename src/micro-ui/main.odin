@@ -683,7 +683,7 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		}
 	}
 	{
-		rect := mu.Rect{rl.GetScreenWidth() - 300, rl.GetScreenHeight() - 200, 300, 200}
+		rect := mu.Rect{0, rl.GetScreenHeight() - 200, rl.GetScreenWidth(), 200}
 		if mu.window(
 			ctx,
 			"Log Window",

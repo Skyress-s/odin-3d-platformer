@@ -13,10 +13,11 @@ Vector2 :: rl.Vector2
 Quaternion :: quaternion128
 
 // Transform :: rl.Transform
-Transform :: struct {
+Transform :: distinct struct {
 	position: Vector,
-	rotation:    Quaternion,
-	scale:       Vector,
+	// rotation: Quaternion,
+	rotation: QuaternionData,
+	scale:    Vector,
 }
 
 Box :: struct {
@@ -25,6 +26,10 @@ Box :: struct {
 
 Sphere :: struct {
 	radius: f32,
+}
+
+QuaternionData :: distinct struct {
+	x, y, z, w: f32,
 }
 
 Cylinder :: struct {
@@ -53,8 +58,11 @@ Collision_Object_Id :: distinct hms.Handle
 
 Collision_Object_Data :: distinct struct {
 	collision_channels: u16,
+	position:           Vector,
+	transform:          Transform,
 	tris:               [dynamic]Collision_Triangle,
 }
+
 Collision_Object_Data_Runtime :: distinct struct {
 	using data: Collision_Object_Data,
 	handle:     Collision_Object_Id,
@@ -151,14 +159,16 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 
 	// Create 1rotation matrix from quaternion
-	matRotation := rl.QuaternionToMatrix(trans.rotation)
+	quat:= quaternion128{}
+	quat.x = trans.rotation.x
+	quat.y = trans.rotation.y 
+	quat.z = trans.rotation.z
+	quat.w = trans.rotation.w
+
+	matRotation := rl.QuaternionToMatrix(quat)
 
 	// Create translation matrix
-	matTranslation := rl.MatrixTranslate(
-		trans.position.x,
-		trans.position.y,
-		trans.position.z,
-	)
+	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
 
 	// Combine them: Scale -> Rotate -> Translate
 	// Order matters: S * R * T
@@ -443,9 +453,38 @@ Collision_Object_Handle_Map :: distinct
 hms.Handle_Map(Collision_Object_Data_Runtime, Collision_Object_Id, 1024)
 
 
+notify_object_transform_changed :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
+	collision_object_id: Collision_Object_Id,
+) {
+
+	found_object := hms.get(collision_object_map, collision_object_id)
+	bounds := calculate_bounds_from_tris(found_object.tris)
+
+	data := found_object
+
+	// Remove from spatial_hash_grid TODO: This is slow very inefficient
+	for id, &cell in spatial_hash_grid {
+		for &object_id, index in cell.objects_ids {
+			if object_id == collision_object_id {
+				unordered_remove(&cell.objects_ids, index) // wondering if this will work
+			}
+		}
+	}
+
+	// Insert again
+	create_and_add_collision_object_from_tris(
+		collision_object_map,
+		spatial_hash_grid,
+		data.data.tris,
+		cc.is_blocking(data.data.collision_channels),
+	)
+}
+
 add_shape_to_hash_map :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
-	hash_map: ^map[Hash_Key]Hash_Cell,
+	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	shape: ^Collision_Shape,
 	blocking_geo: bool = true,
 ) {
@@ -453,7 +492,13 @@ add_shape_to_hash_map :: proc(
 
 	tris := shape_get_collision_tris(shape)
 
-	create_and_add_collision_object_from_tris(collision_object_map, hash_map, tris, blocking_geo)
+	create_and_add_collision_object_from_tris(
+		collision_object_map,
+		spatial_hash_grid,
+		tris,
+		blocking_geo,
+	)
+
 }
 
 create_and_add_collision_object_from_tris :: proc(

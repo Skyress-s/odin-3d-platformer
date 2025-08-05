@@ -1,6 +1,8 @@
 package tools
 
 import spat "../../Spatial"
+import hms "../../handle_map/handle_map_static"
+import l "../../level"
 import rlb "../../raylib_bridge"
 import "core:math"
 import "core:math/linalg"
@@ -36,6 +38,7 @@ Transform_Tool_Data :: distinct struct {
 	plane:                     spat.Plane,
 	start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
+	target_object_id:          spat.Collision_Object_Id,
 }
 
 
@@ -78,7 +81,7 @@ update_transform_tool :: proc(
 	cam: ^rl.Camera3D,
 	left_mouse_button_pressed: bool,
 	left_mouse_button_down: bool,
-
+	object_map: ^spat.Collision_Object_Handle_Map,
 	// mouse_ray: spat.Ray,
 	// start_mouse_position,
 	current_mouse_position: spat.Vector2,
@@ -92,9 +95,9 @@ update_transform_tool :: proc(
 			data.plane.normal,
 			data.plane.point_on_plane,
 		)
+		found_object := hms.get(object_map, data.target_object_id)
+		found_object.data.transform.position = data.start_transform.position + (intersection - data.start_ray_plane_intersect)
 
-
-		data.transform.position = intersection - data.start_ray_plane_intersect
 	case State.Rotation:
 		panic("rotation not implemented")
 	case State.Scale:

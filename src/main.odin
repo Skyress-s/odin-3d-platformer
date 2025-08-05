@@ -1,7 +1,6 @@
 package main
 
 import character "Character"
-import e_tools "editor/tools"
 import p "Physics"
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
@@ -14,11 +13,13 @@ import "core:fmt"
 import "core:io"
 import "core:math"
 import "core:math/linalg"
+import e_tools "editor/tools"
 import "editor_player"
 import hms "handle_map/handle_map_static"
 import l "level"
 import gameui "micro-ui"
 import "player_data"
+import rlb "raylib_bridge"
 
 import "serialization"
 import mu "vendor:microui"
@@ -155,14 +156,61 @@ main :: proc() {
 		projection = .PERSPECTIVE,
 	}
 
-	position_transform_tool := e_tools.init_transform_tool(e_tools.State.Position, spat.Plane{spat.Vector{0, 10,0}, spat.Vector{0,1,0}}, rl.GetMousePosition(), &cam)
+	position_transform_tool := e_tools.init_transform_tool(
+		e_tools.State.Position,
+		spat.Plane{spat.Vector{0, 10, 0}, spat.Vector{0, 1, 0}},
+		rl.GetMousePosition(),
+		&cam,
+	)
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
 
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
 
-		e_tools.update_transform_tool(&position_transform_tool, &cam, rl.IsMouseButtonPressed(rl.MouseButton.LEFT), rl.IsMouseButtonDown(rl.MouseButton.LEFT), rl.GetMousePosition())
+			ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
+			ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
+			ok, id, position := spat.ray_intersect_spatial_hash_grid(
+				&current_level.spatial_hash_grid,
+				&current_level.collision_object_map,
+				&ray,
+			)
+
+			gameui.write_log(fmt.aprintf("id {}, ok {} ", id, ok))
+			if ok {
+				position_transform_tool.target_object_id = id
+				position_transform_tool.start_transform =
+					hms.get(&current_level.collision_object_map, id).data.transform
+
+				hit_plane, hit_location := spat.ray_plane_intersect(&ray, {0, 1, 0}, {0, 10, 0})
+
+				position_transform_tool.start_ray_plane_intersect = hit_location
+			}
+
+		}
+
+
+		if position_transform_tool.target_object_id.idx != 0{
+		e_tools.update_transform_tool(
+			&position_transform_tool,
+			&cam,
+			rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+			rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+			&current_level.collision_object_map,
+			rl.GetMousePosition(),
+		)
+		}
+
+
+		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
+		   position_transform_tool.target_object_id.idx != 0 { 	// TODO: Is there a null id?
+			spat.notify_object_transform_changed(
+				&current_level.collision_object_map,
+				&current_level.spatial_hash_grid,
+				position_transform_tool.target_object_id,
+			)
+		}
 
 		// should we change to another state
 		if rl.IsKeyPressed(.F10) {
@@ -240,7 +288,15 @@ main :: proc() {
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
-		render(&current_level, player_mode, &player_game, &cam, &active_cell, active_hash_key, &position_transform_tool)
+		render(
+			&current_level,
+			player_mode,
+			&player_game,
+			&cam,
+			&active_cell,
+			active_hash_key,
+			&position_transform_tool,
+		)
 
 	}
 }
@@ -252,7 +308,7 @@ render :: proc(
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
-	tool: ^e_tools.Transform_Tool_Data
+	tool: ^e_tools.Transform_Tool_Data,
 ) {
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
@@ -293,16 +349,14 @@ render :: proc(
 
 	// Draw rope
 	if char_data.is_hooked {
-		rl.DrawLine3D(
-		player_root_pos_for_drawing,
-		char_data.hooked_position,
-		rl.VIOLET)
+		rl.DrawLine3D(player_root_pos_for_drawing, char_data.hooked_position, rl.VIOLET)
 	}
 
 
-	draw_collision_tri :: proc(t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
+	draw_collision_tri :: proc(transform: ^spat.Transform, t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
 		using t
-		rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
+		using transform
+		rl.DrawTriangle3D(points[0] + position, points[1] + position, points[2] + position, face_color)
 		rl.DrawLine3D(points[0], points[1], edge_color)
 		rl.DrawLine3D(points[0], points[2], edge_color)
 		rl.DrawLine3D(points[1], points[2], edge_color)
@@ -314,7 +368,7 @@ render :: proc(
 		face_color, edge_color: rl.Color,
 	) {
 		for &t in collision_object.tris {
-			draw_collision_tri(&t, face_color, edge_color)
+			draw_collision_tri(&collision_object.transform, &t, face_color, edge_color)
 		}
 	}
 
@@ -357,7 +411,6 @@ render :: proc(
 	rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
 	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
-
 
 
 	hash_key := spat.Hash_Location(player_verlet.position)
@@ -407,7 +460,10 @@ add_debug_level_objects :: proc(
 	spaital_hash_grid: ^map[spat.Hash_Key]spat.Hash_Cell,
 ) {
 
-	q := linalg.QUATERNIONF32_IDENTITY
+	q_raw := linalg.QUATERNIONF32_IDENTITY
+	q := spat.QuaternionData{q_raw.x, q_raw.y, q_raw.z, q_raw.w}
+
+
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
@@ -444,7 +500,10 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape{{{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}},
+		&spat.Collision_Shape {
+			{{-32, 0, 0}, spat.QuaternionData{q2.x, q2.y, q2.z, q2.w}, {2, 2, 2}},
+			spat.Box{{9.0, 9.0, 9.0}},
+		},
 	)
 
 	for box_num in 0 ..= 5 {
