@@ -1,6 +1,7 @@
 package main
 
 import character "Character"
+import e_tools "editor/tools"
 import p "Physics"
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
@@ -154,9 +155,14 @@ main :: proc() {
 		projection = .PERSPECTIVE,
 	}
 
+	position_transform_tool := e_tools.init_transform_tool(e_tools.State.Position, spat.Plane{spat.Vector{0, 10,0}, spat.Vector{0,1,0}}, rl.GetMousePosition(), &cam)
+
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
+
+
+		e_tools.update_transform_tool(&position_transform_tool, &cam, rl.IsMouseButtonPressed(rl.MouseButton.LEFT), rl.IsMouseButtonDown(rl.MouseButton.LEFT), rl.GetMousePosition())
 
 		// should we change to another state
 		if rl.IsKeyPressed(.F10) {
@@ -234,7 +240,7 @@ main :: proc() {
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
-		render(&current_level, player_mode, &player_game, &cam, &active_cell, active_hash_key)
+		render(&current_level, player_mode, &player_game, &cam, &active_cell, active_hash_key, &position_transform_tool)
 
 	}
 }
@@ -246,6 +252,7 @@ render :: proc(
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
+	tool: ^e_tools.Transform_Tool_Data
 ) {
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
@@ -273,6 +280,8 @@ render :: proc(
 		)
 		rl.DrawLine3D(player_verlet.position, player_verlet.position + forward * 8, rl.RED)
 	}
+
+	rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
 
 	player_verlet := &char_data.verlet_component
 	player_root_pos_for_drawing := player_verlet.position - spat.Vector{0, 0.1, 0}

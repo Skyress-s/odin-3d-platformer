@@ -14,7 +14,7 @@ Quaternion :: quaternion128
 
 // Transform :: rl.Transform
 Transform :: struct {
-	translation: Vector,
+	position: Vector,
 	rotation:    Quaternion,
 	scale:       Vector,
 }
@@ -155,9 +155,9 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 
 	// Create translation matrix
 	matTranslation := rl.MatrixTranslate(
-		trans.translation.x,
-		trans.translation.y,
-		trans.translation.z,
+		trans.position.x,
+		trans.position.y,
+		trans.position.z,
 	)
 
 	// Combine them: Scale -> Rotate -> Translate
@@ -315,8 +315,8 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	// bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
-		bound.min = translation - Vector{r * scale.x, r * scale.y, r * scale.z}
-		bound.max = translation + Vector{r * scale.x, r * scale.y, r * scale.z}
+		bound.min = position - Vector{r * scale.x, r * scale.y, r * scale.z}
+		bound.max = position + Vector{r * scale.x, r * scale.y, r * scale.z}
 	case Cylinder:
 		using shape
 		x := radius
