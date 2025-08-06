@@ -2,8 +2,8 @@ package Spatial
 
 import hms "../handle_map/handle_map_static"
 import "core:fmt"
-import "core:math/linalg"
 import "core:math"
+import "core:math/linalg"
 
 Ray :: struct {
 	origin: Vector,
@@ -36,7 +36,6 @@ ray_intersect_spatial_hash_grid :: proc(
 	hashes := calculate_hashes_by_ray(ray^)
 	ray_length := linalg.distance(ray.origin, ray.end)
 	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
-
 
 
 	for hash in hashes {
@@ -85,15 +84,82 @@ ray_intersect_spatial_hash_grid :: proc(
 // Watch "One Lone Coder"s tutorial for how to improve this. 
 // https://github.com/OneLoneCoder/Javidx9/blob/master/PixelGameEngine/SmallerProjects/OneLoneCoder_PGE_RayCastDDA.cpp
 // todo this can probably return a array of hashes. So we can searsh through the closest cells first.
-calculate_hashes_by_ray_new :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+	direction := ray_direction(ray)
 
+	ray_length_per_axis_unit := Vector {
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.x),
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.y),
+		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
+	}
+
+	get_sign :: proc(value: f32) -> int {
+		if value > 0 do return 1
+		if value < 0 do return -1
+		return 0
+	}
+
+	signs: [3]int = {get_sign(direction.x), get_sign(direction.y), get_sign(direction.z)}
+	fmt.println("signs ", signs)
+	fmt.println("ray lenght per unit ", ray_length_per_axis_unit)
+
+	start_hash, end_hash := Hash_Location(ray.origin), Hash_Location(ray.end)
+	current_hash := start_hash
+	current_position := ray.origin
+
+	cells[current_hash] = true
+
+	iterations := 1000
+	for current_hash != end_hash {
+			fmt.println("----------------------------------")
+		iterations = iterations - 1
+		if iterations == 0 do break
+			fmt.println("current_position ", current_position)
+			fmt.println("current_hash ", current_hash)
+
+		cells[current_hash] = true
+
+		current_percents: Vector = {}
+
+		current_percents.x =
+			(current_position.x - Unhash_Coordinate(current_hash.x)) / HASH_CELL_SIZE_METERS_FLOAT
+		current_percents.y =
+			(current_position.y - Unhash_Coordinate(current_hash.y)) / HASH_CELL_SIZE_METERS_FLOAT
+		current_percents.z =
+			(current_position.z - Unhash_Coordinate(current_hash.z)) / HASH_CELL_SIZE_METERS_FLOAT
+
+		if signs.x > 0 do current_percents.x = 1 - current_percents.x
+		if signs.y > 0 do current_percents.y = 1 - current_percents.y
+		if signs.z > 0 do current_percents.z = 1 - current_percents.z
+
+		current_lengths := current_percents * ray_length_per_axis_unit
+
+		fmt.println("current_percents_left ", current_percents)
+
+		fmt.println("current_lengths ", current_lengths)
+		if ((current_lengths.x <= current_lengths.y || math.is_nan(current_lengths.y)) &&
+			   (current_lengths.x <= current_lengths.z || math.is_nan(current_lengths.z))) {
+			current_position = current_position + direction * current_percents.x * HASH_CELL_SIZE_METERS_FLOAT 
+			current_hash.x += 1 * i32(signs.x)
+
+		} else if ((current_lengths.y <= current_lengths.x || math.is_nan(current_lengths.x)) &&
+			   (current_lengths.y <= current_lengths.z || math.is_nan(current_lengths.z))) {
+			current_position = current_position + direction * current_percents.y * HASH_CELL_SIZE_METERS_FLOAT 
+			current_hash.y += 1 * i32(signs.y)
+		} else if ((current_lengths.z <= current_lengths.y || math.is_nan(current_lengths.y)) &&
+			   (current_lengths.z <= current_lengths.x || math.is_nan(current_lengths.x))) {
+			current_position = current_position + direction * current_percents.z * HASH_CELL_SIZE_METERS_FLOAT 
+			current_hash.z += 1 * i32(signs.z)
+		}
+		else {panic("damn it")}
+	}
 
 	return cells
 }
 
 
 // there is something funky happening here. Assert is triggering 
-calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
 	cells[hash_start] = true
@@ -140,9 +206,9 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	i: int = 1000
 
 	for hash_current := Hash_Location(current_point); hash_current != hash_end; {
-		i = i -1
+		i = i - 1
 
-		if i == 0 do panic(fmt.aprintf("we did some opsie in the calculation current_hash {}, start_hash {}, end_hash {}", hash_current, hash_start, hash_end ))
+		if i == 0 do panic(fmt.aprintf("we did some opsie in the calculation current_hash {}, start_hash {}, end_hash {}", hash_current, hash_start, hash_end))
 
 		next_X_hash := hash_current.x + 1
 		next_Y_hash := hash_current.y + 1

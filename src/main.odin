@@ -94,6 +94,13 @@ Player_Mode :: enum {
 	Editor,
 }
 
+mainn :: proc() {
+	ray: spat.Ray = {spat.Vector{0, 0, 0}, spat.Vector{-spat.HASH_CELL_SIZE_METERS_FLOAT * 2.2, -spat.HASH_CELL_SIZE_METERS_FLOAT * 10.5, -3}}
+	fmt.println("ray ", ray)
+	fmt.println(spat.HASH_CELL_SIZE_METERS_FLOAT)
+	fmt.println(spat.calculate_hashes_by_ray(ray))
+
+}
 main :: proc() {
 
 	game_state := gs.make_default_game_state()
