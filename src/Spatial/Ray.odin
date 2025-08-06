@@ -85,12 +85,12 @@ ray_intersect_spatial_hash_grid :: proc(
 // Watch "One Lone Coder"s tutorial for how to improve this. 
 // https://github.com/OneLoneCoder/Javidx9/blob/master/PixelGameEngine/SmallerProjects/OneLoneCoder_PGE_RayCastDDA.cpp
 // todo this can probably return a array of hashes. So we can searsh through the closest cells first.
-calculate_hashes_by_ray2 :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
-	ray_dir := ray_direction(ray)
+calculate_hashes_by_ray_new :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 
 	return cells
 }
+
 
 // there is something funky happening here. Assert is triggering 
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
@@ -134,7 +134,6 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		1 < vector_length_one_hash_cell_walked.z,
 	)
 	*/
-
 
 	current_point := ray.origin
 
