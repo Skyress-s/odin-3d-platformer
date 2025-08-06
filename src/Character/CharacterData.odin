@@ -142,13 +142,12 @@ update_character_physics :: proc(
 	_, ok := character_data.current_state.(Grounded) // awwwww yes!
 	if rl.IsKeyPressed(.SPACE) && (ok || character_data.air_jumping_cheat) {
 
-		// char_data.verlet_component.velocity.y = 15
 		character_data.verlet_component.acceleration.y += 15 / dt
 
 	}
 
 	// Grappling Hook
-	if character_data.is_hooked {
+	if character_data.is_hooked && linalg.length(character_data.verlet_component.velocity) > 0.001 {
 		to_hook := (character_data.hooked_position - character_data.verlet_component.position)
 		direction_to_hook := linalg.vector_normalize(to_hook)
 		distance := linalg.distance(

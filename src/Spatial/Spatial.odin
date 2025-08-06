@@ -10,6 +10,7 @@ import rlgl "vendor:raylib/rlgl"
 
 Vector :: rl.Vector3
 Vector2 :: rl.Vector2
+Vector4 :: rl.Vector4
 Quaternion :: quaternion128
 
 // Transform :: rl.Transform
@@ -156,16 +157,19 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
 }
 
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
-	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
+	// matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
+	matScale := rl.MatrixScale(1, 1, 1)
 
 	// Create 1rotation matrix from quaternion
-	quat:= quaternion128{}
+	quat := quaternion128{}
 	quat.x = trans.rotation.x
-	quat.y = trans.rotation.y 
+	quat.y = trans.rotation.y
 	quat.z = trans.rotation.z
 	quat.w = trans.rotation.w
 
+
 	matRotation := rl.QuaternionToMatrix(quat)
+	// matRotation := rl.QuaternionToMatrix(linalg.QUATERNIONF32_IDENTITY)
 
 	// Create translation matrix
 	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
@@ -386,7 +390,35 @@ is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Tri
 	return false
 }
 
-// TODO: this is not working with some object currently
+
+calculate_bounds_from_tris_transform :: proc(
+	tris: [dynamic]Collision_Triangle,
+	transform: Transform,
+) -> Bound {
+
+	bound: Bound = {}
+
+	bound.min = Vector{max(f32), max(f32), max(f32)}
+	bound.max = Vector{min(f32), min(f32), min(f32)}
+
+	mat := get_matrix_from_transform(transform)
+	for &tri in tris {
+		/*#unroll*/for p in tri.points { 	// todo how to unroll
+			p2 := mat * rl.Vector4{p.x, p.y, p.z, 1} 
+			if p2.x > bound.max.x do bound.max.x = p2.x
+			if p2.x < bound.min.x do bound.min.x = p2.x
+
+			if p2.y > bound.max.y do bound.max.y = p2.y
+			if p2.y < bound.min.y do bound.min.y = p2.y
+
+			if p2.z > bound.max.z do bound.max.z = p2.z
+			if p2.z < bound.min.z do bound.min.z = p2.z
+		}
+	}
+
+	return bound
+}
+
 calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 
 	bound: Bound = {}
@@ -460,10 +492,11 @@ notify_object_transform_changed :: proc(
 ) {
 
 	found_object := hms.get(collision_object_map, collision_object_id)
-	bounds := calculate_bounds_from_tris(found_object.tris)
-
 	data := found_object
+	bounds := calculate_bounds_from_tris_transform(found_object.tris, found_object.transform)
 
+
+	cells_to_remove :[dynamic]Hash_Key = {}
 	// Remove from spatial_hash_grid TODO: This is slow very inefficient
 	for id, &cell in spatial_hash_grid {
 		for &object_id, index in cell.objects_ids {
@@ -471,13 +504,23 @@ notify_object_transform_changed :: proc(
 				unordered_remove(&cell.objects_ids, index) // wondering if this will work
 			}
 		}
+
+		if len(cell.objects_ids) == 0 {
+			append(&cells_to_remove, id)
+
+		}
+	}
+
+	for &id in &cells_to_remove{
+		delete_key(spatial_hash_grid, id)
 	}
 
 	// Insert again
-	create_and_add_collision_object_from_tris(
+	create_and_add_collision_object_from_tris_transform(
 		collision_object_map,
 		spatial_hash_grid,
 		data.data.tris,
+		found_object.transform,
 		cc.is_blocking(data.data.collision_channels),
 	)
 }
@@ -500,6 +543,41 @@ add_shape_to_hash_map :: proc(
 	)
 
 }
+create_and_add_collision_object_from_tris_transform :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	spatial_hash_grid: ^Spatial_Hash_Grid,
+	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
+	transform: Transform,
+	blocking: bool = true,
+) {
+	bounds := calculate_bounds_from_tris_transform(tris, transform) // todo defaults to  ref right hehe??
+
+	potential_hash_keys := calculate_overlapping_cells2(bounds)
+	collision_channel: cc.CHANNEL_SIZE =
+		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
+	// Adding to handle map
+	collision_object_id := hms.add(
+		collision_object_map,
+		Collision_Object_Data_Runtime {
+			collision_channels = collision_channel,
+			tris = tris,
+			transform = transform,
+		},
+	)
+
+	for hash_key in potential_hash_keys {
+		cell := &spatial_hash_grid[hash_key]
+		if cell == nil {
+			// fmt.println("Emty cell, creating new one...")
+			spatial_hash_grid[hash_key] = {}
+			cell = &spatial_hash_grid[hash_key]
+		}
+
+		append_elem(&cell.objects_ids, collision_object_id)
+	}
+
+
+}
 
 create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
@@ -507,8 +585,6 @@ create_and_add_collision_object_from_tris :: proc(
 	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
 	blocking: bool = true,
 ) {
-
-
 	bounds := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
 
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
@@ -530,7 +606,6 @@ create_and_add_collision_object_from_tris :: proc(
 
 		append_elem(&cell.objects_ids, collision_object_id)
 	}
-
 }
 shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {
 	switch &s in shape.shape {
@@ -713,6 +788,7 @@ calculate_hashes_by_ray2 :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	return cells
 }
 
+// there is something funky happening here. Assert is triggering 
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
@@ -758,17 +834,20 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 	current_point := ray.origin
 
+	i: int = 1000
 
-	for current_hash := Hash_Location(current_point); current_hash != hash_end; {
+	for hash_current := Hash_Location(current_point); hash_current != hash_end; {
+		i = i -1
 
+		if i == 0 do panic(fmt.aprintf("we did some opsie in the calculation current_hash {}, start_hash {}, end_hash {}", hash_current, hash_start, hash_end ))
 
-		next_X_hash := current_hash.x + 1
-		next_Y_hash := current_hash.y + 1
-		next_Z_hash := current_hash.z + 1
+		next_X_hash := hash_current.x + 1
+		next_Y_hash := hash_current.y + 1
+		next_Z_hash := hash_current.z + 1
 
 		percent_X := linalg.unlerp(
 			Unhash_Coordinate(next_X_hash),
-			Unhash_Coordinate(current_hash.x),
+			Unhash_Coordinate(hash_current.x),
 			current_point.x,
 		)
 		if dirs.x == -1 do percent_X = 1 - percent_X
@@ -776,7 +855,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 		percent_Y := linalg.unlerp(
 			Unhash_Coordinate(next_Y_hash),
-			Unhash_Coordinate(current_hash.y),
+			Unhash_Coordinate(hash_current.y),
 			current_point.y,
 		)
 		if dirs.y == -1 do percent_Y = 1 - percent_Y
@@ -784,7 +863,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 		percent_Z := linalg.unlerp(
 			Unhash_Coordinate(next_Z_hash),
-			Unhash_Coordinate(current_hash.z),
+			Unhash_Coordinate(hash_current.z),
 			current_point.z,
 		)
 		if dirs.z == -1 do percent_Z = 1 - percent_Z
@@ -804,21 +883,21 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
 			current_point =
 				current_point + direction * (percent_X * HASH_CELL_SIZE_METERS_FLOAT / direction.x)
-			current_hash.x += dirs.x
+			hash_current.x += dirs.x
 
 		} else if ((!math.is_nan(vector_length_one_hash_cell_walked.y)) &&
 			   !(length_Y > length_X || length_Y > length_Z)) {
 			// current_point = current_point + (gradient * (length_Y / gradient.y))
 			current_point =
 				current_point + direction * (percent_Y * HASH_CELL_SIZE_METERS_FLOAT / direction.y)
-			current_hash.y += dirs.y
+			hash_current.y += dirs.y
 
 		} else if (!math.is_nan(vector_length_one_hash_cell_walked.z) &&
 			   !(length_Z > length_X || length_Z > length_Y)) {
 			// current_point = current_point + (gradient * (length_Z / gradient.z))
 			current_point =
 				current_point + direction * (percent_Z * HASH_CELL_SIZE_METERS_FLOAT / direction.z)
-			current_hash.z += dirs.z
+			hash_current.z += dirs.z
 		} else {
 			assert(
 				1 == 0,
@@ -830,7 +909,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 					percent_X,
 					percent_Y,
 					percent_Z,
-					current_hash,
+					hash_current,
 					next_X_hash,
 					next_Y_hash,
 					next_Z_hash,
@@ -838,7 +917,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 				),
 			)
 		}
-		cells[current_hash] = true
+		cells[hash_current] = true
 	}
 
 	// hmmmm

@@ -15,6 +15,7 @@ import "core:math"
 import "core:math/linalg"
 import e_tools "editor/tools"
 import "editor_player"
+import gs "game_state"
 import hms "handle_map/handle_map_static"
 import l "level"
 import gameui "micro-ui"
@@ -94,6 +95,9 @@ Player_Mode :: enum {
 }
 
 main :: proc() {
+
+	game_state := gs.make_default_game_state()
+
 	// trace.init(&global_trace_ctx)
 	// defer trace.destroy(&global_trace_ctx)
 
@@ -177,7 +181,6 @@ main :: proc() {
 				&ray,
 			)
 
-			gameui.write_log(fmt.aprintf("id {}, ok {} ", id, ok))
 			if ok {
 				position_transform_tool.target_object_id = id
 				position_transform_tool.start_transform =
@@ -191,15 +194,15 @@ main :: proc() {
 		}
 
 
-		if position_transform_tool.target_object_id.idx != 0{
-		e_tools.update_transform_tool(
-			&position_transform_tool,
-			&cam,
-			rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-			rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-			&current_level.collision_object_map,
-			rl.GetMousePosition(),
-		)
+		if position_transform_tool.target_object_id.idx != 0 {
+			e_tools.update_transform_tool(
+				&position_transform_tool,
+				&cam,
+				rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+				rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+				&current_level.collision_object_map,
+				rl.GetMousePosition(),
+			)
 		}
 
 
@@ -210,6 +213,8 @@ main :: proc() {
 				&current_level.spatial_hash_grid,
 				position_transform_tool.target_object_id,
 			)
+
+			position_transform_tool.target_object_id.idx = 0
 		}
 
 		// should we change to another state
@@ -255,10 +260,10 @@ main :: proc() {
 		case Player_Mode.Editor:
 		}
 
-		assert(
-			linalg.length(cam.target - cam.position) > 0,
-			"camera target and position should never be equal",
-		)
+		// assert(
+		// 	linalg.length(cam.target - cam.position) > 0,
+		// 	"camera target and position should never be equal",
+		// )
 
 		// game ui START TODO: If we get some rendering issues, this might be causing some of them?
 		if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
@@ -269,7 +274,7 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx, &player_game)
+		gameui.all_windows(&gameui.state.mu_ctx, &player_game, &game_state)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
@@ -296,6 +301,7 @@ main :: proc() {
 			&active_cell,
 			active_hash_key,
 			&position_transform_tool,
+			&game_state,
 		)
 
 	}
@@ -309,6 +315,7 @@ render :: proc(
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
 	tool: ^e_tools.Transform_Tool_Data,
+	game_state: ^gs.Game_State,
 ) {
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
@@ -337,7 +344,7 @@ render :: proc(
 		rl.DrawLine3D(player_verlet.position, player_verlet.position + forward * 8, rl.RED)
 	}
 
-	rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
+	// rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
 
 	player_verlet := &char_data.verlet_component
 	player_root_pos_for_drawing := player_verlet.position - spat.Vector{0, 0.1, 0}
@@ -353,13 +360,24 @@ render :: proc(
 	}
 
 
-	draw_collision_tri :: proc(transform: ^spat.Transform, t: ^spat.Collision_Triangle, face_color, edge_color: rl.Color) {
+	draw_collision_tri :: proc(
+		transform: ^spat.Transform,
+		t: ^spat.Collision_Triangle,
+		face_color, edge_color: rl.Color,
+	) {
 		using t
 		using transform
-		rl.DrawTriangle3D(points[0] + position, points[1] + position, points[2] + position, face_color)
+
+		rlgl.PushMatrix()
+		mat := spat.get_matrix_from_transform(transform^)
+		matrix_data := rl.MatrixToFloatV(mat)
+		rlgl.MultMatrixf(auto_cast &matrix_data)
+
+		rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
 		rl.DrawLine3D(points[0], points[1], edge_color)
 		rl.DrawLine3D(points[0], points[2], edge_color)
 		rl.DrawLine3D(points[1], points[2], edge_color)
+		rlgl.PopMatrix()
 	}
 
 
@@ -413,13 +431,11 @@ render :: proc(
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
 
-	hash_key := spat.Hash_Location(player_verlet.position)
-	spat.Draw_Hash_Cell_Bounds(
-		hash_key,
-		// &Vector{cast(f32)hash_key.x, cast(f32)hash_key.y, cast(f32)hash_key.z},
-	)
+	if game_state.cheat_state.draw_bounds {
+		hash_key := spat.Hash_Location(player_verlet.position)
+		spat.Draw_Hash_Cell_Bounds(hash_key)
+		spat.draw_hash_grid_bounds_populated_cells(level.spatial_hash_grid, &hash_key)}
 
-	spat.draw_hash_grid_bounds_populated_cells(level.spatial_hash_grid, &hash_key)
 
 	/*
 		active_cell_items := spatial_hash_map[hash_key].items

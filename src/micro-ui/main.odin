@@ -1,5 +1,6 @@
 package gameui
 
+import gs "../game_state"
 import "core:c"
 import "core:fmt"
 import "core:math"
@@ -412,7 +413,7 @@ which_pie_is_position_in :: proc(
 }
 
 
-all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
+all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData, game_state: ^gs.Game_State) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 
@@ -677,9 +678,13 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData) {
 		rect := mu.Rect{rl.GetRenderWidth() - 400, 0, 400, 400}
 		if mu.window(ctx, "Cheat Window", rect, {mu.Opt.NO_CLOSE}) {
 			mu.get_current_container(ctx).rect = rect
-			mu.layout_row(ctx, {-1})
-			mu.checkbox(ctx, "cheat: air_jumping", &char_data.air_jumping_cheat)
 
+			mu.text(ctx, "CHEATS")
+			mu.layout_row(ctx, {-1})
+			mu.checkbox(ctx, "air_jumping", &char_data.air_jumping_cheat)
+
+			mu.layout_row(ctx, {-1})
+			mu.checkbox(ctx, "draw_spatial_hash_grid_bounds", &game_state.cheat_state.draw_bounds)
 		}
 	}
 	{

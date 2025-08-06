@@ -36,12 +36,24 @@ ray_intersect_spatial_hash_grid :: proc(
 	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
 
 
+
 	for hash in hashes {
 		hash_cell, ok := &hash_grid[hash]
 		if !ok do continue
 		for &object_id in hash_cell.objects_ids {
-			for &tri in hms.get(collision_object_map, object_id).tris {
-				ok, intersect_location := ray_triangle_intersect(ray, &tri)
+
+			found_object := hms.get(collision_object_map, object_id)
+			mat := get_matrix_from_transform(found_object.transform)
+			for tri in found_object.tris {
+				new_tri := tri
+				for &t in &new_tri.points {
+					trans_point := (mat * Vector4{t.x, t.y, t.z, 1})
+					t.x = trans_point.x
+					t.y = trans_point.y
+					t.z = trans_point.z
+				}
+
+				ok, intersect_location := ray_triangle_intersect(ray, &new_tri)
 				if ok {
 					is_in_front := linalg.vector_dot(
 						ray_direction,
