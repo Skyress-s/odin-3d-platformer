@@ -1,6 +1,7 @@
-- [] Make a level 
-- [] Make a simple level editor?
-- [] Super simple level json format?
+- [x] Make a level 
+- [ ] Make a simple level editor?
+- [x] Super simple level json format?
+- [ ] Fix the shinanigans thats happening when we try to calculate the cells a ray will pass through.
 
 
 
