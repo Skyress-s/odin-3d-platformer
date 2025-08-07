@@ -52,7 +52,7 @@ main :: proc() {
     }
 
     glfw.MakeContextCurrent(window)
-    glfw.SwapInterval(1) // syncs rendering loop to monitor refresh rate
+    glfw.SwapInterval(0) // 1 syncs rendering loop to monitor refresh rate (Vsync). Set to 0 when measuring performance.
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetFramebufferSizeCallback(window, size_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
@@ -140,14 +140,21 @@ main :: proc() {
     gl.BindVertexArray(0) // -||-
 
 //  Dev logic
+
     // gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE) // enable wireframe
     framecounter := d.framecounter_init()
+    query : u32
+    time_elapsed : u64
+
+    gl.GenQueries(1, &query)
 
     for (!glfw.WindowShouldClose(window) && running) {
-
-        d.framecounter_update(&framecounter)
+    //  d.framecounter_update(&framecounter) // probably pretty inaccurate
 
         glfw.PollEvents()
+
+
+        gl.BeginQuery(gl.TIME_ELAPSED, query)
 
         gl.ClearColor(0.2, 0.3, 0.3, 1.0)
         gl.Clear(gl.COLOR_BUFFER_BIT)
@@ -155,10 +162,15 @@ main :: proc() {
         gl.UseProgram(shaderProgram)
         gl.BindVertexArray(VAO)
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
-        // gl.DrawArrays(gl.TRIANGLES, 0, 3)
         gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
-        glfw.SwapBuffers(window)
+        gl.EndQuery(gl.TIME_ELAPSED)
+
+        glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
+
+        // print gpu time
+        gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
+        fmt.printf("GPU Time: {}ms\n", f64(time_elapsed) / 1e6)
     }
 }
 
