@@ -100,8 +100,8 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	}
 
 	signs: [3]int = {get_sign(direction.x), get_sign(direction.y), get_sign(direction.z)}
-	fmt.println("signs ", signs)
-	fmt.println("ray lenght per unit ", ray_length_per_axis_unit)
+	// fmt.println("signs ", signs)
+	// fmt.println("ray lenght per unit ", ray_length_per_axis_unit)
 
 	start_hash, end_hash := Hash_Location(ray.origin), Hash_Location(ray.end)
 	current_hash := start_hash
@@ -111,11 +111,11 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 	iterations := 1000
 	for current_hash != end_hash {
-			fmt.println("----------------------------------")
+		// fmt.println("----------------------------------")
 		iterations = iterations - 1
 		if iterations == 0 do break
-			fmt.println("current_position ", current_position)
-			fmt.println("current_hash ", current_hash)
+		// fmt.println("current_position ", current_position)
+		// fmt.println("current_hash ", current_hash)
 
 		cells[current_hash] = true
 
@@ -134,24 +134,26 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 		current_lengths := current_percents * ray_length_per_axis_unit
 
-		fmt.println("current_percents_left ", current_percents)
+		// fmt.println("current_percents_left ", current_percents)
+		// fmt.println("current_lengths ", current_lengths)
 
-		fmt.println("current_lengths ", current_lengths)
 		if ((current_lengths.x <= current_lengths.y || math.is_nan(current_lengths.y)) &&
 			   (current_lengths.x <= current_lengths.z || math.is_nan(current_lengths.z))) {
-			current_position = current_position + direction * current_percents.x * HASH_CELL_SIZE_METERS_FLOAT 
+			current_position =
+				current_position + direction * current_percents.x * HASH_CELL_SIZE_METERS_FLOAT
 			current_hash.x += 1 * i32(signs.x)
 
 		} else if ((current_lengths.y <= current_lengths.x || math.is_nan(current_lengths.x)) &&
 			   (current_lengths.y <= current_lengths.z || math.is_nan(current_lengths.z))) {
-			current_position = current_position + direction * current_percents.y * HASH_CELL_SIZE_METERS_FLOAT 
+			current_position =
+				current_position + direction * current_percents.y * HASH_CELL_SIZE_METERS_FLOAT
 			current_hash.y += 1 * i32(signs.y)
 		} else if ((current_lengths.z <= current_lengths.y || math.is_nan(current_lengths.y)) &&
 			   (current_lengths.z <= current_lengths.x || math.is_nan(current_lengths.x))) {
-			current_position = current_position + direction * current_percents.z * HASH_CELL_SIZE_METERS_FLOAT 
+			current_position =
+				current_position + direction * current_percents.z * HASH_CELL_SIZE_METERS_FLOAT
 			current_hash.z += 1 * i32(signs.z)
-		}
-		else {panic("damn it")}
+		} else {panic("damn it! calculate_hashes_by_ray() is not working again.")}
 	}
 
 	return cells

@@ -26,6 +26,7 @@ import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
+
 /*
 global_trace_ctx: trace.Context
 
@@ -94,28 +95,11 @@ Player_Mode :: enum {
 	Editor,
 }
 
-mainn :: proc() {
-	ray: spat.Ray = {
-		spat.Vector{0, 0, 0},
-		spat.Vector {
-			-spat.HASH_CELL_SIZE_METERS_FLOAT * 2.2,
-			-spat.HASH_CELL_SIZE_METERS_FLOAT * 10.5,
-			-3,
-		},
-	}
-	fmt.println("ray ", ray)
-	fmt.println(spat.HASH_CELL_SIZE_METERS_FLOAT)
-	fmt.println(spat.calculate_hashes_by_ray(ray))
+//fmt.printfln("{:6.3f} ", some_var) // [0.5, 3.0, 6.5]
 
-}
 main :: proc() {
-
 	game_state := gs.make_default_game_state()
 
-	// trace.init(&global_trace_ctx)
-	// defer trace.destroy(&global_trace_ctx)
-
-	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
 	player_mode := Player_Mode.Game
 	player_game := character.CharacternData {
 		radius = 1,
@@ -124,10 +108,8 @@ main :: proc() {
 		movement_speed = 30,
 	}
 
-	//{
 	player_game.current_state = character.Airborne{}
 	player_game.verlet_component.position = spat.Vector{0, 0, 0}
-	//}
 
 	current_level: l.Level
 	current_level.name = "test_level"
@@ -144,7 +126,6 @@ main :: proc() {
 	current_level = loaded_level
 	current_level.start_position = loaded_level.start_position
 	current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
-
 
 	// Set look angles
 	player_game.look_angles.x = -math.asin(current_level.start_look_direction.y)
