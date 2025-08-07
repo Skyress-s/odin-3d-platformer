@@ -39,6 +39,7 @@ Transform_Tool_Data :: distinct struct {
 	start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
 	target_object_id:          spat.Collision_Object_Id,
+	dragging:                  bool,
 }
 
 
@@ -96,7 +97,8 @@ update_transform_tool :: proc(
 			data.plane.point_on_plane,
 		)
 		found_object := hms.get(object_map, data.target_object_id)
-		found_object.data.transform.position = data.start_transform.position + (intersection - data.start_ray_plane_intersect)
+		found_object.data.transform.position =
+			data.start_transform.position + (intersection - data.start_ray_plane_intersect)
 
 	case State.Rotation:
 		panic("rotation not implemented")
