@@ -106,5 +106,4 @@ update_transform_tool :: proc(
 
 
 	// TODO: Resume here  
-
 }

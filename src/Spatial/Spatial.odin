@@ -13,6 +13,10 @@ Vector2 :: rl.Vector2
 Vector4 :: rl.Vector4
 Quaternion :: quaternion128
 
+ZERO_VEC3 :: Vector{0,0,0}
+ZERO_VEC2 :: Vector2{0,0}
+ZERO_VEC4 :: Vector4{0,0,0,0}
+
 // Transform :: rl.Transform
 Transform :: distinct struct {
 	position: Vector,

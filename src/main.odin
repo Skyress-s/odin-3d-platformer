@@ -95,7 +95,14 @@ Player_Mode :: enum {
 }
 
 mainn :: proc() {
-	ray: spat.Ray = {spat.Vector{0, 0, 0}, spat.Vector{-spat.HASH_CELL_SIZE_METERS_FLOAT * 2.2, -spat.HASH_CELL_SIZE_METERS_FLOAT * 10.5, -3}}
+	ray: spat.Ray = {
+		spat.Vector{0, 0, 0},
+		spat.Vector {
+			-spat.HASH_CELL_SIZE_METERS_FLOAT * 2.2,
+			-spat.HASH_CELL_SIZE_METERS_FLOAT * 10.5,
+			-3,
+		},
+	}
 	fmt.println("ray ", ray)
 	fmt.println(spat.HASH_CELL_SIZE_METERS_FLOAT)
 	fmt.println(spat.calculate_hashes_by_ray(ray))
@@ -179,7 +186,6 @@ main :: proc() {
 		dt := rl.GetFrameTime()
 
 		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-
 			ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
 			ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
 			ok, id, position := spat.ray_intersect_spatial_hash_grid(
@@ -349,6 +355,11 @@ render :: proc(
 			rl.GREEN,
 		)
 		rl.DrawLine3D(player_verlet.position, player_verlet.position + forward * 8, rl.RED)
+
+		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
+		if found_object != nil {
+			e_tools.draw_position_tooltip(found_object.transform.position)
+		}
 	}
 
 	// rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
@@ -510,7 +521,6 @@ add_debug_level_objects :: proc(
 		spaital_hash_grid,
 		&spat.Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, spat.Sphere{5.0}},
 	)
-
 
 	spat.add_shape_to_hash_map(
 		collision_objects,
