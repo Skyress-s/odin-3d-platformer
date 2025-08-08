@@ -13,9 +13,9 @@ Vector2 :: rl.Vector2
 Vector4 :: rl.Vector4
 Quaternion :: quaternion128
 
-ZERO_VEC3 :: Vector{0,0,0}
-ZERO_VEC2 :: Vector2{0,0}
-ZERO_VEC4 :: Vector4{0,0,0,0}
+ZERO_VEC3 :: Vector{0, 0, 0}
+ZERO_VEC2 :: Vector2{0, 0}
+ZERO_VEC4 :: Vector4{0, 0, 0, 0}
 
 // Transform :: rl.Transform
 Transform :: distinct struct {
@@ -408,7 +408,7 @@ calculate_bounds_from_tris_transform :: proc(
 	mat := get_matrix_from_transform(transform)
 	for &tri in tris {
 		/*#unroll*/for p in tri.points { 	// todo how to unroll
-			p2 := mat * rl.Vector4{p.x, p.y, p.z, 1} 
+			p2 := mat * rl.Vector4{p.x, p.y, p.z, 1}
 			if p2.x > bound.max.x do bound.max.x = p2.x
 			if p2.x < bound.min.x do bound.min.x = p2.x
 
@@ -493,40 +493,57 @@ notify_object_transform_changed :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	collision_object_id: Collision_Object_Id,
-) {
+) -> Collision_Object_Id {
 
 	found_object := hms.get(collision_object_map, collision_object_id)
 	data := found_object
 	bounds := calculate_bounds_from_tris_transform(found_object.tris, found_object.transform)
 
 
-	cells_to_remove :[dynamic]Hash_Key = {}
+	test :: struct {
+		id:  int,
+		key: Hash_Key,
+	}
+	cells_to_remove: [dynamic]Hash_Key = {}
+	object_to_remove: [dynamic]test = {}
 	// Remove from spatial_hash_grid TODO: This is slow very inefficient
 	for id, &cell in spatial_hash_grid {
 		for &object_id, index in cell.objects_ids {
 			if object_id == collision_object_id {
-				unordered_remove(&cell.objects_ids, index) // wondering if this will work
+				append_elem(&object_to_remove, test{index, id})
 			}
 		}
 
-		if len(cell.objects_ids) == 0 {
-			append(&cells_to_remove, id)
+	}
+
+
+	for t in object_to_remove {
+		object := &spatial_hash_grid[t.key]
+		unordered_remove(&object.objects_ids, t.id) // wondering if this will work
+
+		hms.remove(collision_object_map, collision_object_id)
+
+		if len(object.objects_ids) == 0 {
+			append(&cells_to_remove, t.key)
 
 		}
 	}
 
-	for &id in &cells_to_remove{
+
+	for &id in &cells_to_remove {
 		delete_key(spatial_hash_grid, id)
 	}
 
 	// Insert again
-	create_and_add_collision_object_from_tris_transform(
+	id := create_and_add_collision_object_from_tris_transform(
 		collision_object_map,
 		spatial_hash_grid,
 		data.data.tris,
 		found_object.transform,
 		cc.is_blocking(data.data.collision_channels),
 	)
+
+	return id
 }
 
 add_shape_to_hash_map :: proc(
@@ -553,7 +570,7 @@ create_and_add_collision_object_from_tris_transform :: proc(
 	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
 	transform: Transform,
 	blocking: bool = true,
-) {
+) -> Collision_Object_Id {
 	bounds := calculate_bounds_from_tris_transform(tris, transform) // todo defaults to  ref right hehe??
 
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
@@ -580,6 +597,8 @@ create_and_add_collision_object_from_tris_transform :: proc(
 		append_elem(&cell.objects_ids, collision_object_id)
 	}
 
+
+	return collision_object_id
 
 }
 

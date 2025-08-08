@@ -166,49 +166,20 @@ main :: proc() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
 
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-			ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
-			ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
-			ok, id, position := spat.ray_intersect_spatial_hash_grid(
-				&current_level.spatial_hash_grid,
-				&current_level.collision_object_map,
-				&ray,
-			)
-
-			if ok {
-				position_transform_tool.target_object_id = id
-				position_transform_tool.start_transform =
-					hms.get(&current_level.collision_object_map, id).data.transform
-
-				hit_plane, hit_location := spat.ray_plane_intersect(&ray, {0, 1, 0}, {0, 10, 0})
-
-				position_transform_tool.start_ray_plane_intersect = hit_location
-			}
-
-		}
-
-
-		if position_transform_tool.target_object_id.idx != 0 {
-			e_tools.update_transform_tool(
-				&position_transform_tool,
-				&cam,
-				rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-				rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-				&current_level.collision_object_map,
-				rl.GetMousePosition(),
-			)
-		}
-
 
 		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
 		   position_transform_tool.target_object_id.idx != 0 { 	// TODO: Is there a null id?
-			spat.notify_object_transform_changed(
-				&current_level.collision_object_map,
-				&current_level.spatial_hash_grid,
-				position_transform_tool.target_object_id,
-			)
 
-			position_transform_tool.target_object_id.idx = 0
+			if position_transform_tool.dragging == true {
+				position_transform_tool.dragging = false
+				position_transform_tool.target_object_id = spat.notify_object_transform_changed(
+					&current_level.collision_object_map,
+					&current_level.spatial_hash_grid,
+					position_transform_tool.target_object_id,
+				)
+				//position_transform_tool.target_object_id.idx = 0
+			}
+
 		}
 
 		// should we change to another state
@@ -231,6 +202,90 @@ main :: proc() {
 		case Player_Mode.Game:
 			character.update_character(&player_game, &current_level, dt)
 		case Player_Mode.Editor:
+			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+
+				ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
+				ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
+
+
+				found_object := hms.get(
+					&current_level.collision_object_map,
+					position_transform_tool.target_object_id,
+				)
+				if found_object != nil {
+					planes := e_tools.calculate_drag_planes(
+						found_object.transform.position,
+						cam.position,
+					)
+					plane_hit, plane_intersect_location, plane_normal :=
+						e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+					if plane_hit != e_tools.Interacted_Plane.None {
+						fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+
+						rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+
+					}
+					if plane_hit != .None {
+						position_transform_tool.dragging = true
+						position_transform_tool.plane.point_on_plane = plane_intersect_location
+						position_transform_tool.plane.normal = plane_normal
+						position_transform_tool.start_transform = found_object.transform
+
+						//continue
+					} else do position_transform_tool.target_object_id = spat.Collision_Object_Id{}
+
+				} else {
+					ok, id, position := spat.ray_intersect_spatial_hash_grid(
+						&current_level.spatial_hash_grid,
+						&current_level.collision_object_map,
+						&ray,
+					)
+
+
+					if ok {
+						position_transform_tool.target_object_id = id
+						position_transform_tool.start_transform =
+							hms.get(&current_level.collision_object_map, id).data.transform
+
+						hit_plane, hit_location := spat.ray_plane_intersect(
+							&ray,
+							{0, 1, 0},
+							{0, 10, 0},
+						)
+
+						position_transform_tool.start_ray_plane_intersect = hit_location
+					}
+
+				}
+
+			}
+
+
+			if position_transform_tool.target_object_id.idx != 0 {
+				// found_object := hms.get(&current_level.collision_object_map, position_transform_tool.target_object_id)
+				// ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
+				// ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
+
+				// planes:=e_tools.calculate_drag_planes(found_object.transform.position, cam.position)
+				// plane_hit, plane_intersect_location:= e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+				// if plane_hit != e_tools.Interacted_Plane.None {
+				// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+				//
+				//
+				// }
+
+				if position_transform_tool.dragging {
+					e_tools.update_transform_tool(
+						&position_transform_tool,
+						&cam,
+						rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+						rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+						&current_level.collision_object_map,
+						rl.GetMousePosition(),
+					)
+				}
+
+			}
 			editor_player.update(&player_editor, dt)
 		}
 
@@ -291,6 +346,7 @@ main :: proc() {
 			&current_level,
 			player_mode,
 			&player_game,
+			&player_editor,
 			&cam,
 			&active_cell,
 			active_hash_key,
@@ -305,6 +361,7 @@ render :: proc(
 	level: ^l.Level,
 	player_mode: Player_Mode,
 	char_data: ^character.CharacternData,
+	player_editor: ^editor_player.Editor_Player_Data,
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
@@ -339,7 +396,24 @@ render :: proc(
 
 		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
 		if found_object != nil {
-			e_tools.draw_position_tooltip(found_object.transform.position)
+			//
+			// ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam^))
+			// ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
+			//
+			// planes:=e_tools.calculate_drag_planes(found_object.transform.position, cam.position)
+			// plane_hit, plane_intersect_location:= e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+			// if plane_hit != e_tools.Interacted_Plane.None {
+			// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+			//
+			// 	rl.DrawCube(plane_intersect_location, 5,5,5, rl.WHITE)
+			//
+			// }
+			e_tools.draw_position_tooltip_new(
+				e_tools.calculate_drag_planes(
+					found_object.transform.position,
+					player_editor.position,
+				),
+			)
 		}
 	}
 

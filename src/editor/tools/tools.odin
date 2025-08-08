@@ -87,6 +87,7 @@ update_transform_tool :: proc(
 	// start_mouse_position,
 	current_mouse_position: spat.Vector2,
 ) {
+	if !left_mouse_button_down do return
 
 	switch (data.state) {
 	case State.Position:
@@ -98,7 +99,7 @@ update_transform_tool :: proc(
 		)
 		found_object := hms.get(object_map, data.target_object_id)
 		found_object.data.transform.position =
-			data.start_transform.position + (intersection - data.start_ray_plane_intersect)
+			data.start_transform.position + (intersection - data.plane.point_on_plane)
 
 	case State.Rotation:
 		panic("rotation not implemented")

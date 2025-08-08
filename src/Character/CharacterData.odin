@@ -133,7 +133,12 @@ update_character_physics :: proc(
 		if !cc.is_blocking(coll_obj.collision_channels) do continue
 
 		for &t in coll_obj.tris {
-			collide_with_tri(&t, &character_data.verlet_component.velocity, character_data, dt)
+			// TODO: also implement rotations when the time comes
+			tri := t
+			for &p in tri.points{
+				p += coll_obj.transform.position
+			}
+			collide_with_tri(&tri, &character_data.verlet_component.velocity, character_data, dt)
 		}
 
 	}
