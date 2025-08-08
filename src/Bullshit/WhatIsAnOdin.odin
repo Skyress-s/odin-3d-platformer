@@ -47,15 +47,15 @@ main :: proc() {
 
 //  init()
 
-    program_id : u32
+    shader_program : u32
     {
         ok:bool
-        program_id, ok = gl.load_shaders("src/Bullshit/Shaders/default.vert", "src/Bullshit/Shaders/default.frag")
+        shader_program, ok = gl.load_shaders("src/Bullshit/Shaders/default.vert", "src/Bullshit/Shaders/default.frag")
         if !ok {
             panic("could not initialize shaders.")
         }
     }
-    defer gl.DeleteProgram(program_id)
+    defer gl.DeleteProgram(shader_program)
 
     // VBO & VAO
     VBO, VAO, EBO : u32
@@ -111,7 +111,7 @@ main :: proc() {
         gl.ClearColor(0.135, 0.15, 0.15, 1.0)
         gl.Clear(gl.COLOR_BUFFER_BIT)
 
-        gl.UseProgram(program_id)
+        gl.UseProgram(shader_program)
         gl.BindVertexArray(VAO)
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
         gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
