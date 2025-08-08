@@ -5,29 +5,17 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 import s "Shapes"
-import d "Debugging"
 
 PROGRAMNAME::"I CREATED A WINDOW!!! WHAT ARE YOU GOING TO DO ABOUT IT????!" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 SCR_WIDTH :: 800
 SCR_HEIGHT :: 600
+CFG_DEV :: true
+enable_wireframe := false
+enable_VSync := true
 running : b32 = true
 
-//  hacky shader setup
-vertex_source : cstring = `#version 330 core
-    layout (location = 0) in vec3 aPos;
-    void main()
-    {
-       gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-    }`
-
-fragment_source:cstring = `#version 330 core
-    out vec4 FragColor;
-    void main()
-    {
-       FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-    }`;
 
 main :: proc() {
 
@@ -52,69 +40,22 @@ main :: proc() {
     }
 
     glfw.MakeContextCurrent(window)
-    glfw.SwapInterval(0) // 1 syncs rendering loop to monitor refresh rate (Vsync). Set to 0 when measuring performance.
+    glfw.SwapInterval(cast(i32)enable_VSync) // 1 syncs rendering loop to monitor refresh rate (Vsync). Set to 0 when measuring performance.
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetFramebufferSizeCallback(window, size_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
 
 //  init()
 
-    // got absolutely no clue what this means, should prob look at it later
-    // program_id : u32; ok : bool
-    // if program_id, ok = gl.load_shaders("./triangle.vert", "./triangle.frag"); !ok {
-    //     fmt.println("Failed to load shaders.")
-    //     return
-    // }
-    // defer gl.DeleteProgram(program_id)
-
-    // build and compile shader program
-    // --------------------------------
-    // variables for compilation error checking
-
-    // vert shader
-    vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
-    gl.ShaderSource(vertexShader, 1, &vertex_source, nil)
-    gl.CompileShader(vertexShader)
-
-    success : i32
-    infoLog : [^]byte // will this work?
-    // vert compilation err check
-    gl.GetShaderiv(vertexShader, gl.COMPILE_STATUS, &success);
-    if success == 0 {
-        gl.GetShaderInfoLog(vertexShader, 512, nil, infoLog)
-        fmt.println("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n")
-        fmt.print(infoLog)
+    program_id : u32
+    {
+        ok:bool
+        program_id, ok = gl.load_shaders("src/Bullshit/Shaders/default.vert", "src/Bullshit/Shaders/default.frag")
+        if !ok {
+            panic("could not initialize shaders.")
+        }
     }
-
-    // frag shader
-    fragmentShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-    gl.ShaderSource(fragmentShader, 1, &fragment_source, nil)
-    gl.CompileShader(fragmentShader)
-
-    // frag compilation err check
-    gl.GetShaderiv(vertexShader, gl.COMPILE_STATUS, &success);
-    if success == 0 {
-        gl.GetShaderInfoLog(vertexShader, 512, nil, infoLog)
-        fmt.println("ERROR::SHADER::FAGMENT::COMPILATION_FAILED\n")
-        fmt.print(infoLog)
-    }
-
-    // link shaders
-    shaderProgram : u32 = gl.CreateProgram()
-    gl.AttachShader(shaderProgram, vertexShader)
-    gl.AttachShader(shaderProgram, fragmentShader)
-    gl.LinkProgram(shaderProgram)
-
-    // check for linking errors
-    gl.GetProgramiv(shaderProgram,gl.LINK_STATUS, &success)
-    if success == 0 {
-        gl.GetProgramInfoLog(shaderProgram, 512, nil, infoLog)
-        fmt.println("ERROR::SHADER_PROGRAM::LINKING_FAILED")
-        fmt.println(infoLog)
-    }
-
-    gl.DeleteShader(vertexShader)
-    gl.DeleteShader(fragmentShader)
+    defer gl.DeleteProgram(program_id)
 
     // VBO & VAO
     VBO, VAO, EBO : u32
@@ -140,37 +81,49 @@ main :: proc() {
     gl.BindVertexArray(0) // -||-
 
 //  Dev logic
+    when CFG_DEV {
+        fmt.println("DEV CONFIG ENABLED\n")
 
-    // gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE) // enable wireframe
-    framecounter := d.framecounter_init()
-    query : u32
-    time_elapsed : u64
+        if enable_wireframe {
+            gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE) // enable wireframe
+        }
+
+        nr_attributes : i32
+        gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nr_attributes)
+        fmt.printf("There is [{}] 4-component vertex attributes available.", nr_attributes)
+
+        query : u32
+        time_elapsed : u64
+    }
 
     gl.GenQueries(1, &query)
 
     for (!glfw.WindowShouldClose(window) && running) {
-    //  d.framecounter_update(&framecounter) // probably pretty inaccurate
+
 
         glfw.PollEvents()
 
+        // start gpu timer
+        when CFG_DEV {
+            gl.BeginQuery(gl.TIME_ELAPSED, query)
+        }
 
-        gl.BeginQuery(gl.TIME_ELAPSED, query)
-
-        gl.ClearColor(0.2, 0.3, 0.3, 1.0)
+        gl.ClearColor(0.135, 0.15, 0.15, 1.0)
         gl.Clear(gl.COLOR_BUFFER_BIT)
 
-        gl.UseProgram(shaderProgram)
+        gl.UseProgram(program_id)
         gl.BindVertexArray(VAO)
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
         gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
+        // end gpu timer and print
+        when CFG_DEV {
         gl.EndQuery(gl.TIME_ELAPSED)
+        gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
+        // fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
+        }
 
         glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
-
-        // print gpu time
-        gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
-        fmt.printf("GPU Time: {}ms\n", f64(time_elapsed) / 1e6)
     }
 }
 
