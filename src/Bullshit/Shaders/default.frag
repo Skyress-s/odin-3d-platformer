@@ -2,7 +2,8 @@
 
 out vec4 frag_color;
 in vec4 vertex_color;
+uniform vec4 our_color;
 
 void main() {
-    frag_color = (vec4(1.0, 0.0, 0.0, 1.0) + vertex_color) / 2;
+    frag_color = our_color;
 }
