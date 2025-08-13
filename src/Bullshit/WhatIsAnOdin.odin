@@ -5,17 +5,17 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 import s "Shapes"
+import m "core:math"
 
 PROGRAMNAME::"I CREATED A WINDOW!!! WHAT ARE YOU GOING TO DO ABOUT IT????!" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 SCR_WIDTH :: 800
-SCR_HEIGHT :: 600
+SCR_HEIGHT :: 800
 CFG_DEV :: true
 enable_wireframe := false
 enable_VSync := true
 running : b32 = true
-
 
 main :: proc() {
 
@@ -73,8 +73,12 @@ main :: proc() {
     gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
     gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size_of(s.rectangle_indices), &s.rectangle_indices, gl.STATIC_DRAW)
     // 4. then set the vertex attributes pointers
-    gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3* size_of(f32), cast(uintptr)0)
+    // position attribute
+    gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), cast(uintptr)0)
     gl.EnableVertexAttribArray(0)
+    // color attribute
+    gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), cast(uintptr)(3 * size_of(f32)))
+    gl.EnableVertexAttribArray(1)
 
     // Unbind (optional, probably unnessecary because it adds a call)
     gl.BindBuffer(gl.ARRAY_BUFFER, 0) // safely unbind after VertexAttribPointer registers buffer object
@@ -100,7 +104,6 @@ main :: proc() {
 
     for (!glfw.WindowShouldClose(window) && running) {
 
-
         glfw.PollEvents()
 
         // start gpu timer
@@ -112,6 +115,14 @@ main :: proc() {
         gl.Clear(gl.COLOR_BUFFER_BIT)
 
         gl.UseProgram(shader_program)
+
+        time_value : f32 = f32(glfw.GetTime())
+        green_value : f32 = f32(m.sin(time_value / 2.0) + 0.5)
+        vertex_color_location : i32 = gl.GetUniformLocation(shader_program, "our_color")
+        gl.UseProgram(shader_program);
+        gl.Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
+
+
         gl.BindVertexArray(VAO)
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
         gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
