@@ -7,7 +7,7 @@ import "vendor:glfw"
 import s "Shapes"
 import m "core:math"
 
-PROGRAMNAME::"I CREATED A WINDOW!!! WHAT ARE YOU GOING TO DO ABOUT IT????!" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
+PROGRAMNAME::"BEHOLD!!! THE COORDINATES ARE HERE????! DAMN RIGHT, THIS SHIT IS A B S O L U T E FIRE 🔥🔥🔥" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 SCR_WIDTH :: 800
