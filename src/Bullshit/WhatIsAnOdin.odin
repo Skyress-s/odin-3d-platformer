@@ -5,6 +5,7 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 import s "Shapes"
+import runtime "base:runtime"
 
 PROGRAMNAME::"BEHOLD!!! THE COORDINATES ARE HERE????! DAMN RIGHT, THIS SHIT IS A B S O L U T E FIRE 🔥🔥🔥 🧌" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
@@ -19,7 +20,14 @@ enable_VSync := true
 should_run : b32 = true
 SCR_FULLSCREEN : b32 = false
 should_fullscreen : b32 = false
+window : glfw.WindowHandle
+shader_program : u32
+VAO, EBO : u32
 
+when CFG_DEV {
+    query : u32
+    time_elapsed : u64
+}
 
 main :: proc() {
 
@@ -47,7 +55,6 @@ main :: proc() {
     glfw.SwapInterval(cast(i32)enable_VSync) // 1 syncs rendering loop to monitor refresh rate (Vsync). Set to 0 when measuring performance.
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetFramebufferSizeCallback(window, size_callback)
-//    glfw.SetWindowPosCallback(window, pos_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
     cached_pos_x, cached_pos_y, cached_width, cached_height : i32
 
@@ -102,8 +109,7 @@ main :: proc() {
         gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nr_attributes)
         fmt.printf("There is [{}] 4-component vertex attributes available.", nr_attributes)
 
-        query : u32
-        time_elapsed : u64
+
     }
 
     gl.GenQueries(1, &query)
@@ -117,7 +123,7 @@ main :: proc() {
             gl.BeginQuery(gl.TIME_ELAPSED, query)
         }
 
-        if should_fullscreen!= SCR_FULLSCREEN {
+        if SCR_FULLSCREEN != should_fullscreen {
             if should_fullscreen {
                 cached_pos_x, cached_pos_y = glfw.GetWindowPos(window)
                 cached_width, cached_height = glfw.GetWindowSize(window)
@@ -131,37 +137,19 @@ main :: proc() {
             SCR_FULLSCREEN = should_fullscreen
         }
 
-        // Draw()
-        gl.ClearColor(0.135, 0.15, 0.15, 1.0)
-        gl.Clear(gl.COLOR_BUFFER_BIT)
+        draw(window, shader_program, VAO, EBO)
 
-        gl.UseProgram(shader_program)
 
-        time_value := f32(glfw.GetTime())
-        gl.UseProgram(shader_program);
-
-        gl.BindVertexArray(VAO)
-        gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
-        gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
-
-        // end gpu timer and print
-        when CFG_DEV {
-        gl.EndQuery(gl.TIME_ELAPSED)
-        gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
-        // fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
-        fmt.printf("{}\n", SCR_FULLSCREEN)
-        }
-
-        glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
     }
+
 }
 
 // I don't know why this works
 size_callback :: proc "c" (window: glfw.WindowHandle, width, height: i32) {
     gl.Viewport(0, 0, width, height)
+//    context = runtime.default_context()
+//    draw(window, shader_program, VAO, EBO)
 }
-//pos_callback :: proc "c" (window: glfw.WindowHandle, pos_x, pos_y: i32) {
-//}
 
 // earlier I said this makes no sense but now it's starting to make sense I think
 key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
@@ -171,4 +159,31 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
     if key == glfw.KEY_F11 && action == glfw.RELEASE {
         should_fullscreen = !SCR_FULLSCREEN // fix this so it actually toggles. read current value somehow? send it from program to callback func as arg? idfk
     }
+}
+
+draw :: proc(window: glfw.WindowHandle, shader_program, VAO, EBO: u32) {
+    gl.ClearColor(0.135, 0.15, 0.15, 1.0)
+    gl.Clear(gl.COLOR_BUFFER_BIT)
+
+    gl.UseProgram(shader_program)
+
+    time_value := f32(glfw.GetTime())
+    gl.UseProgram(shader_program);
+
+    gl.BindVertexArray(VAO)
+    gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+    gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+
+    // end gpu timer
+    when CFG_DEV {
+        gl.EndQuery(gl.TIME_ELAPSED)
+    }
+
+    // print gpu timer result
+    when CFG_DEV {
+        gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
+    // fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
+    }
+
+    glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
 }
