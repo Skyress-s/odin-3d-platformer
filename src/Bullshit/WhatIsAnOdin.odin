@@ -5,17 +5,21 @@ import "core:c"
 import gl "vendor:openGL"
 import "vendor:glfw"
 import s "Shapes"
-import m "core:math"
 
-PROGRAMNAME::"BEHOLD!!! THE COORDINATES ARE HERE????! DAMN RIGHT, THIS SHIT IS A B S O L U T E FIRE 🔥🔥🔥" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
+PROGRAMNAME::"BEHOLD!!! THE COORDINATES ARE HERE????! DAMN RIGHT, THIS SHIT IS A B S O L U T E FIRE 🔥🔥🔥 🧌" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
 SCR_WIDTH :: 800
 SCR_HEIGHT :: 800
+SCR_POS_X :: 100
+SCR_POS_Y :: 100
 CFG_DEV :: true
 enable_wireframe := false
 enable_VSync := true
-running : b32 = true
+should_run : b32 = true
+SCR_FULLSCREEN : b32 = false
+should_fullscreen : b32 = false
+
 
 main :: proc() {
 
@@ -43,7 +47,9 @@ main :: proc() {
     glfw.SwapInterval(cast(i32)enable_VSync) // 1 syncs rendering loop to monitor refresh rate (Vsync). Set to 0 when measuring performance.
     glfw.SetKeyCallback(window, key_callback)
     glfw.SetFramebufferSizeCallback(window, size_callback)
+//    glfw.SetWindowPosCallback(window, pos_callback)
     gl.load_up_to(int(GL_MAJOR_VERSION), GL_MINOR_VERSION, glfw.gl_set_proc_address)
+    cached_pos_x, cached_pos_y, cached_width, cached_height : i32
 
 //  init()
 
@@ -102,7 +108,7 @@ main :: proc() {
 
     gl.GenQueries(1, &query)
 
-    for (!glfw.WindowShouldClose(window) && running) {
+    for (!glfw.WindowShouldClose(window) && should_run) {
 
         glfw.PollEvents()
 
@@ -111,17 +117,28 @@ main :: proc() {
             gl.BeginQuery(gl.TIME_ELAPSED, query)
         }
 
+        if should_fullscreen!= SCR_FULLSCREEN {
+            if should_fullscreen {
+                cached_pos_x, cached_pos_y = glfw.GetWindowPos(window)
+                cached_width, cached_height = glfw.GetWindowSize(window)
+
+                mode := glfw.GetVideoMode(glfw.GetPrimaryMonitor())
+                glfw.SetWindowMonitor(window, glfw.GetPrimaryMonitor(), 0, 0, mode.width, mode.height, mode.refresh_rate)
+
+            } else {
+                glfw.SetWindowMonitor(window, nil, cached_pos_x, cached_pos_y, cached_width, cached_height, 0)
+            }
+            SCR_FULLSCREEN = should_fullscreen
+        }
+
+        // Draw()
         gl.ClearColor(0.135, 0.15, 0.15, 1.0)
         gl.Clear(gl.COLOR_BUFFER_BIT)
 
         gl.UseProgram(shader_program)
 
-        time_value : f32 = f32(glfw.GetTime())
-        green_value : f32 = f32(m.sin(time_value / 2.0) + 0.5)
-        vertex_color_location : i32 = gl.GetUniformLocation(shader_program, "our_color")
+        time_value := f32(glfw.GetTime())
         gl.UseProgram(shader_program);
-        gl.Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
-
 
         gl.BindVertexArray(VAO)
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
@@ -132,6 +149,7 @@ main :: proc() {
         gl.EndQuery(gl.TIME_ELAPSED)
         gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
         // fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
+        fmt.printf("{}\n", SCR_FULLSCREEN)
         }
 
         glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
@@ -142,12 +160,15 @@ main :: proc() {
 size_callback :: proc "c" (window: glfw.WindowHandle, width, height: i32) {
     gl.Viewport(0, 0, width, height)
 }
+//pos_callback :: proc "c" (window: glfw.WindowHandle, pos_x, pos_y: i32) {
+//}
 
-// I don't know why this works either
-// It's also 100% unnessecary,
-// but it works so I will keep it.
+// earlier I said this makes no sense but now it's starting to make sense I think
 key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
     if key == glfw.KEY_ESCAPE {
-        running = false
+        should_run = false
+    }
+    if key == glfw.KEY_F11 && action == glfw.RELEASE {
+        should_fullscreen = !SCR_FULLSCREEN // fix this so it actually toggles. read current value somehow? send it from program to callback func as arg? idfk
     }
 }
