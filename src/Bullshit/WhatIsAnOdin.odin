@@ -7,6 +7,7 @@ import "vendor:glfw"
 import s "Shapes"
 import runtime "base:runtime"
 
+//======== global variables ========
 PROGRAMNAME::"BEHOLD!!! THE COORDINATES ARE HERE????! DAMN RIGHT, THIS SHIT IS A B S O L U T E FIRE 🔥🔥🔥 🧌" // removed "motherfuckers" from this line earlier as I was sitting next to an older woman on the bus and wanted to atleast maintain some shallow image of being family friendly
 GL_MAJOR_VERSION : c.int : 4
 GL_MINOR_VERSION :: 6
@@ -15,19 +16,22 @@ SCR_HEIGHT :: 800
 SCR_POS_X :: 100
 SCR_POS_Y :: 100
 CFG_DEV :: true
-enable_wireframe := false
-enable_VSync := true
-should_run : b32 = true
+
 SCR_FULLSCREEN : b32 = false
 should_fullscreen : b32 = false
+should_run : b32 = true
+enable_VSync := true
+
 window : glfw.WindowHandle
 shader_program : u32
-VAO, EBO : u32
+VBO, VAO, EBO : u32
 
 when CFG_DEV {
     query : u32
     time_elapsed : u64
+    enable_wireframe := false // dev only
 }
+//======== end global varaiables ========
 
 main :: proc() {
 
@@ -43,7 +47,7 @@ main :: proc() {
     glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, GL_MAJOR_VERSION)
     glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, GL_MINOR_VERSION)
 
-    window := glfw.CreateWindow(SCR_WIDTH, SCR_HEIGHT, PROGRAMNAME, nil, nil)
+    window = glfw.CreateWindow(SCR_WIDTH, SCR_HEIGHT, PROGRAMNAME, nil, nil)
     defer glfw.DestroyWindow(window)
 
     if window == nil {
@@ -60,7 +64,7 @@ main :: proc() {
 
 //  init()
 
-    shader_program : u32
+
     {
         ok:bool
         shader_program, ok = gl.load_shaders("src/Bullshit/Shaders/default.vert", "src/Bullshit/Shaders/default.frag")
@@ -71,7 +75,6 @@ main :: proc() {
     defer gl.DeleteProgram(shader_program)
 
     // VBO & VAO
-    VBO, VAO, EBO : u32
     gl.GenBuffers(1, &VBO)
     gl.GenVertexArrays(1, &VAO)
     gl.GenBuffers(1, &EBO)
@@ -147,8 +150,8 @@ main :: proc() {
 // I don't know why this works
 size_callback :: proc "c" (window: glfw.WindowHandle, width, height: i32) {
     gl.Viewport(0, 0, width, height)
-//    context = runtime.default_context()
-//    draw(window, shader_program, VAO, EBO)
+    context = runtime.default_context()
+    draw(window, shader_program, VAO, EBO)
 }
 
 // earlier I said this makes no sense but now it's starting to make sense I think
@@ -182,7 +185,7 @@ draw :: proc(window: glfw.WindowHandle, shader_program, VAO, EBO: u32) {
     // print gpu timer result
     when CFG_DEV {
         gl.GetQueryObjectui64v(query, gl.QUERY_RESULT, &time_elapsed)
-    // fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
+     fmt.printf("GPU Time: {:8.5f} ms\n", f64(time_elapsed) / 1e6) // ":.4f" is some absolute black fucking magic
     }
 
     glfw.SwapBuffers(window) // blocks until next vertical blanking interval unless glfwSwapInterval is set to 0
