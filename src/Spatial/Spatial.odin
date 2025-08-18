@@ -499,7 +499,6 @@ notify_object_transform_changed :: proc(
 	data := found_object
 	bounds := calculate_bounds_from_tris_transform(found_object.tris, found_object.transform)
 
-
 	test :: struct {
 		id:  int,
 		key: Hash_Key,
@@ -521,7 +520,7 @@ notify_object_transform_changed :: proc(
 		object := &spatial_hash_grid[t.key]
 		unordered_remove(&object.objects_ids, t.id) // wondering if this will work
 
-		hms.remove(collision_object_map, collision_object_id)
+		// hms.remove(collision_object_map, collision_object_id)
 
 		if len(object.objects_ids) == 0 {
 			append(&cells_to_remove, t.key)
@@ -534,16 +533,17 @@ notify_object_transform_changed :: proc(
 		delete_key(spatial_hash_grid, id)
 	}
 
+	add_to_spatial_hash_grid(spatial_hash_grid, found_object.data, found_object.handle)
 	// Insert again
-	id := create_and_add_collision_object_from_tris_transform(
-		collision_object_map,
-		spatial_hash_grid,
-		data.data.tris,
-		found_object.transform,
-		cc.is_blocking(data.data.collision_channels),
-	)
+	// id := create_and_add_collision_object_from_tris_transform(
+	// 	collision_object_map,
+	// 	spatial_hash_grid,
+	// 	data.data.tris,
+	// 	found_object.transform,
+	// 	cc.is_blocking(data.data.collision_channels),
+	// )
 
-	return id
+	return found_object.handle
 }
 
 add_shape_to_hash_map :: proc(
@@ -571,21 +571,30 @@ create_and_add_collision_object_from_tris_transform :: proc(
 	transform: Transform,
 	blocking: bool = true,
 ) -> Collision_Object_Id {
-	bounds := calculate_bounds_from_tris_transform(tris, transform) // todo defaults to  ref right hehe??
 
-	potential_hash_keys := calculate_overlapping_cells2(bounds)
 	collision_channel: cc.CHANNEL_SIZE =
 		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
-	// Adding to handle map
-	collision_object_id := hms.add(
-		collision_object_map,
-		Collision_Object_Data_Runtime {
-			collision_channels = collision_channel,
-			tris = tris,
-			transform = transform,
-		},
-	)
+	data := Collision_Object_Data {
+		collision_channels = collision_channel,
+		transform          = transform,
+		tris               = tris,
+	}
 
+	collision_object_id := add_to_object_map(collision_object_map, data)
+	runtime_data := Collision_Object_Data_Runtime{data = data, handle = collision_object_id}
+
+	add_to_spatial_hash_grid(spatial_hash_grid, runtime_data, collision_object_id)
+
+	return collision_object_id
+}
+
+add_to_spatial_hash_grid :: proc(
+	spatial_hash_grid: ^Spatial_Hash_Grid,
+	data: Collision_Object_Data,
+	id: Collision_Object_Id,
+) {
+	bounds := calculate_bounds_from_tris_transform(data.tris, data.transform) // todo defaults to  ref right hehe??
+	potential_hash_keys := calculate_overlapping_cells2(bounds)
 	for hash_key in potential_hash_keys {
 		cell := &spatial_hash_grid[hash_key]
 		if cell == nil {
@@ -594,13 +603,25 @@ create_and_add_collision_object_from_tris_transform :: proc(
 			cell = &spatial_hash_grid[hash_key]
 		}
 
-		append_elem(&cell.objects_ids, collision_object_id)
+		append_elem(&cell.objects_ids, id)
 	}
-
-
-	return collision_object_id
-
 }
+
+
+add_to_object_map :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	data: Collision_Object_Data,
+) -> Collision_Object_Id {
+	return hms.add(
+		collision_object_map,
+		Collision_Object_Data_Runtime {
+			collision_channels = data.collision_channels,
+			tris = data.tris,
+			transform = data.transform,
+		},
+	)
+}
+
 
 create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
