@@ -56,6 +56,7 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 			runtime.print_byte('\n')
 		}
 	}
+
 	runtime.trap()
 }
 global_trace_ctx: trace.Context
