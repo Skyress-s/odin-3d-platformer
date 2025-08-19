@@ -9,6 +9,8 @@ import "core:strings"
 import "core:unicode/utf8"
 
 import character "../Character"
+import e_tools "../editor/tools"
+import "../editor_player"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 
@@ -413,7 +415,12 @@ which_pie_is_position_in :: proc(
 }
 
 
-all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData, game_state: ^gs.Game_State) {
+all_windows :: proc(
+	ctx: ^mu.Context,
+	char_data: ^character.CharacternData,
+	editor_player_data: ^editor_player.Editor_Player_Data,
+	game_state: ^gs.Game_State,
+) {
 	@(static) opts := mu.Options{.NO_CLOSE}
 	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 
@@ -674,6 +681,8 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData, game
 	}
 */
 	// CHEATS
+
+	if 
 	{
 		rect := mu.Rect{rl.GetRenderWidth() - 400, 0, 400, 400}
 		if mu.window(ctx, "Cheat Window", rect, {mu.Opt.NO_CLOSE}) {
@@ -689,12 +698,7 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData, game
 	}
 	{
 		rect := mu.Rect{0, rl.GetScreenHeight() - 200, rl.GetScreenWidth(), 200}
-		if mu.window(
-			ctx,
-			"Log Window",
-			rect,
-			opts,
-		) {
+		if mu.window(ctx, "Log Window", rect, opts) {
 			mu.get_current_container(ctx).rect = rect
 			mu.layout_row(ctx, {-1}, -28)
 			mu.begin_panel(ctx, "Log")
@@ -756,9 +760,12 @@ all_windows :: proc(ctx: ^mu.Context, char_data: ^character.CharacternData, game
 
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
-		
+
 		// Rope length
-		rope_length := linalg.distance(char_data.verlet_component.position, char_data.hooked_position)
+		rope_length := linalg.distance(
+			char_data.verlet_component.position,
+			char_data.hooked_position,
+		)
 		mu.layout_row(ctx, {-1})
 		mu.text(ctx, fmt.aprintf("Rope Length {}", char_data.is_hooked ? rope_length : 0))
 

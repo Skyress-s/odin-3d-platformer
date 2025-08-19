@@ -98,19 +98,27 @@ Player_Mode :: enum {
 
 //fmt.printfln("{:6.3f} ", some_var) // [0.5, 3.0, 6.5]
 
+Players :: struct {
+	mode:   Player_Mode,
+	game:   character.CharacternData,
+	editor: editor_player.Editor_Player_Data,
+}
+
 main :: proc() {
 	game_state := gs.make_default_game_state()
 
-	player_mode := Player_Mode.Game
-	player_game := character.CharacternData {
+	players := Players{}
+	players.mode = Player_Mode.Game
+	players.game = character.CharacternData {
 		radius = 1,
+		current_state = character.Airborne{},
+		verlet_component = verlet.Velocity_Verlet_Component{position = spat.Vector{0, 0, 0}},
 	}
-	player_editor := editor_player.Editor_Player_Data {
+
+	players.editor = editor_player.Editor_Player_Data {
 		movement_speed = 30,
 	}
 
-	player_game.current_state = character.Airborne{}
-	player_game.verlet_component.position = spat.Vector{0, 0, 0}
 
 	current_level: l.Level
 	current_level.name = "test_level"
@@ -129,8 +137,8 @@ main :: proc() {
 	current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
 	// Set look angles
-	player_game.look_angles.x = -math.asin(current_level.start_look_direction.y)
-	player_game.look_angles.y = linalg.vector_angle_between(
+	players.game.look_angles.x = -math.asin(current_level.start_look_direction.y)
+	players.game.look_angles.y = linalg.vector_angle_between(
 		spat.Vector{0, 0, 1},
 		current_level.start_look_direction,
 	)
