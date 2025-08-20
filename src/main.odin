@@ -26,6 +26,7 @@ import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
+import _players "players"
 
 /*
 global_trace_ctx: trace.Context
@@ -91,24 +92,13 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 }
 */
 
-Player_Mode :: enum {
-	Game,
-	Editor,
-}
-
-//fmt.printfln("{:6.3f} ", some_var) // [0.5, 3.0, 6.5]
-
-Players :: struct {
-	mode:   Player_Mode,
-	game:   character.CharacternData,
-	editor: editor_player.Editor_Player_Data,
-}
 
 main :: proc() {
 	game_state := gs.make_default_game_state()
 
-	players := Players{}
-	players.mode = Player_Mode.Game
+	players := _players.Players{}
+
+	players.mode = _players.Player_Mode.Game
 	players.game = character.CharacternData {
 		radius = 1,
 		current_state = character.Airborne{},
@@ -118,7 +108,6 @@ main :: proc() {
 	players.editor = editor_player.Editor_Player_Data {
 		movement_speed = 30,
 	}
-
 
 	current_level: l.Level
 	current_level.name = "test_level"
@@ -193,24 +182,24 @@ main :: proc() {
 
 		// should we change to another state
 		if rl.IsKeyPressed(.F10) {
-			switch player_mode {
-			case Player_Mode.Game:
+			switch players.mode {
+			case _players.Player_Mode.Game:
 				rl.EnableCursor()
-				player_editor.position = player_game.verlet_component.position
-				player_editor.look_radians = player_game.look_angles
+				players.editor.position = players.game.verlet_component.position
+				players.editor.look_radians = players.game.look_angles
 
-				player_mode = Player_Mode.Editor
-			case Player_Mode.Editor:
+				players.mode = _players.Player_Mode.Editor
+			case _players.Player_Mode.Editor:
 				rl.DisableCursor()
 
-				player_mode = Player_Mode.Game
+				players.mode = _players.Player_Mode.Game
 			}
 		}
 
-		switch player_mode {
-		case Player_Mode.Game:
-			character.update_character(&player_game, &current_level, dt)
-		case Player_Mode.Editor:
+		switch players.mode {
+		case _players.Player_Mode.Game:
+			character.update_character(&players.game, &current_level, dt)
+		case _players.Player_Mode.Editor:
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
 
 				ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
@@ -295,27 +284,27 @@ main :: proc() {
 				}
 
 			}
-			editor_player.update(&player_editor, dt)
+			editor_player.update(&players.editor, dt)
 		}
 
-		active_hash_key := spat.Hash_Location(player_game.verlet_component.position)
+		active_hash_key := spat.Hash_Location(players.game.verlet_component.position)
 		active_cell := current_level.spatial_hash_grid[active_hash_key]
 
 		// Collide with cubes / planes
 		active_cell_objects_ids := &active_cell.objects_ids
 
 
-		switch player_mode {
-		case Player_Mode.Game:
-			verlet.velocity_verlet_leap(&player_game.verlet_component, dt)
+		switch players.mode {
+		case _players.Player_Mode.Game:
+			verlet.velocity_verlet_leap(&players.game.verlet_component, dt)
 			character.update_character_physics(
-				&player_game,
+				&players.game,
 				&current_level,
 				active_cell_objects_ids,
 				dt,
 			)
-			verlet.velocity_verlet_frog(&player_game.verlet_component, dt)
-		case Player_Mode.Editor:
+			verlet.velocity_verlet_frog(&players.game.verlet_component, dt)
+		case _players.Player_Mode.Editor:
 		}
 
 		// assert(
@@ -332,30 +321,28 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx, &player_game, &game_state)
+		gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
 
 		// Update Camera
-		switch player_mode {
-		case Player_Mode.Game:
-			_, forward, right := player_data.calculate_stuff_from_look(&player_game.look_angles)
-			cam.position = player_game.verlet_component.position
+		switch players.mode {
+		case _players.Player_Mode.Game:
+			_, forward, right := player_data.calculate_stuff_from_look(&players.game.look_angles)
+			cam.position = players.game.verlet_component.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 
-		case Player_Mode.Editor:
-			_, forward, right := player_data.calculate_stuff_from_look(&player_editor.look_data)
-			cam.position = player_editor.position
+		case _players.Player_Mode.Editor:
+			_, forward, right := player_data.calculate_stuff_from_look(&players.editor.look_data)
+			cam.position = players.editor.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
 		render(
 			&current_level,
-			player_mode,
-			&player_game,
-			&player_editor,
+			&players,
 			&cam,
 			&active_cell,
 			active_hash_key,
@@ -368,9 +355,7 @@ main :: proc() {
 
 render :: proc(
 	level: ^l.Level,
-	player_mode: Player_Mode,
-	char_data: ^character.CharacternData,
-	player_editor: ^editor_player.Editor_Player_Data,
+	players: ^_players.Players,
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
@@ -382,22 +367,22 @@ render :: proc(
 	rl.BeginMode3D(cam^)
 
 
-	switch player_mode {
-	case Player_Mode.Game:
-		if char_data.is_hooked {
-			rl.DrawSphere(char_data.hooked_position, 3, rl.RAYWHITE)
+	switch players.mode {
+	case _players.Player_Mode.Game:
+		if players.game.is_hooked {
+			rl.DrawSphere(players.game.hooked_position, 3, rl.RAYWHITE)
 			points: [2]spat.Vector2
 		}
 
-	case Player_Mode.Editor:
-		_, forward, _ := player_data.calculate_stuff_from_look(&char_data.look_angles)
-		player_verlet := &char_data.verlet_component
+	case _players.Player_Mode.Editor:
+		_, forward, _ := player_data.calculate_stuff_from_look(&players.game.look_angles)
+		player_verlet := &players.game.verlet_component
 
 		rl.DrawCylinder(
-			player_verlet.position - spat.Vector{0, char_data.radius, 0},
-			char_data.radius,
-			char_data.radius,
-			char_data.radius * 2,
+			player_verlet.position - spat.Vector{0, players.game.radius, 0},
+			players.game.radius,
+			players.game.radius,
+			players.game.radius * 2,
 			8,
 			rl.GREEN,
 		)
@@ -420,7 +405,7 @@ render :: proc(
 			e_tools.draw_position_tooltip_new(
 				e_tools.calculate_drag_planes(
 					found_object.transform.position,
-					player_editor.position,
+					players.editor.position,
 				),
 			)
 		}
@@ -428,7 +413,7 @@ render :: proc(
 
 	// rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
 
-	player_verlet := &char_data.verlet_component
+	player_verlet := &players.game.verlet_component
 	player_root_pos_for_drawing := player_verlet.position - spat.Vector{0, 0.1, 0}
 	rl.DrawLine3D(
 		player_root_pos_for_drawing,
@@ -437,8 +422,8 @@ render :: proc(
 	)
 
 	// Draw rope
-	if char_data.is_hooked {
-		rl.DrawLine3D(player_root_pos_for_drawing, char_data.hooked_position, rl.VIOLET)
+	if players.game.is_hooked {
+		rl.DrawLine3D(player_root_pos_for_drawing, players.game.hooked_position, rl.VIOLET)
 	}
 
 

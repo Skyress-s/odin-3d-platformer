@@ -13,6 +13,7 @@ import e_tools "../editor/tools"
 import "../editor_player"
 import mu "vendor:microui"
 import rl "vendor:raylib"
+import _players "../players"
 
 state := struct {
 	mu_ctx:          mu.Context,
@@ -417,10 +418,11 @@ which_pie_is_position_in :: proc(
 
 all_windows :: proc(
 	ctx: ^mu.Context,
-	char_data: ^character.CharacternData,
-	editor_player_data: ^editor_player.Editor_Player_Data,
+	players: ^_players.Players,
 	game_state: ^gs.Game_State,
 ) {
+	char_data:= players.game
+
 	@(static) opts := mu.Options{.NO_CLOSE}
 	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
 
@@ -682,7 +684,6 @@ all_windows :: proc(
 */
 	// CHEATS
 
-	if 
 	{
 		rect := mu.Rect{rl.GetRenderWidth() - 400, 0, 400, 400}
 		if mu.window(ctx, "Cheat Window", rect, {mu.Opt.NO_CLOSE}) {
