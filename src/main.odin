@@ -224,6 +224,7 @@ main :: proc() {
 
 					}
 					if plane_hit != .None {
+
 						position_transform_tool.dragging = true
 						position_transform_tool.plane.point_on_plane = plane_intersect_location
 						position_transform_tool.plane.normal = plane_normal

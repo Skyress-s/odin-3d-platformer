@@ -21,20 +21,20 @@ Scale_Tool :: distinct struct {
 }
 
 
+// TODO: This can be removed probably.
 State :: enum {
 	Position,
 	Rotation,
 	Scale,
 }
 
-// Transform_Tool_Mode :: distinct struct {
-// 	// Other state go here, like use_local_space etc
-// }
+Transform_Tool_Active_Type :: union #no_nil {Position_Tool, Rotation_Tool, Scale_Tool}
 
 Transform_Tool_Data :: distinct struct {
 	transform:                 spat.Transform,
 	start_transform:           spat.Transform,
 	state:                     State,
+	active_tool: 			   Transform_Tool_Active_Type,
 	plane:                     spat.Plane,
 	start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
