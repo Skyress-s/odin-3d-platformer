@@ -4,6 +4,8 @@ package serialization
 import cc "../Physics/collision_channel"
 import spat "../Spatial"
 import l "../level"
+import "core:math/linalg"
+import "core:math"
 
 import "core:encoding/json"
 import "core:fmt"
@@ -21,13 +23,21 @@ Result_Union :: union {
 	Result,
 }
 
-Serialized_Collision_Object :: struct {
+Serializable_Transform :: struct {
+	position, scale: spat.Vector,
+	rotation: [4]f32
+}
+
+Serializable_Collision_Object_Data :: distinct struct {
+	collision_channels: u16,
+	transform:          Serializable_Transform,
+	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
 }
 
 @(private)
 Level_Serialization_Data :: struct {
 	name:                 string,
-	objects:              [dynamic]spat.Collision_Object_Data,
+	objects:              [dynamic]Serializable_Collision_Object_Data,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
 	//objects: [dynamic]int,
@@ -49,7 +59,9 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	// Could not get the iter to work, a but perhaps?
 	for &i in level.collision_object_map.items {
 		if hms.skip(i) do continue
-		append_elem(&level_serialization_data.objects, i)
+
+		serializable_transform:= Serializable_Transform{position = i.transform.position, rotation = transmute([4]f32)i.transform.rotation, scale= i.transform.scale}
+		append_elem(&level_serialization_data.objects, Serializable_Collision_Object_Data{collision_channels = i.collision_channels, transform = serializable_transform, tris = i.tris})
 	}
 
 

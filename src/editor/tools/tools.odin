@@ -1,6 +1,7 @@
 package tools
 
 import spat "../../Spatial"
+import "core:fmt"
 import hms "../../handle_map/handle_map_static"
 import l "../../level"
 import rlb "../../raylib_bridge"
@@ -14,6 +15,7 @@ Position_Tool :: distinct struct {
 
 Rotation_Tool :: distinct struct {
 	rotation: spat.Quaternion,
+	axis:     spat.Vector,
 }
 
 Scale_Tool :: distinct struct {
@@ -28,14 +30,17 @@ State :: enum {
 	Scale,
 }
 
-Transform_Tool_Active_Type :: union #no_nil {Position_Tool, Rotation_Tool, Scale_Tool}
+Transform_Tool_Active_Type :: union #no_nil {
+	Position_Tool,
+	Rotation_Tool,
+	Scale_Tool,
+}
 
 Transform_Tool_Data :: distinct struct {
-	transform:                 spat.Transform,
 	start_transform:           spat.Transform,
-	state:                     State,
-	active_tool: 			   Transform_Tool_Active_Type,
-	plane:                     spat.Plane,
+	state:                     State, // TODO: REMOVE
+	active_tool:               Transform_Tool_Active_Type,
+	plane:                     spat.Plane, // Plane we are dragging along
 	start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
 	target_object_id:          spat.Collision_Object_Id,
@@ -89,8 +94,8 @@ update_transform_tool :: proc(
 ) {
 	if !left_mouse_button_down do return
 
-	switch (data.state) {
-	case State.Position:
+	switch &active_tool in data.active_tool {
+	case Position_Tool:
 		current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
 		did_intersect, intersection := spat.ray_plane_intersect(
 			&current_ray,
@@ -101,12 +106,26 @@ update_transform_tool :: proc(
 		found_object.data.transform.position =
 			data.start_transform.position + (intersection - data.plane.point_on_plane)
 
-	case State.Rotation:
-		panic("rotation not implemented")
-	case State.Scale:
+	case Rotation_Tool:
+		current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
+		did_intersect, intersection := spat.ray_plane_intersect(
+			&current_ray,
+			data.plane.normal,
+			data.plane.point_on_plane,
+		)
+
+		found_object := hms.get(object_map, data.target_object_id)
+			new_qua := linalg.quaternion_from_forward_and_up_f32(data.start_ray_plane_intersect - data.start_transform.position, data.plane.normal)
+			new_quat := linalg.quaternion_from_forward_and_up_f32(intersection - data.start_transform.position, data.plane.normal)
+			//found_object.data.transform.rotation = spat.QuaternionData{new_quat.x,new_quat.y, new_quat.z, new_quat.w}
+
+			//found_object.data.transform.rotation = linalg.QUATERNIONF32_IDENTITY * new_quat
+			
+			found_object.data.transform.rotation =   new_quat *linalg.quaternion_inverse(new_qua)* data.start_transform.rotation
+
+		//panic("rotation not implemented")
+	case Scale_Tool:
 		panic("scale not implemented")
 	}
-
-
 	// TODO: Resume here  
 }

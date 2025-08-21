@@ -8,8 +8,22 @@ import "vendor:raylib/rlgl"
 
 @(private)
 PLANE_SIZE :: 34
+
 @(private)
 HALF_PLANE_SIZE :: PLANE_SIZE / 2
+
+@(private)
+BAR_SHORT_SIDE_SIZE :: 12
+
+
+@(private)
+calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: spat.Vector) {
+	dirs.x = camera_location.x > target_location.x ? 1 : -1
+	dirs.y = camera_location.y > target_location.y ? 1 : -1
+	dirs.z = camera_location.z > target_location.z ? 1 : -1
+
+	return dirs
+}
 
 // Planes are in order XZ, XY, ZY
 //@(private)
@@ -18,10 +32,8 @@ calculate_drag_planes :: proc(
 ) -> (
 	planes_bounded: [3]spat.Plane_Bounded,
 ) {
-	dirs: spat.Vector
-	dirs.x = camera_location.x > tooltip_location.x ? 1 : -1
-	dirs.y = camera_location.y > tooltip_location.y ? 1 : -1
-	dirs.z = camera_location.z > tooltip_location.z ? 1 : -1
+
+	dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
 	dirs *= HALF_PLANE_SIZE * 1.2
 
 	planes_bounded.x.center = {
@@ -60,6 +72,28 @@ Interacted_Plane :: enum {
 	XZ,
 	XY,
 	ZY,
+}
+
+Interacted_Bar :: enum {
+	None,
+	X,
+	Y,
+	Z,
+}
+
+get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> spat.Vector {
+	switch interacted_plane {
+	case .None:
+		return spat.ZERO_VEC3
+	case .XZ:
+		return spat.Vector{0, 1, 0}
+	case .XY:
+		return spat.Vector{0, 0, 1}
+	case .ZY:
+		return spat.Vector{1, 0, 0}
+	}
+
+	unreachable()
 }
 
 ray_transform_tool_planes_intersect :: proc(
@@ -136,6 +170,18 @@ ray_transform_tool_planes_intersect :: proc(
 	return Interacted_Plane.None, spat.ZERO_VEC3, spat.ZERO_VEC3
 }
 
+// ray_scale_bars_collision :: proc(
+// 	ray: ^spat.Ray,
+// 	scale_bars: ^[3]spat.Box_Better,
+// ) -> (
+// 	interacter_bar: Interacted_Bar,
+// 	hit_location, plane_normal: spat.Vector,
+// ) {
+//
+//
+// }
+
+
 draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 	planeXZ := planes_bounded.x
 	planeXY := planes_bounded.y
@@ -167,65 +213,70 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 }
 
 
-draw_position_tooltip :: proc(tooltip_location, camera_location: spat.Vector) {
+@(private)
+calculate_rotation_planes :: proc(
+	tooltip_location, camera_location: spat.Vector,
+) -> [3]spat.Plane_Bounded {
+	return calculate_drag_planes(tooltip_location, camera_location)
+}
 
-	dirs: spat.Vector
-	dirs.x = camera_location.x > tooltip_location.x ? 1 : -1
-	dirs.y = camera_location.y > tooltip_location.y ? 1 : -1
-	dirs.z = camera_location.z > tooltip_location.z ? 1 : -1
-	rlgl.PushMatrix()
-	defer rlgl.PopMatrix()
 
+// draw_rotation_tooltip :: proc(){
+//
+// }
+
+
+calculate_scale_bars :: proc(
+	target_transform: spat.Transform,
+	camera_location: spat.Vector,
+) -> (
+	boxes: [3]spat.Box_Better,
+) { 	// Dima would like this name
+	dirs := calculate_dirs(target_transform.position, camera_location)
 	dirs *= HALF_PLANE_SIZE * 1.2
-	// rlgl.Translatef(dirs.x, dirs.y, dirs.z)
 
-	rlgl.PushMatrix()
-	rlgl.Translatef(tooltip_location.x + dirs.x, tooltip_location.y, tooltip_location.z + dirs.z)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.RED, rl.BLUE, 0.5),
-	)
-	rlgl.Rotatef(180, 1, 0, 0)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.RED, rl.BLUE, 0.5),
-	)
-	rlgl.PopMatrix()
+	target_location := target_transform.position
+
+	boxes.x.position = {target_location.x + dirs.x, target_location.y, target_location.z}
+	boxes.y.position = {target_location.x, target_location.y + dirs.y, target_location.z}
+	boxes.z.position = {target_location.x, target_location.y, target_location.z + dirs.z}
 
 
-	rlgl.PushMatrix()
-	rlgl.Translatef(tooltip_location.x + dirs.x, tooltip_location.y + dirs.y, tooltip_location.z)
-	rlgl.Rotatef(90, 1, 0, 0)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.RED, rl.GREEN, 0.5),
-	)
-	rlgl.Rotatef(180, 1, 0, 0)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.RED, rl.GREEN, 0.5),
-	)
-	rlgl.PopMatrix()
+	boxes.x.size.x = PLANE_SIZE
+	boxes.x.size.y = BAR_SHORT_SIDE_SIZE
+	boxes.x.size.z = BAR_SHORT_SIDE_SIZE
 
-	rlgl.PushMatrix()
-	rlgl.Translatef(tooltip_location.x, tooltip_location.y + dirs.y, tooltip_location.z + dirs.z)
-	rlgl.Rotatef(90, 0, 0, 1)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.GREEN, rl.BLUE, 0.5),
-	)
+	boxes.y.size.x = BAR_SHORT_SIDE_SIZE
+	boxes.y.size.y = PLANE_SIZE
+	boxes.y.size.z = BAR_SHORT_SIDE_SIZE
 
-	rlgl.Rotatef(180, 1, 0, 0)
-	rl.DrawPlane(
-		spat.ZERO_VEC3,
-		spat.Vector2{PLANE_SIZE, PLANE_SIZE},
-		rl.ColorLerp(rl.GREEN, rl.BLUE, 0.5),
-	)
-	rlgl.PopMatrix()
+	boxes.z.size.x = BAR_SHORT_SIDE_SIZE
+	boxes.z.size.y = BAR_SHORT_SIDE_SIZE
+	boxes.z.size.z = PLANE_SIZE
 
+	return boxes
+}
+
+draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
+
+	box_x := boxes.x
+	box_y := boxes.y
+	box_z := boxes.z
+
+	draw_box :: proc(box: ^spat.Box_Better) {
+		rlgl.PushMatrix()
+		rlgl.Translatef(box.position.x, box.position.y, box.position.z)
+		rl.DrawCube(
+			spat.ZERO_VEC3,
+			box.size.x,
+			box.size.y,
+			box.size.z,
+			rl.ColorLerp(rl.RED, rl.BLUE, 0.5),
+		)
+		rlgl.PopMatrix()
+	}
+
+	draw_box(&box_x)
+	draw_box(&box_y)
+	draw_box(&box_z)
 }

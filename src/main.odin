@@ -22,11 +22,11 @@ import gameui "micro-ui"
 import "player_data"
 import rlb "raylib_bridge"
 
+import _players "players"
 import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
-import _players "players"
 
 /*
 global_trace_ctx: trace.Context
@@ -92,8 +92,20 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 }
 */
 
+// some_type :: distinct union #no_nil {i32, f32}
 
 main :: proc() {
+	// a_type : some_type = 758	
+	// fmt.println(&a_type.(i32))
+	//
+	// switch &type in a_type{
+	// 	case i32:
+	// 		fmt.println(&type)
+	// 	case f32:
+	// 		fmt.println(&type)
+	// }
+
+
 	game_state := gs.make_default_game_state()
 
 	players := _players.Players{}
@@ -118,12 +130,12 @@ main :: proc() {
 	current_level.start_position = {0, 0, 0}
 	current_level.start_look_direction = {1, 0, 1}
 
-	serialization.save_to_file_level(&current_level, "test.map")
-	loaded_level := serialization.load_from_file_level("test.map")
+	//serialization.save_to_file_level(&current_level, "test.map")
+	//loaded_level := serialization.load_from_file_level("test.map")
 
-	current_level = loaded_level
-	current_level.start_position = loaded_level.start_position
-	current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
+	//current_level = loaded_level
+	// current_level.start_position = loaded_level.start_position
+	// current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
 	// Set look angles
 	players.game.look_angles.x = -math.asin(current_level.start_look_direction.y)
@@ -200,6 +212,15 @@ main :: proc() {
 		case _players.Player_Mode.Game:
 			character.update_character(&players.game, &current_level, dt)
 		case _players.Player_Mode.Editor:
+			if rl.IsKeyPressed(.ONE) {
+				position_transform_tool.active_tool = e_tools.Position_Tool{}
+			} else if rl.IsKeyPressed(.TWO) {
+				fmt.println("hahaha")
+				position_transform_tool.active_tool = e_tools.Rotation_Tool{}
+			} else if rl.IsKeyPressed(.THREE) {
+				position_transform_tool.active_tool = e_tools.Scale_Tool{}
+			}
+
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
 
 				ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
@@ -211,27 +232,86 @@ main :: proc() {
 					position_transform_tool.target_object_id,
 				)
 				if found_object != nil {
-					planes := e_tools.calculate_drag_planes(
-						found_object.transform.position,
-						cam.position,
-					)
-					plane_hit, plane_intersect_location, plane_normal :=
-						e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-					if plane_hit != e_tools.Interacted_Plane.None {
-						fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+					switch &active_tool in position_transform_tool.active_tool {
+					case e_tools.Position_Tool:
+						planes := e_tools.calculate_drag_planes(
+							found_object.transform.position,
+							cam.position,
+						)
+						plane_hit, plane_intersect_location, plane_normal :=
+							e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+						if plane_hit != e_tools.Interacted_Plane.None {
+							fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
 
-						rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+							rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
 
+						}
+						if plane_hit != .None {
+
+							position_transform_tool.dragging = true
+							position_transform_tool.plane.point_on_plane = plane_intersect_location
+							position_transform_tool.plane.normal = plane_normal
+							position_transform_tool.start_transform = found_object.transform
+							position_transform_tool.start_ray_plane_intersect =
+								plane_intersect_location
+
+							//continue
+						} else do position_transform_tool.target_object_id =
+							spat.Collision_Object_Id{}
+
+					case e_tools.Rotation_Tool:
+						planes := e_tools.calculate_drag_planes(
+							found_object.transform.position,
+							cam.position,
+						)
+						plane_hit, plane_intersect_location, plane_normal :=
+							e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+						if plane_hit != e_tools.Interacted_Plane.None {
+							fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+
+							rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+
+						}
+						if plane_hit != .None {
+
+							position_transform_tool.dragging = true
+							position_transform_tool.plane.point_on_plane = plane_intersect_location
+							position_transform_tool.plane.normal = plane_normal
+							position_transform_tool.start_transform = found_object.transform
+							position_transform_tool.start_ray_plane_intersect =
+								plane_intersect_location
+
+							//continue
+						} else do position_transform_tool.target_object_id =
+							spat.Collision_Object_Id{}
+
+					case e_tools.Scale_Tool:
+						// planes := e_tools.calculate_scale_bars(
+						// 	found_object.transform,
+						// 	cam.position,
+						// )
+						// plane_hit, plane_intersect_location, plane_normal :=
+						// 	e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+						// if plane_hit != e_tools.Interacted_Plane.None {
+						// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+						//
+						// 	rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+						//
+						// }
+						// if plane_hit != .None {
+						//
+						// 	position_transform_tool.dragging = true
+						// 	position_transform_tool.plane.point_on_plane = plane_intersect_location
+						// 	position_transform_tool.plane.normal = plane_normal
+						// 	position_transform_tool.start_transform = found_object.transform
+						// 	position_transform_tool.start_ray_plane_intersect =
+						// 		plane_intersect_location
+						//
+						// 	//continue
+						// } else do position_transform_tool.target_object_id =
+						// 	spat.Collision_Object_Id{}
+						//
 					}
-					if plane_hit != .None {
-
-						position_transform_tool.dragging = true
-						position_transform_tool.plane.point_on_plane = plane_intersect_location
-						position_transform_tool.plane.normal = plane_normal
-						position_transform_tool.start_transform = found_object.transform
-
-						//continue
-					} else do position_transform_tool.target_object_id = spat.Collision_Object_Id{}
 
 				} else {
 					ok, id, position := spat.ray_intersect_spatial_hash_grid(
@@ -246,13 +326,14 @@ main :: proc() {
 						position_transform_tool.start_transform =
 							hms.get(&current_level.collision_object_map, id).data.transform
 
-						hit_plane, hit_location := spat.ray_plane_intersect(
-							&ray,
-							{0, 1, 0},
-							{0, 10, 0},
-						)
-
-						position_transform_tool.start_ray_plane_intersect = hit_location
+						// hit_plane, hit_location := spat.ray_plane_intersect(
+						// 	&ray,
+						// 	{0, 1, 0},
+						// 	{0, 10, 0},
+						// )
+						//
+						// position_transform_tool.plane = spat.Plane{point_on_plane = hit_location, }
+						// position_transform_tool.start_ray_plane_intersect = hit_location
 					}
 
 				}
@@ -391,24 +472,30 @@ render :: proc(
 
 		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
 		if found_object != nil {
-			//
-			// ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam^))
-			// ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
-			//
-			// planes:=e_tools.calculate_drag_planes(found_object.transform.position, cam.position)
-			// plane_hit, plane_intersect_location:= e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-			// if plane_hit != e_tools.Interacted_Plane.None {
-			// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-			//
-			// 	rl.DrawCube(plane_intersect_location, 5,5,5, rl.WHITE)
-			//
-			// }
-			e_tools.draw_position_tooltip_new(
-				e_tools.calculate_drag_planes(
-					found_object.transform.position,
-					players.editor.position,
-				),
-			)
+
+			switch &active_tool in tool.active_tool {
+			case e_tools.Position_Tool:
+				e_tools.draw_position_tooltip_new(
+					e_tools.calculate_drag_planes(
+						found_object.transform.position,
+						players.editor.position,
+					),
+				)
+
+			case e_tools.Rotation_Tool:
+				e_tools.draw_position_tooltip_new(
+					e_tools.calculate_drag_planes(
+						found_object.transform.position,
+						players.editor.position,
+					),
+				)
+			case e_tools.Scale_Tool:
+				e_tools.draw_scale_boxes(
+					e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+				)
+
+			}
+
 		}
 	}
 
@@ -544,8 +631,7 @@ add_debug_level_objects :: proc(
 	spaital_hash_grid: ^map[spat.Hash_Key]spat.Hash_Cell,
 ) {
 
-	q_raw := linalg.QUATERNIONF32_IDENTITY
-	q := spat.QuaternionData{q_raw.x, q_raw.y, q_raw.z, q_raw.w}
+	q := linalg.QUATERNIONF32_IDENTITY
 
 
 	spat.add_shape_to_hash_map(
@@ -583,10 +669,7 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape {
-			{{-32, 0, 0}, spat.QuaternionData{q2.x, q2.y, q2.z, q2.w}, {2, 2, 2}},
-			spat.Box{{9.0, 9.0, 9.0}},
-		},
+		&spat.Collision_Shape{{{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}},
 	)
 
 	for box_num in 0 ..= 5 {

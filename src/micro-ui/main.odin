@@ -421,7 +421,7 @@ all_windows :: proc(
 	players: ^_players.Players,
 	game_state: ^gs.Game_State,
 ) {
-	char_data:= players.game
+	char_data:= &players.game
 
 	@(static) opts := mu.Options{.NO_CLOSE}
 	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}

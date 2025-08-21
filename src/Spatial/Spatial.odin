@@ -16,18 +16,26 @@ Quaternion :: quaternion128
 ZERO_VEC3 :: Vector{0, 0, 0}
 ZERO_VEC2 :: Vector2{0, 0}
 ZERO_VEC4 :: Vector4{0, 0, 0, 0}
+ONE_VEC3 :: Vector{1,1,1}
 
 // Transform :: rl.Transform
 Transform :: distinct struct {
 	position: Vector,
-	// rotation: Quaternion,
-	rotation: QuaternionData,
+	rotation: Quaternion,
 	scale:    Vector,
 }
+
+TRANSFORM_IDENTITY :: Transform{position = ZERO_VEC3, rotation = linalg.QUATERNIONF32_IDENTITY, scale = ONE_VEC3}
 
 Box :: struct {
 	size: Vector,
 }
+
+Box_Better :: struct {
+	size, position: Vector,
+	rotation: Quaternion
+}
+
 
 Sphere :: struct {
 	radius: f32,
@@ -637,7 +645,7 @@ create_and_add_collision_object_from_tris :: proc(
 	// Adding to handle map
 	collision_object_id := hms.add(
 		collision_object_map,
-		Collision_Object_Data_Runtime{collision_channels = collision_channel, tris = tris},
+		Collision_Object_Data_Runtime{collision_channels = collision_channel, tris = tris, transform = TRANSFORM_IDENTITY},
 	)
 
 	for hash_key in potential_hash_keys {
