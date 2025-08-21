@@ -494,10 +494,12 @@ render :: proc(
 					),
 				)
 			case e_tools.Scale_Tool:
+
 				scale_bars := e_tools.calculate_scale_bars(
 					found_object.transform,
 					players.editor.position,
 				)
+				e_tools.draw_scale_boxes(scale_bars)
 				tris := e_tools.scale_bars_to_tris(&scale_bars)
 
 				for &scale_bars_triangles, i in tris {
@@ -516,9 +518,9 @@ render :: proc(
 					}
 				}
 
-				// e_tools.draw_scale_boxes(
-				// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-				// )
+				e_tools.draw_scale_boxes(
+					e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+				)
 
 			}
 
