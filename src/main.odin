@@ -269,7 +269,7 @@ main :: proc() {
 						if plane_hit != e_tools.Interacted_Plane.None {
 							fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
 
-							rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+							// rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
 
 						}
 						if plane_hit != .None {
@@ -286,31 +286,35 @@ main :: proc() {
 							spat.Collision_Object_Id{}
 
 					case e_tools.Scale_Tool:
-						// planes := e_tools.calculate_scale_bars(
-						// 	found_object.transform,
-						// 	cam.position,
-						// )
-						// plane_hit, plane_intersect_location, plane_normal :=
-						// 	e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-						// if plane_hit != e_tools.Interacted_Plane.None {
-						// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-						//
-						// 	rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-						//
-						// }
-						// if plane_hit != .None {
-						//
-						// 	position_transform_tool.dragging = true
-						// 	position_transform_tool.plane.point_on_plane = plane_intersect_location
-						// 	position_transform_tool.plane.normal = plane_normal
-						// 	position_transform_tool.start_transform = found_object.transform
-						// 	position_transform_tool.start_ray_plane_intersect =
-						// 		plane_intersect_location
-						//
-						// 	//continue
-						// } else do position_transform_tool.target_object_id =
-						// 	spat.Collision_Object_Id{}
-						//
+						boxes := e_tools.calculate_scale_bars(found_object.transform, cam.position)
+						interacter_bar, location := e_tools.ray_scale_bars_collision(&ray, &boxes)
+						fmt.println(interacter_bar)
+					// e_tools.draw_scale_boxes(boxes)
+					// planes := e_tools.calculate_scale_bars(
+					// 	found_object.transform,
+					// 	cam.position,
+					// )
+					// plane_hit, plane_intersect_location, plane_normal :=
+					// 	e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
+					// if plane_hit != e_tools.Interacted_Plane.None {
+					// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
+					//
+					// 	rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
+					//
+					// }
+					// if plane_hit != .None {
+					//
+					// 	position_transform_tool.dragging = true
+					// 	position_transform_tool.plane.point_on_plane = plane_intersect_location
+					// 	position_transform_tool.plane.normal = plane_normal
+					// 	position_transform_tool.start_transform = found_object.transform
+					// 	position_transform_tool.start_ray_plane_intersect =
+					// 		plane_intersect_location
+					//
+					// 	//continue
+					// } else do position_transform_tool.target_object_id =
+					// 	spat.Collision_Object_Id{}
+					//
 					}
 
 				} else {
@@ -490,9 +494,31 @@ render :: proc(
 					),
 				)
 			case e_tools.Scale_Tool:
-				e_tools.draw_scale_boxes(
-					e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+				scale_bars := e_tools.calculate_scale_bars(
+					found_object.transform,
+					players.editor.position,
 				)
+				tris := e_tools.scale_bars_to_tris(&scale_bars)
+
+				for &scale_bars_triangles, i in tris {
+					color :rl.Color =rl.MAGENTA
+					switch i {
+					case 0:
+						color = rl.RED
+					case 1:
+						color = rl.GREEN
+					case 2:
+						color = rl.BLUE
+					}
+
+					for &tri in scale_bars_triangles {
+						rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
+					}
+				}
+
+				// e_tools.draw_scale_boxes(
+				// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+				// )
 
 			}
 

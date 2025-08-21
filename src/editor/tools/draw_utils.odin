@@ -96,6 +96,58 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 	unreachable()
 }
 
+
+make_collision_tris_from_plane_bounded :: proc(
+	plane: ^spat.Plane_Bounded,
+) -> (
+	tris: [2]spat.Collision_Triangle,
+) {
+	x := linalg.normalize(plane.forward)
+	y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
+
+	tri1: spat.Collision_Triangle
+	tri1.points.x = +x + y
+	tri1.points.y = +x - y
+	tri1.points.z = -x + y
+
+	tri2: spat.Collision_Triangle
+	tri2.points.x = -x - y
+	tri2.points.y = +x - y
+	tri2.points.z = -x + y
+
+	for &p in &tri1.points {
+		p *= plane.lenghts.x / 2
+		p += plane.center
+	}
+
+	for &p in &tri2.points {
+		p *= plane.lenghts.x / 2
+		p += plane.center
+	}
+
+	tris.x = tri1
+	tris.y = tri2
+	return tris
+}
+
+make_collision_tris_from_planes_bounded :: proc(
+	planes: ^[6]spat.Plane_Bounded,
+) -> (
+	tris: [12]spat.Collision_Triangle,
+) {
+	i := 0
+	for &plane in planes {
+		new_tris := make_collision_tris_from_plane_bounded(&plane)
+		tris[i]=  new_tris[0]
+		i += 1
+		tris[i]=  new_tris[1]
+		i += 1
+	}
+
+	return tris
+
+}
+
 ray_transform_tool_planes_intersect :: proc(
 	ray: ^spat.Ray,
 	planes_bounded: ^[3]spat.Plane_Bounded,
@@ -103,39 +155,6 @@ ray_transform_tool_planes_intersect :: proc(
 	interacter_plane: Interacted_Plane,
 	hit_location, plane_normal: spat.Vector,
 ) {
-
-	make_collision_tris_from_plane_bounded :: proc(
-		plane: ^spat.Plane_Bounded,
-	) -> (
-		tris: [2]spat.Collision_Triangle,
-	) {
-		x := linalg.normalize(plane.forward)
-		y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
-
-		tri1: spat.Collision_Triangle
-		tri1.points.x = +x + y
-		tri1.points.y = +x - y
-		tri1.points.z = -x + y
-
-		tri2: spat.Collision_Triangle
-		tri2.points.x = -x - y
-		tri2.points.y = +x - y
-		tri2.points.z = -x + y
-
-		for &p in &tri1.points {
-			p *= plane.lenghts.x / 2
-			p += plane.center
-		}
-
-		for &p in &tri2.points {
-			p *= plane.lenghts.x / 2
-			p += plane.center
-		}
-
-		tris.x = tri1
-		tris.y = tri2
-		return tris
-	}
 
 	{
 		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.x)
@@ -170,16 +189,127 @@ ray_transform_tool_planes_intersect :: proc(
 	return Interacted_Plane.None, spat.ZERO_VEC3, spat.ZERO_VEC3
 }
 
-// ray_scale_bars_collision :: proc(
-// 	ray: ^spat.Ray,
-// 	scale_bars: ^[3]spat.Box_Better,
-// ) -> (
-// 	interacter_bar: Interacted_Bar,
-// 	hit_location, plane_normal: spat.Vector,
-// ) {
-//
-//
-// }
+scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spat.Collision_Triangle){
+
+	make_planes_local :: proc(box: spat.Box_Better) -> (planes: [6]spat.Plane_Bounded) {
+		//planes[0].center = box.position + box.size.z / 2
+		// TOP
+		planes[0].center = box.size.y
+		planes[0].normal = {0, 1, 0}
+		planes[0].forward = {1, 0, 0}
+		planes[0].lenghts = {box.size.x, box.size.z}
+
+		// BOTTOM 
+		planes[1].center = -box.size.y
+		planes[1].normal = {0, -1, 0}
+		planes[1].forward = {1, 0, 0}
+		planes[1].lenghts = {box.size.x, box.size.z}
+
+		// FRONT
+		planes[2].center = box.size.x
+		planes[2].normal = {1, 0, 0}
+		planes[2].forward = {0, 1, 0}
+		planes[2].lenghts = {box.size.y, box.size.z}
+
+		// BACK
+		planes[3].center = -box.size.x
+		planes[3].normal = {-1, 0, 0}
+		planes[3].forward = {0, 1, 0}
+		planes[3].lenghts = {box.size.y, box.size.z}
+
+		// RIGHT
+		planes[4].center = box.size.z
+		planes[4].normal = {0, 0, 1}
+		planes[4].forward = {0, 1, 0}
+		planes[4].lenghts = {box.size.y, box.size.x}
+
+		// LEFT
+		planes[5].center = -box.size.z
+		planes[5].normal = {0, 0, -1}
+		planes[5].forward = {0, 1, 0}
+		planes[5].lenghts = {box.size.y, box.size.x}
+
+		return planes
+	}
+
+	local_planes_x := make_planes_local(scale_bars.x)
+	local_planes_y := make_planes_local(scale_bars.y)
+	local_planes_z := make_planes_local(scale_bars.z)
+
+	translate_planes :: proc(planes: ^[6]spat.Plane_Bounded, offset: spat.Vector){
+		for &plane in planes {
+			plane.center += offset
+		}
+	}
+
+	translate_planes(&local_planes_x, scale_bars.x.position)
+	translate_planes(&local_planes_y, scale_bars.y.position)
+	translate_planes(&local_planes_z, scale_bars.z.position)
+
+
+	tris_x := make_collision_tris_from_planes_bounded(&local_planes_x)
+	tris_y := make_collision_tris_from_planes_bounded(&local_planes_y)
+	tris_z := make_collision_tris_from_planes_bounded(&local_planes_z)
+
+
+	tris[0] = tris_x
+	tris[1] = tris_y
+	tris[2] = tris_z
+
+	return tris
+}
+
+ray_scale_bars_collision :: proc(
+	ray: ^spat.Ray,
+	scale_bars: ^[3]spat.Box_Better,
+) -> (
+	interacter_bar: Interacted_Bar,
+	hit_location: spat.Vector,
+) {
+
+	tris := scale_bars_to_tris(scale_bars)
+
+	ray_intersect_6 :: proc(
+		ray: ^spat.Ray,
+		tris: ^[12]spat.Collision_Triangle,
+	) -> (
+		hit: bool,
+		location: spat.Vector,
+	) {
+		dist := max(f32)
+		loc := spat.ZERO_VEC3
+		for &t in tris {
+			hit, new_location := spat.ray_triangle_intersect(ray, &t)
+			new_dist := linalg.distance(new_location, ray.origin)
+			if hit && (new_dist < dist) {
+				dist = new_dist
+				loc = new_location
+			}
+		}
+
+		if dist == max(f32) {
+			return false, spat.ZERO_VEC3
+		}
+
+		return true, loc
+	}
+	hit, location := ray_intersect_6(ray, &tris.x)
+	if hit {
+		return Interacted_Bar.X, location, 
+	}
+
+	hit, location = ray_intersect_6(ray, &tris.y)
+	if hit {
+		return Interacted_Bar.Y, location, 
+	}
+
+	hit, location = ray_intersect_6(ray, &tris.z)
+	if hit {
+		return Interacted_Bar.Z, location, 
+	}
+
+	return Interacted_Bar.None, spat.ZERO_VEC3
+}
 
 
 draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
