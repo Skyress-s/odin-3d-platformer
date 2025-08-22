@@ -106,26 +106,26 @@ make_collision_tris_from_plane_bounded :: proc(
 	y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
 
 	tri1: spat.Collision_Triangle
-	tri1.points.x = +x + y
-	tri1.points.y = +x - y
-	tri1.points.z = -x + y
+	tri1.points.x = +x * plane.lenghts.x/ 2 + y * plane.lenghts.y/ 2
+	tri1.points.y = +x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
+	tri1.points.z = -x* plane.lenghts.x/ 2 + y* plane.lenghts.y/ 2
 
 	tri2: spat.Collision_Triangle
-	tri2.points.z = -x - y
-	tri2.points.y = +x - y
-	tri2.points.x = -x + y
+	tri2.points.z = -x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
+	tri2.points.y = +x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
+	tri2.points.x = -x* plane.lenghts.x / 2 + y* plane.lenghts.y/ 2
 
 	for &p in &tri1.points {
 		// p = p + x * plane.lenghts.x / 2
 		// p = p + y * plane.lenghts.y / 2
-		p *= plane.lenghts.x / 2
+		//p *= plane.lenghts.x / 2
 		p += plane.center
 	}
 
 	for &p in &tri2.points {
 		// p = p + x * plane.lenghts.x / 2
 		// p = p + y * plane.lenghts.y / 2
-		p *= plane.lenghts.x / 2
+		//p *= plane.lenghts.x / 2
 		p += plane.center
 	}
 
@@ -201,7 +201,7 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 		planes[0].center.y = box.size.y / 2
 		planes[0].normal = {0, 1, 0}
 		planes[0].forward = {1, 0, 0}
-		planes[0].lenghts = {box.size.x, box.size.y}
+		planes[0].lenghts = {box.size.x, box.size.z}
 
 		// BOTTOM 
 		planes[1].center.y = -box.size.y / 2
@@ -209,29 +209,29 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 		planes[1].forward = {1, 0, 0}
 		planes[1].lenghts = {box.size.x, box.size.z}
 
-		// // FRONT
-		// planes[2].center = box.size.x
-		// planes[2].normal = {1, 0, 0}
-		// planes[2].forward = {0, 1, 0}
-		// planes[2].lenghts = {box.size.y, box.size.z}
-		//
-		// // BACK
-		// planes[3].center = -box.size.x
-		// planes[3].normal = {-1, 0, 0}
-		// planes[3].forward = {0, 1, 0}
-		// planes[3].lenghts = {box.size.y, box.size.z}
-		//
-		// // RIGHT
-		// planes[4].center = box.size.z
-		// planes[4].normal = {0, 0, 1}
-		// planes[4].forward = {0, 1, 0}
-		// planes[4].lenghts = {box.size.y, box.size.x}
-		//
-		// // LEFT
-		// planes[5].center = -box.size.z
-		// planes[5].normal = {0, 0, -1}
-		// planes[5].forward = {0, 1, 0}
-		// planes[5].lenghts = {box.size.y, box.size.x}
+		// FRONT
+		planes[2].center.x = box.size.x / 2
+		planes[2].normal = {1, 0, 0}
+		planes[2].forward = {0, 1, 0}
+		planes[2].lenghts = {box.size.y, box.size.z}
+
+		// BACK
+		planes[3].center.x = -box.size.x / 2
+		planes[3].normal = {-1, 0, 0}
+		planes[3].forward = {0, 1, 0}
+		planes[3].lenghts = {box.size.y, box.size.z}
+
+		// RIGHT
+		planes[4].center.z = box.size.z / 2
+		planes[4].normal = {0, 0, 1}
+		planes[4].forward = {0, 1, 0}
+		planes[4].lenghts = {box.size.y, box.size.x}
+
+		// LEFT
+		planes[5].center.z = -box.size.z / 2
+		planes[5].normal = {0, 0, -1}
+		planes[5].forward = {0, 1, 0}
+		planes[5].lenghts = {box.size.y, box.size.x}
 
 		return planes
 	}

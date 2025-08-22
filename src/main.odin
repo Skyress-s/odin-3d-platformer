@@ -215,7 +215,6 @@ main :: proc() {
 			if rl.IsKeyPressed(.ONE) {
 				position_transform_tool.active_tool = e_tools.Position_Tool{}
 			} else if rl.IsKeyPressed(.TWO) {
-				fmt.println("hahaha")
 				position_transform_tool.active_tool = e_tools.Rotation_Tool{}
 			} else if rl.IsKeyPressed(.THREE) {
 				position_transform_tool.active_tool = e_tools.Scale_Tool{}
