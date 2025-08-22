@@ -19,7 +19,7 @@ Rotation_Tool :: distinct struct {
 }
 
 Scale_Tool :: distinct struct {
-	scale: spat.Vector,
+	scale, scale_direction: spat.Vector,
 }
 
 

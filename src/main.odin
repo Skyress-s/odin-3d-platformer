@@ -288,32 +288,19 @@ main :: proc() {
 						boxes := e_tools.calculate_scale_bars(found_object.transform, cam.position)
 						interacter_bar, location := e_tools.ray_scale_bars_collision(&ray, &boxes)
 						fmt.println(interacter_bar)
-					// e_tools.draw_scale_boxes(boxes)
-					// planes := e_tools.calculate_scale_bars(
-					// 	found_object.transform,
-					// 	cam.position,
-					// )
-					// plane_hit, plane_intersect_location, plane_normal :=
-					// 	e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-					// if plane_hit != e_tools.Interacted_Plane.None {
-					// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-					//
-					// 	rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-					//
-					// }
-					// if plane_hit != .None {
-					//
-					// 	position_transform_tool.dragging = true
-					// 	position_transform_tool.plane.point_on_plane = plane_intersect_location
-					// 	position_transform_tool.plane.normal = plane_normal
-					// 	position_transform_tool.start_transform = found_object.transform
-					// 	position_transform_tool.start_ray_plane_intersect =
-					// 		plane_intersect_location
-					//
-					// 	//continue
-					// } else do position_transform_tool.target_object_id =
-					// 	spat.Collision_Object_Id{}
-					//
+
+						if interacter_bar != .None {
+
+							position_transform_tool.dragging = true
+							active_tool.scale_direction = e_tools.interacted_bar_to_axis_vector(interacter_bar)
+							// position_transform_tool.plane.point_on_plane = plane_intersect_location
+							// position_transform_tool.plane.normal = plane_normal
+							position_transform_tool.start_transform = found_object.transform
+							// position_transform_tool.start_ray_plane_intersect =
+
+							//continue
+						} else do position_transform_tool.target_object_id =
+							spat.Collision_Object_Id{}
 					}
 
 				} else {
@@ -498,7 +485,7 @@ render :: proc(
 					found_object.transform,
 					players.editor.position,
 				)
-				e_tools.draw_scale_boxes(scale_bars)
+				//e_tools.draw_scale_boxes(scale_bars)
 				tris := e_tools.scale_bars_to_tris(&scale_bars)
 
 				for &scale_bars_triangles, i in tris {
@@ -517,9 +504,9 @@ render :: proc(
 					}
 				}
 
-				e_tools.draw_scale_boxes(
-					e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-				)
+				// e_tools.draw_scale_boxes(
+				// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+				// )
 
 			}
 

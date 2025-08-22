@@ -81,6 +81,21 @@ Interacted_Bar :: enum {
 	Z,
 }
 
+interacted_bar_to_axis_vector :: proc(interacted_bar: Interacted_Bar) -> spat.Vector{
+	switch interacted_bar{
+	case .X:
+		return {1,0,0}
+	case .Y:
+		return {0,1,0}
+	case .Z:
+		return {0,0,1}
+	case .None:
+	}
+
+
+	unreachable()
+}
+
 get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> spat.Vector {
 	switch interacted_plane {
 	case .None:
