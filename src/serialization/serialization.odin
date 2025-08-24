@@ -4,8 +4,8 @@ package serialization
 import cc "../Physics/collision_channel"
 import spat "../Spatial"
 import l "../level"
-import "core:math/linalg"
 import "core:math"
+import "core:math/linalg"
 
 import "core:encoding/json"
 import "core:fmt"
@@ -25,7 +25,7 @@ Result_Union :: union {
 
 Serializable_Transform :: struct {
 	position, scale: spat.Vector,
-	rotation: [4]f32
+	rotation:        [4]f32,
 }
 
 Serializable_Collision_Object_Data :: distinct struct {
@@ -46,10 +46,10 @@ Level_Serialization_Data :: struct {
 // filepath is relative to root of project (where main.odin is)
 save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	level_serialization_data := Level_Serialization_Data {
-		name           = level.name,
+		name                 = level.name,
 		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
-		start_position = level.start_position,
-		start_look_direction = level.start_look_direction
+		start_position       = level.start_position,
+		start_look_direction = level.start_look_direction,
 	}
 
 	/*
@@ -60,8 +60,19 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	for &i in level.collision_object_map.items {
 		if hms.skip(i) do continue
 
-		serializable_transform:= Serializable_Transform{position = i.transform.position, rotation = transmute([4]f32)i.transform.rotation, scale= i.transform.scale}
-		append_elem(&level_serialization_data.objects, Serializable_Collision_Object_Data{collision_channels = i.collision_channels, transform = serializable_transform, tris = i.tris})
+		serializable_transform := Serializable_Transform {
+			position = i.transform.position,
+			rotation = transmute([4]f32)i.transform.rotation,
+			scale    = i.transform.scale,
+		}
+		append_elem(
+			&level_serialization_data.objects,
+			Serializable_Collision_Object_Data {
+				collision_channels = i.collision_channels,
+				transform = serializable_transform,
+				tris = i.tris,
+			},
+		)
 	}
 
 
@@ -93,13 +104,38 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
 
 	for &obj in loaded_serialized_level_data.objects {
-		spat.create_and_add_collision_object_from_tris(
+		fmt.println("loading new object")
+		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
+		new_loaded_rotation: spat.Quaternion = quaternion(real = 5, imag = 6, jmag = 7, kmag = 8)
+		new_loaded_transform := spat.Transform {
+			position = obj.transform.position,
+			rotation = new_loaded_rotation,
+			scale    = obj.transform.scale,
+		}
+		new_loaded_object := spat.Collision_Object_Data {
+			collision_channels = obj.collision_channels,
+			transform          = new_loaded_transform,
+			tris               = obj.tris,
+		}
+
+	
+		fmt.println("adding to new level")
+		spat.add_to_level(
 			&loaded_level.collision_object_map,
 			&loaded_level.spatial_hash_grid,
-			obj.tris,
-			cc.is_blocking(obj.collision_channels),
+			new_loaded_object,
 		)
+
+
+		// spat.create_and_add_collision_object_from_tris(
+		// 	&loaded_level.collision_object_map,
+		// 	&loaded_level.spatial_hash_grid,
+		// 	obj.tris,
+		// 	cc.is_blocking(obj.collision_channels),
+		// )
 	}
+
+	fmt.println("success loading level at path: ", filepath)
 
 	return loaded_level
 }

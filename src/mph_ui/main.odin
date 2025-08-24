@@ -5,9 +5,11 @@ import spat "../Spatial"
 import e_plr "../editor_player"
 import gs "../game_state"
 import "../game_state"
+import hms "../handle_map/handle_map_static/"
 import l "../level"
 import plrs "../players"
-import hms "../handle_map/handle_map_static/"
+import serialization "../serialization"
+import "core:fmt"
 import mu "vendor:microui"
 
 
@@ -57,6 +59,8 @@ cheats_panel :: proc(
 	}
 }
 
+file_path_load_save := ""
+
 details_panel :: proc(
 	ctx: ^mu.Context,
 	players: ^plrs.Players,
@@ -77,10 +81,30 @@ details_panel :: proc(
 		mu.layout_row(ctx, {-1})
 		if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
 			current_id := players.editor.transform_tool.target_object_id
-			found_object:= hms.get(&level.collision_object_map, current_id)
-			if found_object != nil{
-				spat.add_to_level(&level.collision_object_map, &level.spatial_hash_grid, found_object.data)
+			found_object := hms.get(&level.collision_object_map, current_id)
+			if found_object != nil {
+				spat.add_to_level(
+					&level.collision_object_map,
+					&level.spatial_hash_grid,
+					found_object.data,
+				)
 			}
+		}
+		mu.layout_row(ctx, {-1})
+		@(static) buf: [128]byte
+		@(static) buf_len: int
+		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+			fmt.println("Submit!")
+		}
+
+		mu.layout_row(ctx, {-1})
+		if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+			serialization.save_to_file(level, string(buf[:buf_len]))
+		}
+		mu.layout_row(ctx, {-1})
+		if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
+
+			level^ = serialization.load_from_file_level(string(buf[:buf_len]))
 		}
 	}
 }

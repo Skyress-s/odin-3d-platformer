@@ -643,7 +643,9 @@ add_to_level :: proc(
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	collision_object_data: Collision_Object_Data,
 ) -> Collision_Object_Id {
+	fmt.println("adding to object map")
 	id:= add_to_object_map(collision_object_map, collision_object_data)
+	fmt.println("adding to spatial_hash_grid") // The freeze is happeninv here vv
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
 	
 	return id
