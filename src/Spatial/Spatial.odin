@@ -170,7 +170,7 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
 
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
 	// matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
-	matScale := rl.MatrixScale(1, 1, 1)
+	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 
 	// Create 1rotation matrix from quaternion
 	quat := quaternion128{}

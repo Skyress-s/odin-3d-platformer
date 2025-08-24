@@ -132,11 +132,17 @@ update_character_physics :: proc(
 		coll_obj := hms.get(&level.collision_object_map, collision_object_id)
 		if !cc.is_blocking(coll_obj.collision_channels) do continue
 
+		transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
+
+		point := spat.Vector4{1,1,1,1}
+		new_point := point * transform_matrix 
+
 		for &t in coll_obj.tris {
 			// TODO: also implement rotations when the time comes
 			tri := t
 			for &p in tri.points{
-				p += coll_obj.transform.position
+				p = ( transform_matrix * spat.Vector4{p.x, p.y, p.z, 1} ).xyz // heck yes it works!
+				// p += coll_obj.transform.position
 			}
 			collide_with_tri(&tri, &character_data.verlet_component.velocity, character_data, dt)
 		}

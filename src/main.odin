@@ -221,138 +221,10 @@ main :: proc() {
 			}
 
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-
-				ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
-				ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
-
-
-				found_object := hms.get(
-					&current_level.collision_object_map,
-					position_transform_tool.target_object_id,
-				)
-				if found_object != nil {
-					switch &active_tool in position_transform_tool.active_tool {
-					case e_tools.Position_Tool:
-						planes := e_tools.calculate_drag_planes(
-							found_object.transform.position,
-							cam.position,
-						)
-						plane_hit, plane_intersect_location, plane_normal :=
-							e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-						if plane_hit != e_tools.Interacted_Plane.None {
-							fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-
-							rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-
-						}
-						if plane_hit != .None {
-
-							position_transform_tool.dragging = true
-							position_transform_tool.plane.point_on_plane = plane_intersect_location
-							position_transform_tool.plane.normal = plane_normal
-							position_transform_tool.start_transform = found_object.transform
-							position_transform_tool.start_ray_plane_intersect =
-								plane_intersect_location
-
-							//continue
-						} else do position_transform_tool.target_object_id =
-							spat.Collision_Object_Id{}
-
-					case e_tools.Rotation_Tool:
-						planes := e_tools.calculate_drag_planes(
-							found_object.transform.position,
-							cam.position,
-						)
-						plane_hit, plane_intersect_location, plane_normal :=
-							e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-						if plane_hit != e_tools.Interacted_Plane.None {
-							fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-
-							// rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-
-						}
-						if plane_hit != .None {
-
-							position_transform_tool.dragging = true
-							position_transform_tool.plane.point_on_plane = plane_intersect_location
-							position_transform_tool.plane.normal = plane_normal
-							position_transform_tool.start_transform = found_object.transform
-							position_transform_tool.start_ray_plane_intersect =
-								plane_intersect_location
-
-							//continue
-						} else do position_transform_tool.target_object_id =
-							spat.Collision_Object_Id{}
-
-					case e_tools.Scale_Tool:
-						boxes := e_tools.calculate_scale_bars(found_object.transform, cam.position)
-						interacter_bar, location := e_tools.ray_scale_bars_collision(&ray, &boxes)
-						fmt.println(interacter_bar)
-
-						if interacter_bar != .None {
-
-							axis_vector := spat.axis_to_unit_vector(interacter_bar)
-							position_transform_tool.dragging = true
-							active_tool.axis = interacter_bar
-							active_tool.plane = spat.Plane {
-									point_on_plane = location,
-									normal         = linalg.cross(
-										axis_vector,
-										linalg.cross(axis_vector, cam.position - location),
-									),
-								}
-							hit_plane, hit_location := spat.ray_plane_intersect(&ray, active_tool.plane.normal, active_tool.plane.point_on_plane)
-							active_tool.first_intersect_location = hit_location 
-							// position_transform_tool.plane.point_on_plane = plane_intersect_location
-							// position_transform_tool.plane.normal = plane_normal
-							position_transform_tool.start_transform = found_object.transform
-
-							//continue
-						} else do position_transform_tool.target_object_id =
-							spat.Collision_Object_Id{}
-					}
-
-				} else {
-					ok, id, position := spat.ray_intersect_spatial_hash_grid(
-						&current_level.spatial_hash_grid,
-						&current_level.collision_object_map,
-						&ray,
-					)
-
-
-					if ok {
-						position_transform_tool.target_object_id = id
-						position_transform_tool.start_transform =
-							hms.get(&current_level.collision_object_map, id).data.transform
-
-						// hit_plane, hit_location := spat.ray_plane_intersect(
-						// 	&ray,
-						// 	{0, 1, 0},
-						// 	{0, 10, 0},
-						// )
-						//
-						// position_transform_tool.plane = spat.Plane{point_on_plane = hit_location, }
-						// position_transform_tool.start_ray_plane_intersect = hit_location
-					}
-
-				}
+				e_tools.on_click(&position_transform_tool, &cam, &current_level)
 
 			}
-
-
 			if position_transform_tool.target_object_id.idx != 0 {
-				// found_object := hms.get(&current_level.collision_object_map, position_transform_tool.target_object_id)
-				// ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam))
-				// ray.end = ray.origin + (ray.end - ray.origin) * 1000 // augh
-
-				// planes:=e_tools.calculate_drag_planes(found_object.transform.position, cam.position)
-				// plane_hit, plane_intersect_location:= e_tools.ray_transform_tool_planes_intersect(&ray, &planes)
-				// if plane_hit != e_tools.Interacted_Plane.None {
-				// 	fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
-				//
-				//
-				// }
-
 				if position_transform_tool.dragging {
 					e_tools.update_transform_tool(
 						&position_transform_tool,
@@ -363,7 +235,6 @@ main :: proc() {
 						rl.GetMousePosition(),
 					)
 				}
-
 			}
 			editor_player.update(&players.editor, dt)
 		}
@@ -512,9 +383,9 @@ render :: proc(
 					}
 				}
 
-				// e_tools.draw_scale_boxes(
-				// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-				// )
+			// e_tools.draw_scale_boxes(
+			// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+			// )
 
 			}
 
