@@ -7,11 +7,13 @@ import "../input"
 import "../player_data"
 import "core:math/linalg"
 import rl "vendor:raylib"
+import e_tools "../editor/tools"
 
 Editor_Player_Data :: distinct struct {
 	using look_data: player_data.Player_Look_Data,
 	position:        spat.Vector,
 	movement_speed: f32,
+	transform_tool: e_tools.Transform_Tool_Data
 }
 
 

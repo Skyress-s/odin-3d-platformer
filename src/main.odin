@@ -166,7 +166,9 @@ main :: proc() {
 		projection = .PERSPECTIVE,
 	}
 
-	position_transform_tool := e_tools.init_transform_tool(
+	// position_transform_tool
+	players.editor.transform_tool =
+	 e_tools.init_transform_tool(
 		e_tools.State.Position,
 		spat.Plane{spat.Vector{0, 10, 0}, spat.Vector{0, 1, 0}},
 		rl.GetMousePosition(),

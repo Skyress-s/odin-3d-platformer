@@ -424,48 +424,6 @@ all_windows :: proc(
 	char_data:= &players.game
 
 	@(static) opts := mu.Options{.NO_CLOSE}
-	center := mu.Vec2{rl.GetScreenWidth() / 2, rl.GetScreenHeight() / 2}
-
-	// Draw cross hair
-	{
-		crosshair_opts: mu.Options = {
-			mu.Opt.NO_INTERACT,
-			mu.Opt.NO_SCROLL,
-			mu.Opt.NO_CLOSE,
-			mu.Opt.NO_RESIZE,
-			mu.Opt.NO_TITLE,
-		}
-		/*
-		CROSSHAIR_LENGTH :: 15
-		CROSSHAIR_THICKNESS :: 2
-		crosshair_rect_v := mu.Rect {
-			center.x - CROSSHAIR_THICKNESS / 2,
-			center.y - CROSSHAIR_LENGTH / 2,
-			CROSSHAIR_THICKNESS,
-			CROSSHAIR_LENGTH,
-		}
-		crosshair_rect_h := mu.Rect {
-			center.x - CROSSHAIR_LENGTH / 2,
-			center.y - CROSSHAIR_THICKNESS / 2,
-			CROSSHAIR_LENGTH,
-			CROSSHAIR_THICKNESS,
-		}
-		mu.window(ctx, "crosshair", crosshair_rect_v, crosshair_opts)
-		mu.window(ctx, "crosshair", crosshair_rect_h, crosshair_opts)
-		*/
-		CROSSHAIR_DOT_SIZE :: 5
-		crosshair_rect := mu.Rect {
-			center.x - CROSSHAIR_DOT_SIZE / 2,
-			center.y - CROSSHAIR_DOT_SIZE / 2,
-			CROSSHAIR_DOT_SIZE,
-			CROSSHAIR_DOT_SIZE,
-		}
-		if (mu.window(ctx, "crosshair", crosshair_rect, crosshair_opts)) {
-			mu.get_current_container(ctx).rect = crosshair_rect
-		}
-
-	}
-
 
 	/*
 	if mu.window(
@@ -684,19 +642,6 @@ all_windows :: proc(
 */
 	// CHEATS
 
-	{
-		rect := mu.Rect{rl.GetRenderWidth() - 400, 0, 400, 400}
-		if mu.window(ctx, "Cheat Window", rect, {mu.Opt.NO_CLOSE}) {
-			mu.get_current_container(ctx).rect = rect
-
-			mu.text(ctx, "CHEATS")
-			mu.layout_row(ctx, {-1})
-			mu.checkbox(ctx, "air_jumping", &char_data.air_jumping_cheat)
-
-			mu.layout_row(ctx, {-1})
-			mu.checkbox(ctx, "draw_spatial_hash_grid_bounds", &game_state.cheat_state.draw_bounds)
-		}
-	}
 	{
 		rect := mu.Rect{0, rl.GetScreenHeight() - 200, rl.GetScreenWidth(), 200}
 		if mu.window(ctx, "Log Window", rect, opts) {
