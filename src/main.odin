@@ -1,6 +1,7 @@
 package main
 
 import character "Character"
+import mph_ui "mph_ui"
 import p "Physics"
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
@@ -273,7 +274,8 @@ main :: proc() {
 		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
 		mu.begin(&gameui.state.mu_ctx)
-		gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
+		mph_ui.all_windows(&gameui.state.mu_ctx, &players, &game_state, {rl.GetScreenWidth(), rl.GetScreenHeight()})
+		//gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 		// game ui END

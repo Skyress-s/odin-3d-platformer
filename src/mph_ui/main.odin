@@ -1,49 +1,40 @@
 package mph_ui
-import rl "vendor:raylib"
+
+import gs "../game_state"
+import plrs "../players"
 import mu "vendor:microui"
-import c "core:c"
+import character "../Character"
+import e_plr "../editor_player"
 
-state := struct{
-    mu_ctx: mu.Context,
-    log_buf: [1 << 16]byte,
-    log_buf_len: int,
-    log_buf_updated: bool,
-    bg: mu.Color,
-    atlas_texture: rl.RenderTexture2D,
 
-    screen_width: c.int,
-    screen_height: c.int,
+all_windows :: proc(
+	ctx: ^mu.Context,
+	players: ^plrs.Players,
+	game_state: ^gs.Game_State,
+	screen_dimensions: [2]i32,
+) {
+	screen_rect := mu.Rect{0, 0, screen_dimensions.x, screen_dimensions.y}
 
-    screen_texture: rl.RenderTexture2D,
-}{
-    screen_width = 1900,
-    screen_height = 1040,
-    bg = { 90, 95, 100, 0 }, // 255
+	switch players.mode{
+	case .Game:
+	case .Editor:
+		details_panel(ctx, players, game_state, screen_rect)
+	}
 }
 
-mouse_buttons_map := [mu.Mouse]rl.MouseButton{
-    .LEFT    = .LEFT,
-    .RIGHT   = .RIGHT,
-    .MIDDLE  = .MIDDLE,
-}
+details_panel :: proc(
+	ctx: ^mu.Context,
+	players: ^plrs.Players,
+	game_state: ^gs.Game_State,
+	screen_rect: mu.Rect,
+) {
+	percent :f32= 0.30
+	screen_rect := screen_rect
+	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
+	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent) 
 
-key_map := [mu.Key][2]rl.KeyboardKey{
-    .SHIFT     = { .LEFT_SHIFT, .RIGHT_SHIFT },
-    .CTRL      = { .LEFT_CONTROL, .RIGHT_CONTROL },
-    .ALT       = { .LEFT_ALT, .RIGHT_ALT },
-    .BACKSPACE = { .BACKSPACE, .KEY_NULL },
-    .DELETE    = { .DELETE, .KEY_NULL },
-    .RETURN    = { .ENTER, .KP_ENTER },
-    .LEFT      = { .LEFT, .KEY_NULL },
-    .RIGHT     = { .RIGHT, .KEY_NULL },
-    .HOME      = { .HOME, .KEY_NULL },
-    .END       = { .END, .KEY_NULL },
-    .A         = { .A, .KEY_NULL },
-    .X         = { .X, .KEY_NULL },
-    .C         = { .C, .KEY_NULL },
-    .V         = { .V, .KEY_NULL },
-}
-
-init :: proc (){
-
+	if mu.window(ctx, "details_panel", screen_rect, {}) {
+		mu.layout_row(ctx, {-1})
+		mu.button(ctx, "duplicate")
+	}
 }
