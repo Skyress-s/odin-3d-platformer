@@ -255,17 +255,20 @@ update_transform_tool :: proc(
 		if !hit do return
 		delta := location - active_tool.first_intersect_location
 
+		dirs := calculate_dirs(found_object.transform.position, cam.position)
 		axis_vector := spat.axis_to_unit_vector(active_tool.axis)
 
 		dot := linalg.dot(axis_vector, delta)
 
+		scale_scale :f32= 0.2
+
 		#partial switch active_tool.axis {
 		case .X:
-			found_object.transform.scale.x = dot - data.start_transform.scale.x
+			found_object.transform.scale.x = ( data.start_transform.scale.x - dot * scale_scale)
 		case .Y:
-			found_object.transform.scale.y = dot - data.start_transform.scale.y
+			found_object.transform.scale.y = (data.start_transform.scale.y - dot* scale_scale)
 		case .Z:
-			found_object.transform.scale.z = dot - data.start_transform.scale.z
+			found_object.transform.scale.z = (data.start_transform.scale.z -dot * scale_scale)
 		}
 
 		fmt.printfln("updates scale!: {}", found_object.transform.scale)

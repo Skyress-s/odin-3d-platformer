@@ -28,12 +28,15 @@ details_panel :: proc(
 	game_state: ^gs.Game_State,
 	screen_rect: mu.Rect,
 ) {
-	percent :f32= 0.30
+	percent :f32= 0.20
 	screen_rect := screen_rect
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent) 
 
 	if mu.window(ctx, "details_panel", screen_rect, {}) {
+		current_container := mu.get_current_container(ctx)
+		current_container.rect = screen_rect
+
 		mu.layout_row(ctx, {-1})
 		mu.button(ctx, "duplicate")
 	}
