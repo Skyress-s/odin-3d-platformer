@@ -16,7 +16,7 @@ Quaternion :: quaternion128
 ZERO_VEC3 :: Vector{0, 0, 0}
 ZERO_VEC2 :: Vector2{0, 0}
 ZERO_VEC4 :: Vector4{0, 0, 0, 0}
-ONE_VEC3 :: Vector{1,1,1}
+ONE_VEC3 :: Vector{1, 1, 1}
 
 // Transform :: rl.Transform
 Transform :: distinct struct {
@@ -25,7 +25,11 @@ Transform :: distinct struct {
 	scale:    Vector,
 }
 
-TRANSFORM_IDENTITY :: Transform{position = ZERO_VEC3, rotation = linalg.QUATERNIONF32_IDENTITY, scale = ONE_VEC3}
+TRANSFORM_IDENTITY :: Transform {
+	position = ZERO_VEC3,
+	rotation = linalg.QUATERNIONF32_IDENTITY,
+	scale    = ONE_VEC3,
+}
 
 Box :: struct {
 	size: Vector,
@@ -33,7 +37,7 @@ Box :: struct {
 
 Box_Better :: struct {
 	size, position: Vector,
-	rotation: Quaternion
+	rotation:       Quaternion,
 }
 
 
@@ -589,7 +593,10 @@ create_and_add_collision_object_from_tris_transform :: proc(
 	}
 
 	collision_object_id := add_to_object_map(collision_object_map, data)
-	runtime_data := Collision_Object_Data_Runtime{data = data, handle = collision_object_id}
+	runtime_data := Collision_Object_Data_Runtime {
+		data   = data,
+		handle = collision_object_id,
+	}
 
 	add_to_spatial_hash_grid(spatial_hash_grid, runtime_data, collision_object_id)
 
@@ -631,6 +638,17 @@ add_to_object_map :: proc(
 }
 
 
+add_to_level :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
+	collision_object_data: Collision_Object_Data,
+) -> Collision_Object_Id {
+	id:= add_to_object_map(collision_object_map, collision_object_data)
+	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
+	
+	return id
+}
+
 create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^Spatial_Hash_Grid,
@@ -645,7 +663,11 @@ create_and_add_collision_object_from_tris :: proc(
 	// Adding to handle map
 	collision_object_id := hms.add(
 		collision_object_map,
-		Collision_Object_Data_Runtime{collision_channels = collision_channel, tris = tris, transform = TRANSFORM_IDENTITY},
+		Collision_Object_Data_Runtime {
+			collision_channels = collision_channel,
+			tris = tris,
+			transform = TRANSFORM_IDENTITY,
+		},
 	)
 
 	for hash_key in potential_hash_keys {

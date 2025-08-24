@@ -1,11 +1,13 @@
 package mph_ui
 
 import character "../Character"
+import spat "../Spatial"
 import e_plr "../editor_player"
 import gs "../game_state"
 import "../game_state"
 import l "../level"
 import plrs "../players"
+import hms "../handle_map/handle_map_static/"
 import mu "vendor:microui"
 
 
@@ -38,7 +40,7 @@ cheats_panel :: proc(
 	screen_rect: mu.Rect,
 ) {
 
-	percent: f32 = 0.20
+	percent: f32 = 0.30
 	screen_rect := screen_rect
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
@@ -63,7 +65,7 @@ details_panel :: proc(
 	level: ^l.Level,
 ) {
 
-	percent: f32 = 0.20
+	percent: f32 = 0.30
 	screen_rect := screen_rect
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
@@ -74,8 +76,11 @@ details_panel :: proc(
 
 		mu.layout_row(ctx, {-1})
 		if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
-			
-			players.editor.
+			current_id := players.editor.transform_tool.target_object_id
+			found_object:= hms.get(&level.collision_object_map, current_id)
+			if found_object != nil{
+				spat.add_to_level(&level.collision_object_map, &level.spatial_hash_grid, found_object.data)
+			}
 		}
 	}
 }

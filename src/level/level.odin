@@ -1,6 +1,5 @@
 package level
 
-
 import spat "../Spatial"
 
 Level :: distinct struct {

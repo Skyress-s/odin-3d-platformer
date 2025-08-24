@@ -1,7 +1,6 @@
 package main
 
 import character "Character"
-import mph_ui "mph_ui"
 import p "Physics"
 import cc "Physics/collision_channel"
 import verlet "Physics/verlet"
@@ -20,6 +19,7 @@ import gs "game_state"
 import hms "handle_map/handle_map_static"
 import l "level"
 import gameui "micro-ui"
+import mph_ui "mph_ui"
 import "player_data"
 import rlb "raylib_bridge"
 
@@ -167,18 +167,37 @@ main :: proc() {
 	}
 
 	// position_transform_tool
-	players.editor.transform_tool =
-	 e_tools.init_transform_tool(
+	players.editor.transform_tool = e_tools.init_transform_tool(
 		e_tools.State.Position,
 		spat.Plane{spat.Vector{0, 10, 0}, spat.Vector{0, 1, 0}},
 		rl.GetMousePosition(),
 		&cam,
 	)
 
+	position_transform_tool := &players.editor.transform_tool
+
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
 
+		if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
+			   (rl.GetScreenHeight() != gameui.state.screen_height)) {
+			gameui.resize_ui()
+		}
+
+		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
+
+		mu.begin(&gameui.state.mu_ctx)
+		mph_ui.all_windows(
+			&gameui.state.mu_ctx,
+			&players,
+			&game_state,
+			{rl.GetScreenWidth(), rl.GetScreenHeight()},
+			&current_level,
+		)
+		//gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
+		mu.end(&gameui.state.mu_ctx)
+		gameui.render(&gameui.state.mu_ctx)
 
 		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
 		   position_transform_tool.target_object_id.idx != 0 { 	// TODO: Is there a null id?
@@ -224,13 +243,13 @@ main :: proc() {
 			}
 
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-				e_tools.on_click(&position_transform_tool, &cam, &current_level)
+				e_tools.on_click(position_transform_tool, &cam, &current_level)
 
 			}
 			if position_transform_tool.target_object_id.idx != 0 {
 				if position_transform_tool.dragging {
 					e_tools.update_transform_tool(
-						&position_transform_tool,
+						position_transform_tool,
 						&cam,
 						rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
 						rl.IsMouseButtonDown(rl.MouseButton.LEFT),
@@ -268,18 +287,6 @@ main :: proc() {
 		// )
 
 		// game ui START TODO: If we get some rendering issues, this might be causing some of them?
-		if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
-			   (rl.GetScreenHeight() != gameui.state.screen_height)) {
-			gameui.resize_ui()
-		}
-
-		gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
-
-		mu.begin(&gameui.state.mu_ctx)
-		mph_ui.all_windows(&gameui.state.mu_ctx, &players, &game_state, {rl.GetScreenWidth(), rl.GetScreenHeight()})
-		//gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
-		mu.end(&gameui.state.mu_ctx)
-		gameui.render(&gameui.state.mu_ctx)
 		// game ui END
 
 		// Update Camera
@@ -296,15 +303,7 @@ main :: proc() {
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
-		render(
-			&current_level,
-			&players,
-			&cam,
-			&active_cell,
-			active_hash_key,
-			&position_transform_tool,
-			&game_state,
-		)
+		render(&current_level, &players, &cam, &active_cell, active_hash_key, &game_state)
 
 	}
 }
@@ -315,13 +314,14 @@ render :: proc(
 	cam: ^rl.Camera3D,
 	active_cell: ^spat.Hash_Cell,
 	active_cell_hash: spat.Hash_Key,
-	tool: ^e_tools.Transform_Tool_Data,
 	game_state: ^gs.Game_State,
 ) {
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
+
+	tool := &players.editor.transform_tool
 
 	switch players.mode {
 	case _players.Player_Mode.Game:
