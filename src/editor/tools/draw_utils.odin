@@ -283,7 +283,7 @@ ray_scale_bars_collision :: proc(
 	ray: ^spat.Ray,
 	scale_bars: ^[3]spat.Box_Better,
 ) -> (
-	interacter_bar: Interacted_Bar,
+	interacter_bar: spat.Axis,
 	hit_location: spat.Vector,
 ) {
 
@@ -315,20 +315,20 @@ ray_scale_bars_collision :: proc(
 	}
 	hit, location := ray_intersect_6(ray, &tris.x)
 	if hit {
-		return Interacted_Bar.X, location, 
+		return spat.Axis.X, location, 
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.y)
 	if hit {
-		return Interacted_Bar.Y, location, 
+		return spat.Axis.Y, location, 
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.z)
 	if hit {
-		return Interacted_Bar.Z, location, 
+		return spat.Axis.Z, location, 
 	}
 
-	return Interacted_Bar.None, spat.ZERO_VEC3
+	return spat.Axis.None, spat.ZERO_VEC3
 }
 
 

@@ -291,12 +291,21 @@ main :: proc() {
 
 						if interacter_bar != .None {
 
+							axis_vector := spat.axis_to_unit_vector(interacter_bar)
 							position_transform_tool.dragging = true
-							active_tool.scale_direction = e_tools.interacted_bar_to_axis_vector(interacter_bar)
+							active_tool.axis = interacter_bar
+							active_tool.plane = spat.Plane {
+									point_on_plane = location,
+									normal         = linalg.cross(
+										axis_vector,
+										linalg.cross(axis_vector, cam.position - location),
+									),
+								}
+							hit_plane, hit_location := spat.ray_plane_intersect(&ray, active_tool.plane.normal, active_tool.plane.point_on_plane)
+							active_tool.first_intersect_location = hit_location 
 							// position_transform_tool.plane.point_on_plane = plane_intersect_location
 							// position_transform_tool.plane.normal = plane_normal
 							position_transform_tool.start_transform = found_object.transform
-							// position_transform_tool.start_ray_plane_intersect =
 
 							//continue
 						} else do position_transform_tool.target_object_id =
@@ -480,7 +489,6 @@ render :: proc(
 					),
 				)
 			case e_tools.Scale_Tool:
-
 				scale_bars := e_tools.calculate_scale_bars(
 					found_object.transform,
 					players.editor.position,
@@ -489,7 +497,7 @@ render :: proc(
 				tris := e_tools.scale_bars_to_tris(&scale_bars)
 
 				for &scale_bars_triangles, i in tris {
-					color :rl.Color =rl.MAGENTA
+					color: rl.Color = rl.MAGENTA
 					switch i {
 					case 0:
 						color = rl.RED

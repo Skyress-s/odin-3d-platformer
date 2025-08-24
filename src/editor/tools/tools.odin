@@ -19,7 +19,9 @@ Rotation_Tool :: distinct struct {
 }
 
 Scale_Tool :: distinct struct {
-	scale, scale_direction: spat.Vector,
+	scale, first_intersect_location : spat.Vector,
+	axis: spat.Axis,
+	plane: spat.Plane,
 }
 
 
