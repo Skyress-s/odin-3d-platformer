@@ -125,8 +125,7 @@ main :: proc() {
 	current_level: l.Level
 	current_level.name = "test_level"
 
-
-	add_debug_level_objects(&current_level.collision_object_map, &current_level.spatial_hash_grid)
+	add_debug_level_objects(&current_level, &current_level.collision_object_map, &current_level.spatial_hash_grid)
 
 	current_level.start_position = {0, 0, 0}
 	current_level.start_look_direction = {1, 0, 1}
@@ -139,6 +138,7 @@ main :: proc() {
 	// current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
 	// Set look angles
+	// TODO: Make this shit into a function. P.S.Dima was here
 	players.game.look_angles.x = -math.asin(current_level.start_look_direction.y)
 	players.game.look_angles.y = linalg.vector_angle_between(
 		spat.Vector{0, 0, 1},
@@ -259,6 +259,12 @@ main :: proc() {
 				}
 			}
 			editor_player.update(&players.editor, dt)
+		}
+
+		overlapping_finish_volume := spat.does_location_overlap_finish_volume(&current_level.finish_volumes, &current_level.collision_object_map, &players.game.verlet_component.position)
+		if overlapping_finish_volume != spat.INVALID_OBJECT_ID
+		{
+			game_state.finished_level = true
 		}
 
 		// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly
@@ -457,6 +463,15 @@ render :: proc(
 	}
 
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
+	
+	for volume_id in level.finish_volumes{
+		drawn_collision_objects_ids[volume_id] = true
+		
+		volume_obj := hms.get(&level.collision_object_map, volume_id)
+		assert(volume_obj != nil)
+		draw_collision_object(volume_obj, rl.YELLOW, rl.GRAY)
+	}
+
 
 	for cell_key in active_cell {
 		for &collision_object_id in level.spatial_hash_grid[cell_key].objects_ids {
@@ -539,6 +554,7 @@ get_default_start_location_look_direction :: proc() -> (location, look_direction
 }
 
 add_debug_level_objects :: proc(
+	level: ^l.Level,
 	collision_objects: ^spat.Collision_Object_Handle_Map,
 	spaital_hash_grid: ^map[spat.Hash_Key]spat.Hash_Cell,
 ) {
@@ -628,4 +644,14 @@ add_debug_level_objects :: proc(
 		tris,
 		true,
 	)
+
+	// Add finish volume
+	finish_object_shape := spat.Collision_Shape{spat.Transform{spat.Vector{0, -10, 0}, spat.QUATERNION_IDENTITY, spat.ONE_VEC3}, spat.Box{{4,4,4}}}
+	bounds := spat.get_bounds(finish_object_shape)
+	collision_object_data := spat.shape_to_collision_object(&finish_object_shape)
+	collision_object_data.collision_channels = cc.get_non_blocking()
+
+	id := spat.add_to_object_map(collision_objects, collision_object_data)
+	spat.add_to_spatial_hash_grid(spaital_hash_grid, collision_object_data, id)
+	spat.add_to_finish_volumes(&level.finish_volumes, id)
 }

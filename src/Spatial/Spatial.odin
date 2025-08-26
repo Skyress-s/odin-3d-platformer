@@ -33,6 +33,8 @@ TRANSFORM_IDENTITY :: Transform {
 	scale    = ONE_VEC3,
 }
 
+INVALID_OBJECT_ID :: Collision_Object_Id{}
+
 Box :: struct {
 	size: Vector,
 }
@@ -77,7 +79,6 @@ Collision_Object_Id :: distinct hms.Handle
 
 Collision_Object_Data :: distinct struct {
 	collision_channels: u16,
-	position:           Vector,
 	transform:          Transform,
 	tris:               [dynamic]Collision_Triangle,
 }
@@ -407,6 +408,14 @@ is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Tri
 	return false
 }
 
+transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: ^Transform) {
+	mat := get_matrix_from_transform(transform^)
+	for &tri in tris {
+		/*#unroll*/for &p in tri.points { 	// todo how to unroll
+			p = (mat * rl.Vector4{p.x, p.y, p.z, 1}).xyz
+		}
+	}
+}
 
 calculate_bounds_from_tris_transform :: proc(
 	tris: [dynamic]Collision_Triangle,
@@ -571,7 +580,7 @@ add_shape_to_hash_map :: proc(
 
 	collision_object_data := shape_to_collision_object(shape)
 
-	id:= add_to_object_map(collision_object_map, collision_object_data)
+	id := add_to_object_map(collision_object_map, collision_object_data)
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
 }
 create_and_add_collision_object_from_tris_transform :: proc(
@@ -636,15 +645,39 @@ add_to_object_map :: proc(
 	)
 }
 
+add_to_finish_volumes :: proc(
+	finish_volumes: ^map[Collision_Object_Id]bool,
+	id: Collision_Object_Id,
+) {
+	finish_volumes[id] = true
+}
+
+// TODO: maybe only iteratie thorugh volumes in the active cells
+does_location_overlap_finish_volume :: proc(
+	finish_volumes: ^map[Collision_Object_Id]bool,
+	collision_object_map: ^Collision_Object_Handle_Map,
+	location: ^Vector,
+) -> Collision_Object_Id {
+	for finish_volume_object_id in finish_volumes {
+		found_object := hms.get(collision_object_map, finish_volume_object_id)
+		assert(found_object != nil)
+
+		if is_inside_object(found_object, location) {
+			return finish_volume_object_id
+		}
+	}
+
+	return INVALID_OBJECT_ID
+}
 
 add_to_level :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	collision_object_data: Collision_Object_Data,
 ) -> Collision_Object_Id {
-	id:= add_to_object_map(collision_object_map, collision_object_data)
+	id := add_to_object_map(collision_object_map, collision_object_data)
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
-	
+
 	return id
 }
 
@@ -680,7 +713,11 @@ create_and_add_collision_object_from_tris :: proc(
 		append_elem(&cell.objects_ids, collision_object_id)
 	}
 }
-shape_to_collision_object :: proc(shape: ^Collision_Shape) -> (collision_object_data: Collision_Object_Data) {
+shape_to_collision_object :: proc(
+	shape: ^Collision_Shape,
+) -> (
+	collision_object_data: Collision_Object_Data,
+) {
 	tris: [dynamic]Collision_Triangle
 	switch &s in shape.shape {
 	case Box:
@@ -709,8 +746,8 @@ is_inside_object :: proc(
 	ray: Ray = make_ray_with_origin_direction_distance(location^, Vector{0, 1, 0}, longest_size)
 	hits := ray_trace_object_multi(&ray, collision_object)
 
-	fmt.printfln("num tris {}", len(collision_object.tris))
-	fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)
+	// fmt.printfln("num tris {}", len(collision_object.tris))
+	// fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)
 	return (len(hits) % 2) == 1
 }
 
@@ -738,7 +775,14 @@ ray_trace_object_multi :: proc(
 ) -> (
 	hits: [dynamic]Vector,
 ) {
-	for &tri in collision_object.tris {
+	mat := get_matrix_from_transform(collision_object.transform)
+	for tri in collision_object.tris {
+		tri:= tri
+
+		tri.points.x = (mat * rl.Vector4{tri.points.x.x, tri.points.x.y, tri.points.x.z, 1}).xyz
+		tri.points.y = (mat * rl.Vector4{tri.points.y.x, tri.points.y.y, tri.points.y.z, 1}).xyz
+		tri.points.z = (mat * rl.Vector4{tri.points.z.x, tri.points.z.y, tri.points.z.z, 1}).xyz
+		// TODO: Transform the tri
 		if ok, location := ray_triangle_intersect(ray, &tri); ok == true {
 			// make sure collision is in front of ray.
 			if linalg.dot((location - ray.origin), ray_direction(ray^)) > 0 {
@@ -795,11 +839,11 @@ ray_triangle_intersect :: proc(
 	B_to_point := p - tri.points.y
 	C_to_point := p - tri.points.z
 
+	// Barycentic coordinates
 
 	t1 := linalg.vector_cross3(A_to_point, ac)
 	t2 := linalg.vector_cross3(B_to_point, -ab)
 	t3 := linalg.vector_cross3(C_to_point, cb)
-
 
 	hit :=
 		linalg.vector_dot(tri_normal, t1) > 0 &&

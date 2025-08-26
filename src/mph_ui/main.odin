@@ -31,6 +31,12 @@ all_windows :: proc(
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
 
+		if game_state.finished_level {
+			if mu.window(ctx, "FINISHED LEVEL", screen_rect){
+
+			}
+		}
+
 	case .Editor:
 		details_panel(ctx, players, game_state, screen_rect, level)
 	}

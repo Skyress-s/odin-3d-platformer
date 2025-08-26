@@ -8,6 +8,12 @@ set_is_not_blocking :: proc(collision_channel: CHANNEL_SIZE) -> CHANNEL_SIZE {
 	inverted: CHANNEL_SIZE = ~mask
 	return collision_channel & (inverted)
 }
+
+get_non_blocking :: proc() ->CHANNEL_SIZE
+{
+	return 0b0
+}
+
 set_is_blocking :: proc(collision_channel: CHANNEL_SIZE) -> CHANNEL_SIZE {
 	return collision_channel | 0b1
 }
