@@ -8,4 +8,6 @@ Level :: distinct struct {
 	spatial_hash_grid:    spat.Spatial_Hash_Grid,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
+	// boost_objects: map[spat.Collision_Object_Id]
+	
 }

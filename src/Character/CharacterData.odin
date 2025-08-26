@@ -98,7 +98,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, dt: f
 		}
 
 	}
-	// Update character specific stuff
+
 	{
 		ray := spat.make_ray_with_origin_direction_distance(
 			character_data.verlet_component.position,
@@ -124,29 +124,39 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, dt: f
 update_character_physics :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
-	active_cell_objects_ids: ^[dynamic]spat.Collision_Object_Id,
+	player_hash_cells: ^map[spat.Hash_Key]bool,
 	dt: f32,
 ) {
-	for &collision_object_id in active_cell_objects_ids {
+	for hash_key in player_hash_cells {
+		object_ids:= level.spatial_hash_grid[hash_key]
+		for &collision_object_id in object_ids.objects_ids {
 
-		coll_obj := hms.get(&level.collision_object_map, collision_object_id)
-		if !cc.is_blocking(coll_obj.collision_channels) do continue
+			coll_obj := hms.get(&level.collision_object_map, collision_object_id)
+			if !cc.is_blocking(coll_obj.collision_channels) do continue
 
-		transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
+			transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
 
-		point := spat.Vector4{1,1,1,1}
-		new_point := point * transform_matrix 
 
-		for &t in coll_obj.tris {
-			// TODO: also implement rotations when the time comes
-			tri := t
-			for &p in tri.points{
-				p = ( transform_matrix * spat.Vector4{p.x, p.y, p.z, 1} ).xyz // heck yes it works!
-				// p += coll_obj.transform.position
+
+			point := spat.Vector4{1, 1, 1, 1}
+			new_point := point * transform_matrix
+
+			for &t in coll_obj.tris {
+				// TODO: also implement rotations when the time comes
+				tri := t
+				for &p in tri.points {
+					p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
+					// p += coll_obj.transform.position
+				}
+				collide_with_tri(
+					&tri,
+					&character_data.verlet_component.velocity,
+					character_data,
+					dt,
+				)
 			}
-			collide_with_tri(&tri, &character_data.verlet_component.velocity, character_data, dt)
-		}
 
+		}
 	}
 
 	// Jumping
@@ -158,7 +168,8 @@ update_character_physics :: proc(
 	}
 
 	// Grappling Hook
-	if character_data.is_hooked && linalg.length(character_data.verlet_component.velocity) > 0.001 {
+	if character_data.is_hooked &&
+	   linalg.length(character_data.verlet_component.velocity) > 0.001 {
 		to_hook := (character_data.hooked_position - character_data.verlet_component.position)
 		direction_to_hook := linalg.vector_normalize(to_hook)
 		distance := linalg.distance(

@@ -261,6 +261,13 @@ main :: proc() {
 			editor_player.update(&players.editor, dt)
 		}
 
+		// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly
+		player_bounds := spat.Bound {
+			players.game.verlet_component.position - spat.ONE_VEC3 * players.game.radius,
+			players.game.verlet_component.position + spat.ONE_VEC3 * players.game.radius,
+		}
+		player_overlapping_cells := spat.calculate_overlapping_cells2(player_bounds)
+
 		active_hash_key := spat.Hash_Location(players.game.verlet_component.position)
 		active_cell := current_level.spatial_hash_grid[active_hash_key]
 
@@ -274,7 +281,7 @@ main :: proc() {
 			character.update_character_physics(
 				&players.game,
 				&current_level,
-				active_cell_objects_ids,
+				&player_overlapping_cells,
 				dt,
 			)
 			verlet.velocity_verlet_frog(&players.game.verlet_component, dt)
@@ -303,7 +310,14 @@ main :: proc() {
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
-		render(&current_level, &players, &cam, &active_cell, active_hash_key, &game_state)
+		render(
+			&current_level,
+			&players,
+			&cam,
+			&player_overlapping_cells,
+			active_hash_key,
+			&game_state,
+		)
 
 	}
 }
@@ -312,7 +326,7 @@ render :: proc(
 	level: ^l.Level,
 	players: ^_players.Players,
 	cam: ^rl.Camera3D,
-	active_cell: ^spat.Hash_Cell,
+	active_cell: ^map[spat.Hash_Key]bool,
 	active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
 ) {
@@ -444,16 +458,17 @@ render :: proc(
 
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
 
-
-	for &collision_object_id in active_cell.objects_ids {
-		has_been_drawn := collision_object_id in drawn_collision_objects_ids
-		if (!has_been_drawn) {
-			obj: ^spat.Collision_Object_Data = hms.get(
-				&level.collision_object_map,
-				collision_object_id,
-			)
-			draw_collision_object(obj, rl.GREEN, rl.GRAY)
-			drawn_collision_objects_ids[collision_object_id] = true
+	for cell_key in active_cell {
+		for &collision_object_id in level.spatial_hash_grid[cell_key].objects_ids {
+			has_been_drawn := collision_object_id in drawn_collision_objects_ids
+			if (!has_been_drawn) {
+				obj: ^spat.Collision_Object_Data = hms.get(
+					&level.collision_object_map,
+					collision_object_id,
+				)
+				draw_collision_object(obj, rl.GREEN, rl.GRAY)
+				drawn_collision_objects_ids[collision_object_id] = true
+			}
 		}
 	}
 
@@ -540,26 +555,32 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape{{{9, 17, 9}, {}, {1, 1, 1}}, spat.Box{{1.0, 1.0, 1.0}}},
+		&spat.Collision_Shape {
+			{{9, 17, 9}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
+			spat.Box{{1.0, 1.0, 1.0}},
+		},
 	)
 
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape{{{0, -20, 0}, {}, {1, 1, 1}}, spat.Box{{150.0, 10.0, 150}}},
+		&spat.Collision_Shape {
+			{{0, -20, 0}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
+			spat.Box{{150.0, 10.0, 150}},
+		},
 	)
 
-	spat.add_shape_to_hash_map(
-		collision_objects,
-		spaital_hash_grid,
-		&spat.Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, spat.Sphere{5.0}},
-	)
-
-	spat.add_shape_to_hash_map(
-		collision_objects,
-		spaital_hash_grid,
-		&spat.Collision_Shape{{{-32, 0, 0}, q, {1, 1, 1}}, spat.Cylinder{9.0, 3.0}},
-	)
+	// spat.add_shape_to_hash_map(
+	// 	collision_objects,
+	// 	spaital_hash_grid,
+	// 	&spat.Collision_Shape{{{17, 6, 9}, {}, {1, 1, 1}}, spat.Sphere{5.0}},
+	// )
+	//
+	// spat.add_shape_to_hash_map(
+	// 	collision_objects,
+	// 	spaital_hash_grid,
+	// 	&spat.Collision_Shape{{{-32, 0, 0}, q, {1, 1, 1}}, spat.Cylinder{9.0, 3.0}},
+	// )
 
 	q2 := linalg.quaternion_from_forward_and_up_f32({1, 1, 1}, {1, -1, 1})
 	//box3 := Collision_Shape{i, {{-32, 0, 0}, q, {2, 2, 2}}, Box{{9.0, 9.0, 9.0}}}
@@ -574,7 +595,7 @@ add_debug_level_objects :: proc(
 			collision_objects,
 			spaital_hash_grid,
 			&spat.Collision_Shape {
-				{{cast(f32)(box_num * 90 + 100), 0, 0}, {}, {1, 1, 1}},
+				{{cast(f32)(box_num * 90 + 100), 0, 0}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
 				spat.Box{{3, 3, 40}},
 			},
 		)

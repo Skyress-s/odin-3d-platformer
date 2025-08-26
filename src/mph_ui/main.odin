@@ -11,7 +11,7 @@ import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
 import mu "vendor:microui"
-
+import "core:time"
 
 all_windows :: proc(
 	ctx: ^mu.Context,
@@ -20,8 +20,10 @@ all_windows :: proc(
 	screen_dimensions: [2]i32,
 	level: ^l.Level,
 ) {
-	screen_rect := mu.Rect{0, 0, screen_dimensions.x, screen_dimensions.y}
+	// 	timer := time.Stopwatch{}
+	// time.stopwatch_start(&timer)
 
+	screen_rect := mu.Rect{0, 0, screen_dimensions.x, screen_dimensions.y}
 
 	draw_reticle(ctx, screen_dimensions)
 
@@ -32,6 +34,8 @@ all_windows :: proc(
 	case .Editor:
 		details_panel(ctx, players, game_state, screen_rect, level)
 	}
+	// time.stopwatch_stop(&timer)
+	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 }
 
 cheats_panel :: proc(

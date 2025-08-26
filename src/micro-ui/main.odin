@@ -1,5 +1,6 @@
 package gameui
 
+import "core:time"
 import gs "../game_state"
 import "core:c"
 import "core:fmt"
@@ -217,6 +218,10 @@ handle_input_micro_ui :: proc(ctx: ^mu.Context) {
 render :: proc(
 	 /*"contextless"*/ctx: ^mu.Context,
 ) {
+
+	// timer := time.Stopwatch{}
+	// time.stopwatch_start(&timer)
+	
 	render_texture :: proc "contextless" (
 		renderer: rl.RenderTexture2D,
 		dst: ^rl.Rectangle,
@@ -309,6 +314,8 @@ render :: proc(
 	}
 	rl.EndTextureMode()
 
+	// time.stopwatch_stop(&timer)
+	// fmt.printfln("drawing ui took := {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 }
 
 // Should be called after BeginDrawing() and before rl.EndDrawing()

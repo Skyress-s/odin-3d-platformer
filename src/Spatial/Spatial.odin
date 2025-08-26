@@ -25,9 +25,11 @@ Transform :: distinct struct {
 	scale:    Vector,
 }
 
+QUATERNION_IDENTITY :: linalg.QUATERNIONF32_IDENTITY
+
 TRANSFORM_IDENTITY :: Transform {
 	position = ZERO_VEC3,
-	rotation = linalg.QUATERNIONF32_IDENTITY,
+	rotation = QUATERNION_IDENTITY,
 	scale    = ONE_VEC3,
 }
 
@@ -263,21 +265,20 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_T
 		Vector{-x, y, -z}, // 7
 	}
 
-	mat := get_matrix_from_transform(shape.transform)
+	// mat := get_matrix_from_transform(shape.transform)
 
 	transformed_points: [8]Vector = {}
 
-	for p, i in points {
-		transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
-		pp: Vector = transformed_p.xyz
-		transformed_points[i] = pp
-	}
+	// for p, i in points {
+	// 	transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
+	// 	pp: Vector = transformed_p.xyz
+	// 	transformed_points[i] = pp
+	// }
 
 	tris: [dynamic]Collision_Triangle = {}
 
-	// todo man this is funky, there must be a better way
-
-	ps := &transformed_points
+	// ps := &transformed_points
+	ps := points
 
 	// Top
 	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
@@ -412,8 +413,6 @@ calculate_bounds_from_tris_transform :: proc(
 	transform: Transform,
 ) -> Bound {
 	// TODO REMOVE
-	transform := transform
-	transform.rotation = linalg.QUATERNIONF32_IDENTITY
 
 	bound: Bound = {}
 
@@ -570,15 +569,10 @@ add_shape_to_hash_map :: proc(
 ) {
 	bounds := get_bounds(shape^)
 
-	tris := shape_get_collision_tris(shape)
+	collision_object_data := shape_to_collision_object(shape)
 
-	create_and_add_collision_object_from_tris(
-		collision_object_map,
-		spatial_hash_grid,
-		tris,
-		blocking_geo,
-	)
-
+	id:= add_to_object_map(collision_object_map, collision_object_data)
+	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
 }
 create_and_add_collision_object_from_tris_transform :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
@@ -686,15 +680,21 @@ create_and_add_collision_object_from_tris :: proc(
 		append_elem(&cell.objects_ids, collision_object_id)
 	}
 }
-shape_get_collision_tris :: proc(shape: ^Collision_Shape) -> [dynamic](Collision_Triangle) {
+shape_to_collision_object :: proc(shape: ^Collision_Shape) -> (collision_object_data: Collision_Object_Data) {
+	tris: [dynamic]Collision_Triangle
 	switch &s in shape.shape {
 	case Box:
-		return box_get_tris(&s, shape)
+		collision_object_data.tris = box_get_tris(&s, shape)
 	case Sphere:
+		panic("Not implemented shape_get_collision_tris for Sphere")
 	case Cylinder:
+		panic("Not implemented shape_get_collision_tris for Cylinder")
 	}
 
-	return {}
+	collision_object_data.transform = shape.transform
+	collision_object_data.collision_channels = cc.set_is_blocking(1)
+
+	return collision_object_data
 
 }
 
@@ -703,7 +703,6 @@ is_inside_object :: proc(
 	location: ^Vector,
 ) -> bool {
 	// If we shoot a ray straight up, that is longer than the longest size of the Bounds. If we hit a odd number of tris, we are inside it.
-
 
 	bounds: Bound = calculate_bounds_from_tris(collision_object.tris)
 	longest_size := linalg.length(bounds.max - bounds.min)
