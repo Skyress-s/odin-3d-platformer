@@ -60,11 +60,16 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	for &i in level.collision_object_map.items {
 		if hms.skip(i) do continue
 
+		rot := i.transform.rotation
+
 		serializable_transform := Serializable_Transform {
 			position = i.transform.position,
-			rotation = transmute([4]f32)i.transform.rotation,
+			// rotation = transmute([4]f32)i.transform.rotation,
+			rotation = {real(rot), imag(rot), jmag(rot), kmag(rot)},
 			scale    = i.transform.scale,
 		}
+		fmt.println("rot to save: ", serializable_transform.rotation)
+
 		append_elem(
 			&level_serialization_data.objects,
 			Serializable_Collision_Object_Data {
@@ -106,7 +111,8 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	for &obj in loaded_serialized_level_data.objects {
 		fmt.println("loading new object")
 		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
-		new_loaded_rotation: spat.Quaternion = quaternion(real = 5, imag = 6, jmag = 7, kmag = 8)
+		loaded_rot:=obj.transform.rotation
+		new_loaded_rotation: spat.Quaternion = quaternion(real = loaded_rot.x, imag = loaded_rot.y, jmag = loaded_rot.z, kmag = loaded_rot.w)
 		new_loaded_transform := spat.Transform {
 			position = obj.transform.position,
 			rotation = new_loaded_rotation,
@@ -118,7 +124,7 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 			tris               = obj.tris,
 		}
 
-	
+
 		fmt.println("adding to new level")
 		spat.add_to_level(
 			&loaded_level.collision_object_map,

@@ -177,14 +177,14 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 
 	// Create 1rotation matrix from quaternion
-	quat := quaternion128{}
-	quat.x = trans.rotation.x
-	quat.y = trans.rotation.y
-	quat.z = trans.rotation.z
-	quat.w = trans.rotation.w
+	// quat := quaternion128{}
+	// quat.x = trans.rotation.x
+	// quat.y = trans.rotation.y
+	// quat.z = trans.rotation.z
+	// quat.w = trans.rotation.w
 
 
-	matRotation := rl.QuaternionToMatrix(quat)
+	matRotation := rl.QuaternionToMatrix(trans.rotation)
 	// matRotation := rl.QuaternionToMatrix(linalg.QUATERNIONF32_IDENTITY)
 
 	// Create translation matrix
@@ -411,6 +411,9 @@ calculate_bounds_from_tris_transform :: proc(
 	tris: [dynamic]Collision_Triangle,
 	transform: Transform,
 ) -> Bound {
+	// TODO REMOVE
+	transform := transform
+	transform.rotation = linalg.QUATERNIONF32_IDENTITY
 
 	bound: Bound = {}
 
@@ -421,6 +424,7 @@ calculate_bounds_from_tris_transform :: proc(
 	for &tri in tris {
 		/*#unroll*/for p in tri.points { 	// todo how to unroll
 			p2 := mat * rl.Vector4{p.x, p.y, p.z, 1}
+			// p2 :=  rl.Vector4{p.x, p.y, p.z, 1} * mat
 			if p2.x > bound.max.x do bound.max.x = p2.x
 			if p2.x < bound.min.x do bound.min.x = p2.x
 
@@ -608,6 +612,7 @@ add_to_spatial_hash_grid :: proc(
 	data: Collision_Object_Data,
 	id: Collision_Object_Id,
 ) {
+
 	bounds := calculate_bounds_from_tris_transform(data.tris, data.transform) // todo defaults to  ref right hehe??
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
 	for hash_key in potential_hash_keys {
@@ -643,9 +648,7 @@ add_to_level :: proc(
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	collision_object_data: Collision_Object_Data,
 ) -> Collision_Object_Id {
-	fmt.println("adding to object map")
 	id:= add_to_object_map(collision_object_map, collision_object_data)
-	fmt.println("adding to spatial_hash_grid") // The freeze is happeninv here vv
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
 	
 	return id
