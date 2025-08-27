@@ -1,6 +1,4 @@
 package Character
-import "core:fmt"
-
 import cc "../Physics/collision_channel"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
@@ -8,9 +6,12 @@ import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
 import "../player_data"
+import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import "core:time"
 import rl "vendor:raylib"
+import "../game_state"
 
 
 Grounded :: struct {
@@ -26,6 +27,8 @@ State :: union #no_nil {
 	Airborne,
 }
 
+Speedrun_Stopwatches_Type :: time.Stopwatch
+
 CharacternData :: struct {
 	// using motion:           MotionComponent.MotionComponent,
 	current_state:          State,
@@ -39,13 +42,28 @@ CharacternData :: struct {
 
 	// Cheats
 	air_jumping_cheat:      bool,
+
+	// If we pause the game and resume, we want to exclude that period of time -> why its an array of timers
+	speedrun_StopWatch:     time.Stopwatch,
 }
 
+start_speedrun :: proc(game_player: ^CharacternData) {
+	time.stopwatch_start(&game_player.speedrun_StopWatch)
+}
+
+
+pause_speedrun :: proc(game_player: ^CharacternData) {
+	time.stopwatch_stop(&game_player.speedrun_StopWatch)
+}
+
+reset_speedrun :: proc(game_player: ^CharacternData) {
+	time.stopwatch_reset(&game_player.speedrun_StopWatch)
+}
 
 @(private)
 cursor_enabled: bool = false
 
-update_character :: proc(character_data: ^CharacternData, level: ^l.Level, dt: f32) {
+update_character :: proc(character_data: ^CharacternData, level: ^l.Level, gamestate: ^game_state.Game_State, dt: f32) {
 	if rl.IsCursorHidden() {
 		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	}
@@ -54,6 +72,10 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, dt: f
 	if rl.IsKeyPressed(.R) {
 		character_data.verlet_component.position = {1, 5, 1}
 		character_data.verlet_component.velocity = {}
+		reset_speedrun(character_data)
+		start_speedrun(character_data)
+		gamestate.finished_level = false;
+		
 	}
 
 	if rl.IsKeyPressed(.TAB) {
@@ -128,14 +150,13 @@ update_character_physics :: proc(
 	dt: f32,
 ) {
 	for hash_key in player_hash_cells {
-		object_ids:= level.spatial_hash_grid[hash_key]
+		object_ids := level.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
 
 			coll_obj := hms.get(&level.collision_object_map, collision_object_id)
 			if !cc.is_blocking(coll_obj.collision_channels) do continue
 
 			transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
-
 
 
 			point := spat.Vector4{1, 1, 1, 1}

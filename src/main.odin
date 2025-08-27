@@ -173,9 +173,10 @@ main :: proc() {
 		rl.GetMousePosition(),
 		&cam,
 	)
-
+	
 	position_transform_tool := &players.editor.transform_tool
 
+	character.start_speedrun(&players.game)
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
@@ -232,7 +233,7 @@ main :: proc() {
 
 		switch players.mode {
 		case _players.Player_Mode.Game:
-			character.update_character(&players.game, &current_level, dt)
+			character.update_character(&players.game, &current_level, &game_state, dt)
 		case _players.Player_Mode.Editor:
 			if rl.IsKeyPressed(.ONE) {
 				position_transform_tool.active_tool = e_tools.Position_Tool{}
@@ -265,6 +266,7 @@ main :: proc() {
 		if overlapping_finish_volume != spat.INVALID_OBJECT_ID
 		{
 			game_state.finished_level = true
+			character.pause_speedrun(&players.game)
 		}
 
 		// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly

@@ -40,6 +40,9 @@ Level_Serialization_Data :: struct {
 	objects:              [dynamic]Serializable_Collision_Object_Data,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
+	finish_volumes_ids:[dynamic]spat.Collision_Object_Id
+
+
 	//objects: [dynamic]int,
 }
 
@@ -52,6 +55,9 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 		start_look_direction = level.start_look_direction,
 	}
 
+	for id in level.finish_volumes{
+		append_elem(&level_serialization_data.finish_volumes_ids, id)
+	}
 	/*
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
@@ -107,6 +113,10 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.name = loaded_serialized_level_data.name
 	loaded_level.start_position = loaded_serialized_level_data.start_position
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
+
+	for &id in loaded_serialized_level_data.finish_volumes_ids{
+		loaded_level.finish_volumes[id] = true
+	}
 
 	for &obj in loaded_serialized_level_data.objects {
 		fmt.println("loading new object")

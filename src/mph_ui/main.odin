@@ -10,8 +10,8 @@ import l "../level"
 import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
-import mu "vendor:microui"
 import "core:time"
+import mu "vendor:microui"
 
 all_windows :: proc(
 	ctx: ^mu.Context,
@@ -30,18 +30,48 @@ all_windows :: proc(
 	switch players.mode {
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
+		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
 
 		if game_state.finished_level {
-			if mu.window(ctx, "FINISHED LEVEL", screen_rect){
+			if mu.window(ctx, "FINISHED LEVEL", screen_rect) {
+				mu.layout_row(ctx, {-1})
+				mu.text(ctx, fmt.aprintf("You finished the level in: {:.1f}", time.duration_seconds(time.stopwatch_duration(players.game.speedrun_StopWatch))))
 
 			}
 		}
+
+
 
 	case .Editor:
 		details_panel(ctx, players, game_state, screen_rect, level)
 	}
 	// time.stopwatch_stop(&timer)
 	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
+}
+
+speedrun_timer :: proc(
+	ctx: ^mu.Context,
+	screen_dimentions: [2]i32,
+	players: ^plrs.Players,
+	screen_rect: mu.Rect,
+) {
+	width, height: i32 = 250, 50
+	target_rect := mu.Rect{screen_dimentions.x / 2 - width / 2, 0, width, height}
+	if mu.window(
+		ctx,
+		"t",
+		target_rect,
+		{mu.Opt.NO_FRAME, .NO_TITLE, .NO_INTERACT, .NO_SCROLL, .NO_RESIZE},
+	) {
+		current_container := mu.get_current_container(ctx)
+		current_container.rect = target_rect
+		mu.layout_row(ctx, {-1})
+		duration_seconds := time.duration_seconds(
+			time.stopwatch_duration(players.game.speedrun_StopWatch),
+		)
+		mu.text(ctx, fmt.aprintf("Current time: {:.1f}", duration_seconds))
+
+	}
 }
 
 cheats_panel :: proc(
