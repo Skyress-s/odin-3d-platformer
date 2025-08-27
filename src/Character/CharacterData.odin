@@ -76,6 +76,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 		start_speedrun(character_data)
 		gamestate.finished_level = false;
 		
+		
 	}
 
 	if rl.IsKeyPressed(.TAB) {
@@ -94,14 +95,14 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 
 	player_position := character_data.verlet_component.position
 
-	if rl.IsMouseButtonPressed(.LEFT) && rl.IsCursorHidden() {
+	if rl.IsMouseButtonPressed(.LEFT) && rl.IsCursorHidden() { // Todo USE primary fire!
 		if character_data.is_hooked {
 			character_data.is_hooked = false
 		} else {
 			ray := spat.make_ray_with_origin_direction_distance(
 				player_position,
 				linalg.vector_normalize(forward),
-				100.0,
+				1000.0,
 			)
 			ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
 				&level.spatial_hash_grid,

@@ -4,10 +4,17 @@ import spat "../Spatial"
 import "core:math/linalg"
 import "core:math"
 
+import "core:os"
 Player_Look_Data :: distinct struct{
 	using look_radians: spat.Vector2
 } 
 
+calculate_look_to_stuff :: proc(
+	rot: spat.Quaternion
+	) -> (){
+	os.read_dir
+
+}
 // todo terrible name
 calculate_stuff_from_look :: proc(
 	look_data: ^Player_Look_Data,
