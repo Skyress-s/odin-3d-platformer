@@ -113,7 +113,7 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = fal
 				dir_name := vis_dir(ctx, fi)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), ".map") {
-				if .SUBMIT in mu.button(ctx, fmt.aprintf("file: {}", name)) {
+				if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
 					clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
 					// fmt.println("cwd:", os.get_current_directory())
 					// fmt.println("target: ", fi.fullpath)

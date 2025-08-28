@@ -64,10 +64,10 @@ reset_speedrun :: proc(game_player: ^CharacternData) {
 cursor_enabled: bool = false
 
 update_character :: proc(character_data: ^CharacternData, level: ^l.Level, gamestate: ^game_state.Game_State, dt: f32) {
-	if rl.IsCursorHidden() {
+	if rl.IsCursorHidden() && rl.GetTime() > 0.1 {
 		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	}
-	rot, forward, right := player_data.calculate_stuff_from_look(character_data)
+	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
 		character_data.verlet_component.position = {1, 5, 1}
@@ -76,6 +76,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 		start_speedrun(character_data)
 		gamestate.finished_level = false;
 		
+		character_data.look_angles = player_data.calculate_look_angles_from_direction(level.start_look_direction)
 		
 	}
 
@@ -288,7 +289,7 @@ handle_movement_input_Airborne :: proc(
 	dt: f32,
 ) {
 
-	rot, forward, right := player_data.calculate_stuff_from_look(char_data)
+	rot, forward, right := player_data.calculate_direction_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
 	if linalg.is_nan(forward) == true do return
@@ -328,7 +329,7 @@ handle_movement_input_Grounded :: proc(
 	dt: f32,
 ) {
 
-	rot, forward, right := player_data.calculate_stuff_from_look(char_data)
+	rot, forward, right := player_data.calculate_direction_from_look(char_data)
 	forward.y = 0
 	forward = linalg.normalize(forward)
 	if linalg.is_nan(forward) == true do return

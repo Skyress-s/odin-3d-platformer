@@ -32,7 +32,7 @@ update :: proc(editor_player: ^Editor_Player_Data, dt: f32) {
 			rl.EnableCursor()
 		}
 	}
-	_, forward, right := player_data.calculate_stuff_from_look(editor_player)
+	_, forward, right := player_data.calculate_direction_from_look(editor_player)
 
 	_, up := input_snapshot.jump.(input.Down)
 	_, down := input_snapshot.crouch.(input.Down)

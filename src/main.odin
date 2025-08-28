@@ -87,7 +87,7 @@ main :: proc() {
 	add_debug_level_objects(&current_level, &current_level.collision_object_map, &current_level.spatial_hash_grid)
 
 	current_level.start_position = {0, 0, 0}
-	current_level.start_look_direction = {1, 0, 1}
+	current_level.start_look_direction = {1, 0, 0}
 
 	//serialization.save_to_file_level(&current_level, "test.map")
 	//loaded_level := serialization.load_from_file_level("test.map")
@@ -96,7 +96,7 @@ main :: proc() {
 	// current_level.start_position = loaded_level.start_position
 	// current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
 
-	// Set look angles
+	// Set look anglesaftfrt
 	// TODO: Make this shit into a function. P.S.Dima was here
 	players.game.look_angles.x = -math.asin(current_level.start_look_direction.y)
 	players.game.look_angles.y = linalg.vector_angle_between(
@@ -266,13 +266,13 @@ main :: proc() {
 		// Update Camera
 		switch players.mode {
 		case _players.Player_Mode.Game:
-			_, forward, right := player_data.calculate_stuff_from_look(&players.game.look_angles)
+			_, forward, right := player_data.calculate_direction_from_look(&players.game.look_angles)
 			cam.position = players.game.verlet_component.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 
 		case _players.Player_Mode.Editor:
-			_, forward, right := player_data.calculate_stuff_from_look(&players.editor.look_data)
+			_, forward, right := player_data.calculate_direction_from_look(&players.editor.look_data)
 			cam.position = players.editor.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
@@ -312,7 +312,7 @@ render :: proc(
 		}
 
 	case _players.Player_Mode.Editor:
-		_, forward, _ := player_data.calculate_stuff_from_look(&players.game.look_angles)
+		_, forward, _ := player_data.calculate_direction_from_look(&players.game.look_angles)
 		player_verlet := &players.game.verlet_component
 
 		rl.DrawCylinder(

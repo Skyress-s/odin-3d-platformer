@@ -15,7 +15,7 @@ calculate_look_to_stuff :: proc(
 
 }
 // todo terrible name
-calculate_stuff_from_look :: proc(
+calculate_direction_from_look :: proc(
 	look_data: ^Player_Look_Data,
 ) -> (
 	rot: linalg.Quaternionf32,
@@ -34,6 +34,17 @@ calculate_stuff_from_look :: proc(
 	xz_forward = linalg.normalize(xz_forward)
 
 	return rot, forward, right
+}
+
+calculate_look_angles_from_direction :: proc(direction: spat.Vector) -> (look_data: Player_Look_Data) {
+	
+	look_data.x = -math.asin(direction.y)
+	look_data.y = linalg.vector_angle_between(
+		spat.Vector{0, 0, 1},
+		direction,
+	)
+
+	return look_data
 }
 
 update_player_look_data :: proc(look_data: ^Player_Look_Data, delta_look: spat.Vector2, dt: f32){
