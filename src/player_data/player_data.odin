@@ -12,7 +12,6 @@ Player_Look_Data :: distinct struct{
 calculate_look_to_stuff :: proc(
 	rot: spat.Quaternion
 	) -> (){
-	os.read_dir
 
 }
 // todo terrible name

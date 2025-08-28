@@ -29,7 +29,6 @@ import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-/*
 global_trace_ctx: trace.Context
 
 debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #caller_location) -> ! {
@@ -61,41 +60,11 @@ debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #call
 
 	runtime.trap()
 }
-global_trace_ctx: trace.Context
-
-debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #caller_location) -> ! {
-	runtime.print_caller_location(loc)
-	runtime.print_string(" ")
-	runtime.print_string(prefix)
-	if len(message) > 0 {
-		runtime.print_string(": ")
-		runtime.print_string(message)
-	}
-	runtime.print_byte('\n')
-
-	ctx := &global_trace_ctx
-	if !trace.in_resolve(ctx) {
-		buf: [64]trace.Frame
-		runtime.print_string("Debug Trace:\n")
-		frames := trace.frames(ctx, 1, buf[:])
-		for f, i in frames {
-			fl := trace.resolve(ctx, f, context.temp_allocator)
-			if fl.loc.file_path == "" && fl.loc.line == 0 {
-				continue
-			}data
-			runtime.print_caller_location(fl.loc)
-			runtime.print_string(" - frame ")
-			runtime.print_int(i)
-			runtime.print_byte('\n')
-		}
-	}
-	runtime.trap()
-}
-*/
 
 // some_type :: distinct union #no_nil {i32, f32}
 
 main :: proc() {
+	context.assertion_failure_proc = debug_trace_assertion_failure_proc
 	// a_type : some_type = 758	
 	// fmt.println(&a_type.(i32))
 	//

@@ -10,6 +10,9 @@ import l "../level"
 import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
+import "core:os"
+import "core:path/filepath"
+import "core:strings"
 import "core:time"
 import mu "vendor:microui"
 
@@ -35,11 +38,18 @@ all_windows :: proc(
 		if game_state.finished_level {
 			if mu.window(ctx, "FINISHED LEVEL", screen_rect) {
 				mu.layout_row(ctx, {-1})
-				mu.text(ctx, fmt.aprintf("You finished the level in: {:.1f}", time.duration_seconds(time.stopwatch_duration(players.game.speedrun_StopWatch))))
+				mu.text(
+					ctx,
+					fmt.aprintf(
+						"You finished the level in: {:.1f}",
+						time.duration_seconds(
+							time.stopwatch_duration(players.game.speedrun_StopWatch),
+						),
+					),
+				)
 
 			}
 		}
-
 
 
 	case .Editor:
@@ -47,6 +57,98 @@ all_windows :: proc(
 	}
 	// time.stopwatch_stop(&timer)
 	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
+}
+
+map_directory :: proc(ctx: ^mu.Context) {
+
+	cwd := os.get_current_directory()
+	f, err := os.open(cwd)
+	defer os.close(f)
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not open directory for reading", err)
+		os.exit(1)
+	}
+	fis: []os.File_Info
+	defer os.file_info_slice_delete(fis)
+
+	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not read directory", err)
+		os.exit(2)
+	}
+
+	fmt.printfln("Current working directory %v contains:", cwd)
+
+
+	for fi in fis {
+		_, name := filepath.split(fi.fullpath)
+
+		strings.contains(name, ".map")
+
+		if fi.is_dir {
+			vis_dir(ctx, fi.fullpath)
+			fmt.printfln("%v (directory)", name)
+		} else {
+
+			// mu.layout_row(ctx, {1}, 0)
+			if .ACTIVE in
+			   mu.begin_treenode(ctx, fmt.aprintf("{} 1", name), {mu.Opt.EXPANDED, .NO_CLOSE}) {
+				mu.button(ctx, fmt.aprintf("file: {}", name))
+				mu.button(ctx, fmt.aprintf("file: {}", name))
+
+
+				mu.end_treenode(ctx)
+			}
+
+			//mu.layout_row(ctx, {-1})
+
+			//fmt.printfln("%v (%v bytes)", name, fi.size)
+
+		}
+
+	}
+}
+
+vis_dir :: proc(ctx: ^mu.Context, file_dir: string) {
+	fmt.println("Trying to vis_dir: ", file_dir)
+	cwd := file_dir
+	f, err := os.open(cwd)
+	defer os.close(f)
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not open directory for reading", err)
+		os.exit(1)
+	}
+	fis: []os.File_Info
+	defer os.file_info_slice_delete(fis)
+
+	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not read directory", err)
+		os.exit(2)
+	}
+
+
+	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{} 1", file_dir), {}) {
+		for fi in fis {
+			full_directory, name := filepath.split(fi.fullpath)
+
+
+			if fi.is_dir {
+				vis_dir(ctx, full_directory)
+			} else {
+
+				mu.button(ctx, fmt.aprintf("file: {}", name))
+			}
+
+			//mu.layout_row(ctx, {-1})
+
+			//fmt.printfln("%v (%v bytes)", name, fi.size)
+
+		}
+
+	}
+	mu.end_treenode(ctx)
+
 }
 
 speedrun_timer :: proc(
@@ -109,7 +211,7 @@ details_panel :: proc(
 	level: ^l.Level,
 ) {
 
-	percent: f32 = 0.30
+	percent: f32 = 0.40
 	screen_rect := screen_rect
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
@@ -136,6 +238,8 @@ details_panel :: proc(
 		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
 			fmt.println("Submit!")
 		}
+
+		map_directory(ctx)
 
 		mu.layout_row(ctx, {-1})
 		if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
