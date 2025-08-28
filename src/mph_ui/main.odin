@@ -59,7 +59,7 @@ all_windows :: proc(
 	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 }
 
-map_directory :: proc(ctx: ^mu.Context) {
+map_directory :: proc(ctx: ^mu.Context) -> string {
 
 	cwd := os.get_current_directory()
 	f, err := os.open(cwd)
@@ -77,42 +77,14 @@ map_directory :: proc(ctx: ^mu.Context) {
 		os.exit(2)
 	}
 
-	fmt.printfln("Current working directory %v contains:", cwd)
 
-
-	for fi in fis {
-		_, name := filepath.split(fi.fullpath)
-
-		strings.contains(name, ".map")
-
-		if fi.is_dir {
-			vis_dir(ctx, fi.fullpath)
-			fmt.printfln("%v (directory)", name)
-		} else {
-
-			// mu.layout_row(ctx, {1}, 0)
-			if .ACTIVE in
-			   mu.begin_treenode(ctx, fmt.aprintf("{} 1", name), {mu.Opt.EXPANDED, .NO_CLOSE}) {
-				mu.button(ctx, fmt.aprintf("file: {}", name))
-				mu.button(ctx, fmt.aprintf("file: {}", name))
-
-
-				mu.end_treenode(ctx)
-			}
-
-			//mu.layout_row(ctx, {-1})
-
-			//fmt.printfln("%v (%v bytes)", name, fi.size)
-
-		}
-
-	}
+	return vis_dir(ctx, os.File_Info{fullpath = filepath.join({cwd, "levels"})}, true)
 }
 
-vis_dir :: proc(ctx: ^mu.Context, file_dir: string) {
-	fmt.println("Trying to vis_dir: ", file_dir)
+vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = false) -> string {
+	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
 	cwd := file_dir
-	f, err := os.open(cwd)
+	f, err := os.open(cwd.fullpath)
 	defer os.close(f)
 	if err != os.ERROR_NONE {
 		fmt.eprintln("Could not open directory for reading", err)
@@ -127,17 +99,27 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: string) {
 		os.exit(2)
 	}
 
+	current_dir_name := filepath.base(file_dir.fullpath)
 
-	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{} 1", file_dir), {}) {
+	opts: mu.Options = force_open ? {mu.Opt.EXPANDED} : {}
+
+	clicked_map_name := ""
+	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
 		for fi in fis {
 			full_directory, name := filepath.split(fi.fullpath)
 
 
 			if fi.is_dir {
-				vis_dir(ctx, full_directory)
-			} else {
-
-				mu.button(ctx, fmt.aprintf("file: {}", name))
+				dir_name := vis_dir(ctx, fi)
+				if dir_name != "" do clicked_map_name = dir_name
+			} else if strings.contains(filepath.ext(fi.name), ".map") {
+				if .SUBMIT in mu.button(ctx, fmt.aprintf("file: {}", name)) {
+					clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
+					// fmt.println("cwd:", os.get_current_directory())
+					// fmt.println("target: ", fi.fullpath)
+					// fmt.println(clicked_map_name)
+					//clicked_map_name = fi.fullpath
+				}
 			}
 
 			//mu.layout_row(ctx, {-1})
@@ -146,9 +128,10 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: string) {
 
 		}
 
+		mu.end_treenode(ctx)
 	}
-	mu.end_treenode(ctx)
 
+	return clicked_map_name
 }
 
 speedrun_timer :: proc(
@@ -220,35 +203,55 @@ details_panel :: proc(
 		current_container := mu.get_current_container(ctx)
 		current_container.rect = screen_rect
 
-		mu.layout_row(ctx, {-1})
-		if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
-			current_id := players.editor.transform_tool.target_object_id
-			found_object := hms.get(&level.collision_object_map, current_id)
-			if found_object != nil {
-				spat.add_to_level(
-					&level.collision_object_map,
-					&level.spatial_hash_grid,
-					found_object.data,
-				)
+		if .ACTIVE in mu.treenode(ctx, "Object Manipulation") {
+			mu.layout_row(ctx, {-1})
+			if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
+				current_id := players.editor.transform_tool.target_object_id
+				found_object := hms.get(&level.collision_object_map, current_id)
+				if found_object != nil {
+					spat.add_to_level(
+						&level.collision_object_map,
+						&level.spatial_hash_grid,
+						found_object.data,
+					)
+				}
 			}
 		}
-		mu.layout_row(ctx, {-1})
-		@(static) buf: [128]byte
-		@(static) buf_len: int
-		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-			fmt.println("Submit!")
-		}
 
-		map_directory(ctx)
 
-		mu.layout_row(ctx, {-1})
-		if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
-			serialization.save_to_file(level, string(buf[:buf_len]))
-		}
-		mu.layout_row(ctx, {-1})
-		if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
+		if .ACTIVE in mu.treenode(ctx, "Level Stuff") {
+			@(static) buf: [128]byte
+			@(static) buf_len: int
 
-			level^ = serialization.load_from_file_level(string(buf[:buf_len]))
+			mu.layout_row(ctx, {-1})
+			if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+				serialization.save_to_file(level, string(buf[:buf_len]))
+			}
+			mu.layout_row(ctx, {-1})
+			if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
+
+				level^ = serialization.load_from_file_level(string(buf[:buf_len]))
+			}
+
+			mu.layout_next(ctx) // Also function as a spaces
+
+			mu.layout_row(ctx, {65, -1})
+			mu.text(ctx, "Level:")
+			if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+				fmt.println("Submit!")
+			}
+
+
+			clicked_file_path := map_directory(ctx)
+			if clicked_file_path != "" {
+				// level^ = serialization.load_from_file_level(clicked_file_path)
+				builder := strings.builder_make()
+
+				// state.log_buf_len += copy(state.log_buf[state.log_buf_len:], str)
+				fmt.println(clicked_file_path)
+				buf_len = copy(buf[0:], clicked_file_path)
+
+			}
 		}
 	}
 }
