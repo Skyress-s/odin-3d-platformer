@@ -72,8 +72,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 	if rl.IsKeyPressed(.R) {
 		character_data.verlet_component.position = {1, 5, 1}
 		character_data.verlet_component.velocity = {}
-		reset_speedrun(character_data)
-		start_speedrun(character_data)
+		pause_speedrun(character_data)
 		gamestate.finished_level = false;
 		
 		character_data.look_angles = player_data.calculate_look_angles_from_direction(level.start_look_direction)

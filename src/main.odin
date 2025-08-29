@@ -183,10 +183,12 @@ main :: proc() {
 				players.editor.look_radians = players.game.look_angles
 
 				players.mode = _players.Player_Mode.Editor
+				character.pause_speedrun(&players.game)
 			case _players.Player_Mode.Editor:
 				rl.DisableCursor()
 
 				players.mode = _players.Player_Mode.Game
+				character.start_speedrun(&players.game)
 			}
 		}
 
