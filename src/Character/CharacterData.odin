@@ -70,13 +70,8 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
-		character_data.verlet_component.position = {1, 5, 1}
-		character_data.verlet_component.velocity = {}
-		pause_speedrun(character_data)
+		reset_run(character_data, &level.start_position, &level.start_look_direction)
 		gamestate.finished_level = false;
-		
-		character_data.look_angles = player_data.calculate_look_angles_from_direction(level.start_look_direction)
-		
 	}
 
 	if rl.IsKeyPressed(.TAB) {
@@ -142,6 +137,16 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 		}
 
 	}
+}
+
+reset_run :: proc(character_data: ^CharacternData, start_location, start_direction: ^spat.Vector){
+		character_data.verlet_component.position = {1, 5, 1}
+		character_data.verlet_component.velocity = {}
+		reset_speedrun(character_data)
+		start_speedrun(character_data)
+		
+		character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
+
 }
 
 update_character_physics :: proc(

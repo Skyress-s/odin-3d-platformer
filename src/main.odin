@@ -29,6 +29,7 @@ import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
+
 // global_trace_ctx: trace.Context
 //
 // debug_trace_assertion_failure_proc :: proc(prefix, message: string, loc := #caller_location) -> ! {
@@ -175,7 +176,7 @@ main :: proc() {
 		}
 
 		// should we change to another state
-		if rl.IsKeyPressed(.F10) {
+		if rl.IsKeyPressed(.F10) || rl.IsKeyPressed(.ONE) {
 			switch players.mode {
 			case _players.Player_Mode.Game:
 				rl.EnableCursor()

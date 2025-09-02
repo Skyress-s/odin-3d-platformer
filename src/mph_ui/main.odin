@@ -231,6 +231,7 @@ details_panel :: proc(
 			if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
 
 				level^ = serialization.load_from_file_level(string(buf[:buf_len]))
+				character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
 			}
 
 			mu.layout_next(ctx) // Also function as a spaces
