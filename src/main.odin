@@ -176,7 +176,7 @@ main :: proc() {
 		}
 
 		// should we change to another state
-		if rl.IsKeyPressed(.F10) || rl.IsKeyPressed(.ONE) {
+		if rl.IsKeyPressed(.F10) || rl.IsKeyPressed(.K) {
 			switch players.mode {
 			case _players.Player_Mode.Game:
 				rl.EnableCursor()
