@@ -2,11 +2,6 @@
 - [x] Make a simple level editor?
 - [x] Super simple level json format?
 - [x] Fix the shinanigans thats happening when we try to calculate the cells a ray will pass through.
-- [ ] Entire render screen is offset half way down?!!?!?!?
-- [ ] Need some form of continious collision detection.
-- [ ] Stars
-- [ ] Hard to orient yourself -> shadows or textures, or atleast a direction light
-- [ ] Help for controls (text or a image should be enough for now)
 
 
 

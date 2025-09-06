@@ -1,0 +1,12 @@
+Dima
+- [ ] Entire render screen is offset half way down?!!?!?!?
+- [ ] Need some form of continious collision detection.
+- [ ] Stars, have some fluff and effects, some rewards?
+- [ ] Hard to orient yourself -> shadows or textures, or atleast a direction light
+- [ ] Help for controls (text or a image should be enough for now)
+
+Maja
+- [ ] Føles ut som å bevege seg som en snegle i slow motion, i lav tyngde kraft - maja 2025
+	- [ ] Levelene føles for store ut, føles ikke ut som om man beveger seg fort.
+- [ ] Kill volumes, tvinge spiller til å *ikke* gjøre spesefikke ting (over under x osv)
+- [ ] Hook only volumes, man kunne hooke seg i alt, kan chease lett
