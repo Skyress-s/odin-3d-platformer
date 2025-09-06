@@ -10,3 +10,9 @@ Maja
 	- [ ] Levelene føles for store ut, føles ikke ut som om man beveger seg fort.
 - [ ] Kill volumes, tvinge spiller til å *ikke* gjøre spesefikke ting (over under x osv)
 - [ ] Hook only volumes, man kunne hooke seg i alt, kan chease lett
+
+
+
+
+General
+- [ ] - Make a grapple only volume
