@@ -170,8 +170,6 @@ main :: proc() {
 		for &container in gameui.state.mu_ctx.containers {
 			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) {
 				mouse_over_ui = true
-				fmt.println("huzzah!!!!")
-
 				break
 			}
 		}

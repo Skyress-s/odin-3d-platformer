@@ -1,6 +1,7 @@
 package mph_ui
 
 import character "../Character"
+import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import e_plr "../editor_player"
 import gs "../game_state"
@@ -206,22 +207,36 @@ details_panel :: proc(
 
 
 		if current_id != spat.INVALID_OBJECT_ID {
+			current_coll_obj := hms.get(&level.collision_object_map, current_id)
 			if (.ACTIVE in mu.treenode(ctx, "Object Manipulation")) {
 				mu.layout_row(ctx, {-1})
 				if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
-					found_object := hms.get(&level.collision_object_map, current_id)
-					if found_object != nil {
+					if current_coll_obj != nil {
 						spat.add_to_level(
 							&level.collision_object_map,
 							&level.spatial_hash_grid,
-							found_object.data,
+							current_coll_obj.data,
 						)
 					}
 				}
-				_, is_kill_volume := level.kill_volumes[current_id]
-				if .SUBMIT in mu.button(ctx, fmt.aprint("kill volume: ?", is_kill_volume)) {
-					if is_kill_volume do delete_key(&level.kill_volumes, current_id)
-					else do level.kill_volumes[current_id] = true
+				{
+					_, is_kill_volume := level.kill_volumes[current_id]
+					copy_is_kill_volume := is_kill_volume
+
+					if .CHANGE in
+					   mu.checkbox(ctx, fmt.aprintf("Kill Volume"), &copy_is_kill_volume) {
+						if is_kill_volume do delete_key(&level.kill_volumes, current_id)
+						else do level.kill_volumes[current_id] = true
+					}
+				}
+
+				{
+					// _, is_colliding := cc.is_blocking()
+					// if .CHANGE in
+					//    mu.checkbox(ctx, fmt.aprintf("Kill Volume"), &copy_is_kill_volume) {
+					// 	if is_kill_volume do delete_key(&level.kill_volumes, current_id)
+					// 	else do level.kill_volumes[current_id] = true
+					// }
 				}
 
 			}}
