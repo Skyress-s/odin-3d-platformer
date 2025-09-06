@@ -152,7 +152,6 @@ main :: proc() {
 		render(ctx)
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.RAYWHITE)
-
 		// Draw 3D stuff
 		rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
 

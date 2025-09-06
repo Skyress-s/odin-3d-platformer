@@ -85,7 +85,11 @@ main :: proc() {
 	current_level: l.Level
 	current_level.name = "test_level"
 
-	add_debug_level_objects(&current_level, &current_level.collision_object_map, &current_level.spatial_hash_grid)
+	add_debug_level_objects(
+		&current_level,
+		&current_level.collision_object_map,
+		&current_level.spatial_hash_grid,
+	)
 
 	current_level.start_position = {0, 0, 0}
 	current_level.start_look_direction = {1, 0, 0}
@@ -133,7 +137,7 @@ main :: proc() {
 		rl.GetMousePosition(),
 		&cam,
 	)
-	
+
 	position_transform_tool := &players.editor.transform_tool
 
 	character.start_speedrun(&players.game)
@@ -160,8 +164,23 @@ main :: proc() {
 		mu.end(&gameui.state.mu_ctx)
 		gameui.render(&gameui.state.mu_ctx)
 
+
+		// Is our mouse overlapping any widget? (naive implementation)
+		mouse_over_ui := false
+		for &container in gameui.state.mu_ctx.containers {
+			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) {
+				mouse_over_ui = true
+				fmt.println("huzzah!!!!")
+
+				break
+			}
+		}
+		// time.stopwatch_stop(&timer)
+		// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
+
 		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
-		   position_transform_tool.target_object_id.idx != 0 { 	// TODO: Is there a null id?
+		   position_transform_tool.target_object_id.idx != 0 &&
+		   !mouse_over_ui {
 
 			if position_transform_tool.dragging == true {
 				position_transform_tool.dragging = false
@@ -205,7 +224,7 @@ main :: proc() {
 				position_transform_tool.active_tool = e_tools.Scale_Tool{}
 			}
 
-			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && !mouse_over_ui {
 				e_tools.on_click(position_transform_tool, &cam, &current_level)
 
 			}
@@ -224,11 +243,24 @@ main :: proc() {
 			editor_player.update(&players.editor, dt)
 		}
 
-		overlapping_finish_volume := spat.does_location_overlap_finish_volume(&current_level.finish_volumes, &current_level.collision_object_map, &players.game.verlet_component.position)
-		if overlapping_finish_volume != spat.INVALID_OBJECT_ID
-		{
+		overlapping_finish_volume := spat.does_location_overlap_finish_volume(
+			&current_level.finish_volumes,
+			&current_level.collision_object_map,
+			&players.game.verlet_component.position,
+		)
+		if overlapping_finish_volume != spat.INVALID_OBJECT_ID {
 			game_state.finished_level = true
 			character.pause_speedrun(&players.game)
+		}
+
+		// Kill volumes
+		overlapping_kill_volumes := spat.does_location_overlap_finish_volume(
+			&current_level.kill_volumes,
+			&current_level.collision_object_map,
+			&players.game.verlet_component.position,
+		)
+		if overlapping_kill_volumes != spat.INVALID_OBJECT_ID {
+			character.reset_run(&players.game, &current_level.start_position, &current_level.start_look_direction)
 		}
 
 		// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly
@@ -269,13 +301,17 @@ main :: proc() {
 		// Update Camera
 		switch players.mode {
 		case _players.Player_Mode.Game:
-			_, forward, right := player_data.calculate_direction_from_look(&players.game.look_angles)
+			_, forward, right := player_data.calculate_direction_from_look(
+				&players.game.look_angles,
+			)
 			cam.position = players.game.verlet_component.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 
 		case _players.Player_Mode.Editor:
-			_, forward, right := player_data.calculate_direction_from_look(&players.editor.look_data)
+			_, forward, right := player_data.calculate_direction_from_look(
+				&players.editor.look_data,
+			)
 			cam.position = players.editor.position
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
@@ -427,10 +463,19 @@ render :: proc(
 	}
 
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
-	
-	for volume_id in level.finish_volumes{
+
+	for kill_id in level.kill_volumes {
+		drawn_collision_objects_ids[kill_id] = true
+
+		volume_obj := hms.get(&level.collision_object_map, kill_id)
+		assert(volume_obj != nil)
+		draw_collision_object(volume_obj, rl.RED, rl.GRAY)
+
+	}
+
+	for volume_id in level.finish_volumes {
 		drawn_collision_objects_ids[volume_id] = true
-		
+
 		volume_obj := hms.get(&level.collision_object_map, volume_id)
 		assert(volume_obj != nil)
 		draw_collision_object(volume_obj, rl.YELLOW, rl.GRAY)
@@ -610,7 +655,10 @@ add_debug_level_objects :: proc(
 	)
 
 	// Add finish volume
-	finish_object_shape := spat.Collision_Shape{spat.Transform{spat.Vector{0, -10, 0}, spat.QUATERNION_IDENTITY, spat.ONE_VEC3}, spat.Box{{4,4,4}}}
+	finish_object_shape := spat.Collision_Shape {
+		spat.Transform{spat.Vector{0, -10, 0}, spat.QUATERNION_IDENTITY, spat.ONE_VEC3},
+		spat.Box{{4, 4, 4}},
+	}
 	bounds := spat.get_bounds(finish_object_shape)
 	collision_object_data := spat.shape_to_collision_object(&finish_object_shape)
 	collision_object_data.collision_channels = cc.get_non_blocking()

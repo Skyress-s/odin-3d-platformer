@@ -55,8 +55,6 @@ all_windows :: proc(
 	case .Editor:
 		details_panel(ctx, players, game_state, screen_rect, level)
 	}
-	// time.stopwatch_stop(&timer)
-	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 }
 
 map_directory :: proc(ctx: ^mu.Context) -> string {
@@ -200,23 +198,33 @@ details_panel :: proc(
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 
 	if mu.window(ctx, "details_panel", screen_rect, {}) {
+
 		current_container := mu.get_current_container(ctx)
 		current_container.rect = screen_rect
 
-		if .ACTIVE in mu.treenode(ctx, "Object Manipulation") {
-			mu.layout_row(ctx, {-1})
-			if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
-				current_id := players.editor.transform_tool.target_object_id
-				found_object := hms.get(&level.collision_object_map, current_id)
-				if found_object != nil {
-					spat.add_to_level(
-						&level.collision_object_map,
-						&level.spatial_hash_grid,
-						found_object.data,
-					)
+		current_id := players.editor.transform_tool.target_object_id
+
+
+		if current_id != spat.INVALID_OBJECT_ID {
+			if (.ACTIVE in mu.treenode(ctx, "Object Manipulation")) {
+				mu.layout_row(ctx, {-1})
+				if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
+					found_object := hms.get(&level.collision_object_map, current_id)
+					if found_object != nil {
+						spat.add_to_level(
+							&level.collision_object_map,
+							&level.spatial_hash_grid,
+							found_object.data,
+						)
+					}
 				}
-			}
-		}
+				_, is_kill_volume := level.kill_volumes[current_id]
+				if .SUBMIT in mu.button(ctx, fmt.aprint("kill volume: ?", is_kill_volume)) {
+					if is_kill_volume do delete_key(&level.kill_volumes, current_id)
+					else do level.kill_volumes[current_id] = true
+				}
+
+			}}
 
 
 		if .ACTIVE in mu.treenode(ctx, "Level Stuff") {
@@ -229,9 +237,12 @@ details_panel :: proc(
 			}
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
-
 				level^ = serialization.load_from_file_level(string(buf[:buf_len]))
-				character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
+				character.reset_run(
+					&players.game,
+					&level.start_position,
+					&level.start_look_direction,
+				)
 			}
 
 			mu.layout_next(ctx) // Also function as a spaces
