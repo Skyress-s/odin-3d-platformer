@@ -18,6 +18,7 @@ import "editor_player"
 import gs "game_state"
 import hms "handle_map/handle_map_static"
 import l "level"
+import "lightray"
 import gameui "micro-ui"
 import mph_ui "mph_ui"
 import "player_data"
@@ -141,6 +142,10 @@ main :: proc() {
 	position_transform_tool := &players.editor.transform_tool
 
 	character.start_speedrun(&players.game)
+
+	lightray.init_lighting()
+	defer lightray.destroy_lighting()
+
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
@@ -258,7 +263,11 @@ main :: proc() {
 			&players.game.verlet_component.position,
 		)
 		if overlapping_kill_volumes != spat.INVALID_OBJECT_ID {
-			character.reset_run(&players.game, &current_level.start_position, &current_level.start_look_direction)
+			character.reset_run(
+				&players.game,
+				&current_level.start_position,
+				&current_level.start_look_direction,
+			)
 		}
 
 		// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly
@@ -334,12 +343,43 @@ render :: proc(
 	active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
 ) {
+
 	rl.BeginDrawing()
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
+	// shader := rl.LoadShader("content/shaders/basic_lighting/lighting.vert", "content/shaders/basic_lighting/lighting.frag")
+	// shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW] = rl.GetShaderLocation(shader, "viewPos")
+	//
+	// ambient_loc := rl.GetShaderLocation(shader, "ambient")
+	// rl.SetShaderValue(shader, ambient_loc, &rl.Vector4{0.1, 0.1,0.1,0.1}, rlgl.ShaderUniformDataType.VEC4)	
+	// player_loc := players.game.verlet_component.position
+	// rl.SetShaderValue(shader, shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW], &player_loc, rlgl.ShaderUniformDataType.VEC3)
+
+	dir_light := lightray.create_light(
+		.DIRECTIONAL,
+		spat.Vector{1, 1, 1},
+		spat.Vector{0, 0, 0},
+		rl.WHITE,
+	)
+
+
+	// point_light := lightray.create_light(
+	// 	.POINT,
+	// 	spat.Vector{1, 10, 1},
+	// 	spat.Vector{0, 0, 0},
+	// 	rl.WHITE,
+	// )
+	// point_light := lightray.create_light(.POINT, spat.Vector{60, 0, 0}, spat.Vector{0, -1, 0}, rl.MAGENTA) 
+
+	lightray.begin_lighting()
+	lightray.set_ambient_light(rl.Color{20, 20, 20, 255}, 0.1)
+
+	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
+	rl.SetShaderValue(lightray.lighting.shader, view_loc, &cam.position, rlgl.ShaderUniformDataType.VEC3)
 
 	tool := &players.editor.transform_tool
+
 
 	switch players.mode {
 	case _players.Player_Mode.Game:
@@ -443,7 +483,11 @@ render :: proc(
 		matrix_data := rl.MatrixToFloatV(mat)
 		rlgl.MultMatrixf(auto_cast &matrix_data)
 
-		rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
+		normal := linalg.cross(points[0] - points[1], points[2] - points[1])
+		normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "normal")
+
+		draw_triangle(points[0], points[1], points[2], face_color)
+		// rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
 		rl.DrawLine3D(points[0], points[1], edge_color)
 		rl.DrawLine3D(points[0], points[2], edge_color)
 		rl.DrawLine3D(points[1], points[2], edge_color)
@@ -528,6 +572,13 @@ render :: proc(
 	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
+	rl.DrawCube({0, 0, f32(math.sin(rl.GetTime()) * 10)}, 10, 10, 10, rl.GRAY)
+
+	draw_triangle({100, 10, 100}, {-100, 10, -100}, {-100, 10, 100}, rl.WHITE)
+	draw_triangle({100, 10, 100}, {-100, 10, 100}, {-100, 10, -100}, rl.WHITE)
+	// rl.DrawTriangle3D({100, 10, 100}, {-100, 10, -100}, {-100, 10, 100}, rl.WHITE)
+	// rl.DrawTriangle3D({100, 10, 100}, {-100, 10, 100}, {-100, 10, -100}, rl.WHITE)
+
 
 	if game_state.cheat_state.draw_bounds {
 		hash_key := spat.Hash_Location(player_verlet.position)
@@ -551,6 +602,7 @@ render :: proc(
 		}
 
 		*/
+	lightray.end_lighting()
 
 	rl.EndMode3D()
 
@@ -560,6 +612,22 @@ render :: proc(
 
 	rl.EndDrawing()
 
+}
+
+draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
+	rlgl.PushMatrix()
+	defer rlgl.PopMatrix()
+
+	rlgl.Begin(rlgl.TRIANGLES)
+	rlgl.Color4ub(color.r, color.g, color.b, color.a)
+
+	normal := linalg.normalize(linalg.cross(b - a, c - a))
+	rlgl.Normal3f(normal.x, normal.y, normal.z)
+
+	rlgl.Vertex3f(a.x, a.y, a.z)
+	rlgl.Vertex3f(b.x, b.y, b.z)
+	rlgl.Vertex3f(c.x, c.y, c.z)
+	rlgl.End()
 }
 
 get_default_start_location_look_direction :: proc() -> (location, look_direction: spat.Vector) {
