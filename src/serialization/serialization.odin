@@ -40,7 +40,9 @@ Level_Serialization_Data :: struct {
 	objects:              [dynamic]Serializable_Collision_Object_Data,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
-	finish_volumes_ids:[dynamic]spat.Collision_Object_Id
+	finish_volumes_ids:   [dynamic]spat.Collision_Object_Id,
+	kill_volume_ids:      [dynamic]spat.Collision_Object_Id,
+	grapple_volume_ids:   [dynamic]spat.Collision_Object_Id,
 
 
 	//objects: [dynamic]int,
@@ -55,9 +57,16 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 		start_look_direction = level.start_look_direction,
 	}
 
-	for id in level.finish_volumes{
+	for id in level.finish_volumes {
 		append_elem(&level_serialization_data.finish_volumes_ids, id)
 	}
+	for id in level.kill_volumes {
+		append_elem(&level_serialization_data.kill_volume_ids, id)
+	}
+	for id in level.grappable {
+		append_elem(&level_serialization_data.grapple_volume_ids, id)
+	}
+
 	/*
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
@@ -114,15 +123,26 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.start_position = loaded_serialized_level_data.start_position
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
 
-	for &id in loaded_serialized_level_data.finish_volumes_ids{
+	for &id in loaded_serialized_level_data.finish_volumes_ids {
 		loaded_level.finish_volumes[id] = true
+	}
+	for &id in loaded_serialized_level_data.kill_volume_ids {
+		loaded_level.kill_volumes[id] = true
+	}
+	for &id in loaded_serialized_level_data.grapple_volume_ids {
+		loaded_level.grappable[id] = true
 	}
 
 	for &obj in loaded_serialized_level_data.objects {
 		fmt.println("loading new object")
 		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
-		loaded_rot:=obj.transform.rotation
-		new_loaded_rotation: spat.Quaternion = quaternion(real = loaded_rot.x, imag = loaded_rot.y, jmag = loaded_rot.z, kmag = loaded_rot.w)
+		loaded_rot := obj.transform.rotation
+		new_loaded_rotation: spat.Quaternion = quaternion(
+			real = loaded_rot.x,
+			imag = loaded_rot.y,
+			jmag = loaded_rot.z,
+			kmag = loaded_rot.w,
+		)
 		new_loaded_transform := spat.Transform {
 			position = obj.transform.position,
 			rotation = new_loaded_rotation,

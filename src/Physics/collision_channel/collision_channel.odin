@@ -14,6 +14,10 @@ get_non_blocking :: proc() ->CHANNEL_SIZE
 	return 0b0
 }
 
+get_blocking :: proc() -> CHANNEL_SIZE {
+	return 0b1 
+}
+
 set_is_blocking :: proc(collision_channel: CHANNEL_SIZE) -> CHANNEL_SIZE {
 	return collision_channel | 0b1
 }

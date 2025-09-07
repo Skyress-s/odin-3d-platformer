@@ -471,6 +471,15 @@ render :: proc(
 
 	}
 
+	for grappable_obj_id in level.grappable {
+		drawn_collision_objects_ids[grappable_obj_id] = true
+
+		volume_obj := hms.get(&level.collision_object_map, grappable_obj_id)
+		assert(volume_obj != nil)
+		draw_collision_object(volume_obj, rl.SKYBLUE, rl.GRAY)
+
+	}
+
 	for volume_id in level.finish_volumes {
 		drawn_collision_objects_ids[volume_id] = true
 

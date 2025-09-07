@@ -2,6 +2,7 @@ package Character
 import cc "../Physics/collision_channel"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import "../game_state"
 import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
@@ -11,7 +12,6 @@ import "core:math"
 import "core:math/linalg"
 import "core:time"
 import rl "vendor:raylib"
-import "../game_state"
 
 
 Grounded :: struct {
@@ -63,7 +63,12 @@ reset_speedrun :: proc(game_player: ^CharacternData) {
 @(private)
 cursor_enabled: bool = false
 
-update_character :: proc(character_data: ^CharacternData, level: ^l.Level, gamestate: ^game_state.Game_State, dt: f32) {
+update_character :: proc(
+	character_data: ^CharacternData,
+	level: ^l.Level,
+	gamestate: ^game_state.Game_State,
+	dt: f32,
+) {
 	if rl.IsCursorHidden() && rl.GetTime() > 0.1 {
 		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	}
@@ -71,7 +76,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 
 	if rl.IsKeyPressed(.R) {
 		reset_run(character_data, &level.start_position, &level.start_look_direction)
-		gamestate.finished_level = false;
+		gamestate.finished_level = false
 	}
 
 	if rl.IsKeyPressed(.TAB) {
@@ -90,7 +95,7 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 
 	player_position := character_data.verlet_component.position
 
-	if rl.IsMouseButtonPressed(.LEFT) && rl.IsCursorHidden() { // Todo USE primary fire!
+	if rl.IsMouseButtonPressed(.LEFT) && rl.IsCursorHidden() { 	// TODO USE primary fire!
 		if character_data.is_hooked {
 			character_data.is_hooked = false
 		} else {
@@ -104,7 +109,8 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 				&level.collision_object_map,
 				&ray,
 			)
-			if ok {
+			_, is_grappable := level.grappable[id]
+			if ok && is_grappable {
 
 				character_data.hooked_position = hook_hit_location
 				character_data.is_hooked = true
@@ -139,13 +145,13 @@ update_character :: proc(character_data: ^CharacternData, level: ^l.Level, games
 	}
 }
 
-reset_run :: proc(character_data: ^CharacternData, start_location, start_direction: ^spat.Vector){
-		character_data.verlet_component.position = {1, 5, 1}
-		character_data.verlet_component.velocity = {}
-		reset_speedrun(character_data)
-		start_speedrun(character_data)
-		
-		character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
+reset_run :: proc(character_data: ^CharacternData, start_location, start_direction: ^spat.Vector) {
+	character_data.verlet_component.position = {1, 5, 1}
+	character_data.verlet_component.velocity = {}
+	reset_speedrun(character_data)
+	start_speedrun(character_data)
+
+	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
 
 }
 

@@ -171,7 +171,7 @@ cheats_panel :: proc(
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
-	if mu.window(ctx, "Cheat Window", screen_rect, {mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME}) {
+	if mu.window(ctx, "Cheat Window (TAB to free mouse)", screen_rect, {mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME}) {
 		mu.get_current_container(ctx).rect = screen_rect
 
 		mu.text(ctx, "CHEATS")
@@ -221,22 +221,31 @@ details_panel :: proc(
 				}
 				{
 					_, is_kill_volume := level.kill_volumes[current_id]
-					copy_is_kill_volume := is_kill_volume
+					// copy_is_kill_volume := is_kill_volume
 
-					if .CHANGE in
-					   mu.checkbox(ctx, fmt.aprintf("Kill Volume"), &copy_is_kill_volume) {
-						if is_kill_volume do delete_key(&level.kill_volumes, current_id)
-						else do level.kill_volumes[current_id] = true
+					if .CHANGE in mu.checkbox(ctx, fmt.aprintf("Kill Volume"), &is_kill_volume) {
+						if is_kill_volume do level.kill_volumes[current_id] = true
+						else do delete_key(&level.kill_volumes, current_id)
 					}
 				}
 
 				{
-					// _, is_colliding := cc.is_blocking()
-					// if .CHANGE in
-					//    mu.checkbox(ctx, fmt.aprintf("Kill Volume"), &copy_is_kill_volume) {
-					// 	if is_kill_volume do delete_key(&level.kill_volumes, current_id)
-					// 	else do level.kill_volumes[current_id] = true
-					// }
+					_, grappable := level.grappable[current_id]
+					// copy_is_kill_volume := is_kill_volume
+
+					if .CHANGE in mu.checkbox(ctx, fmt.aprintf("Grappable"), &grappable) {
+						if grappable do level.grappable[current_id] = true
+						else do delete_key(&level.grappable, current_id)
+					}
+				}
+
+				{
+					is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
+					if .CHANGE in mu.checkbox(ctx, fmt.aprintf("Colliding"), &is_colliding) {
+						current_coll_obj.collision_channels =
+							is_colliding ? cc.get_blocking() : cc.get_non_blocking()
+						// TODO we should also activate kill volumes when we get a normal collision.
+					}
 				}
 
 			}}

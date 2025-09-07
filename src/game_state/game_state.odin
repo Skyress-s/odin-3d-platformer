@@ -12,7 +12,7 @@ Game_State :: distinct struct {
 }
 
 make_default_cheat_state :: proc() -> Cheat_State {
-	return Cheat_State{draw_bounds = true}
+	return Cheat_State{draw_bounds = false}
 }
 
 Cheat_State :: distinct struct {
