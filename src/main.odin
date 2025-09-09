@@ -360,7 +360,7 @@ render :: proc(
 		.DIRECTIONAL,
 		spat.Vector{1, 1, 1},
 		spat.Vector{0, 0, 0},
-		rl.WHITE,
+		rl.RAYWHITE,
 	)
 
 
@@ -373,7 +373,7 @@ render :: proc(
 	// point_light := lightray.create_light(.POINT, spat.Vector{60, 0, 0}, spat.Vector{0, -1, 0}, rl.MAGENTA) 
 
 	lightray.begin_lighting()
-	lightray.set_ambient_light(rl.Color{20, 20, 20, 255}, 0.1)
+	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
 	rl.SetShaderValue(lightray.lighting.shader, view_loc, &cam.position, rlgl.ShaderUniformDataType.VEC3)
@@ -485,6 +485,19 @@ render :: proc(
 
 		normal := linalg.cross(points[0] - points[1], points[2] - points[1])
 		normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "normal")
+
+// uniform mat4 mvp;
+// uniform mat4 matModel;
+// uniform mat4 matNormal;
+		mat_model_loc := rl.GetShaderLocation(lightray.lighting.shader, "matModel")
+		rl.SetShaderValueMatrix(lightray.lighting.shader, mat_model_loc, rl.Matrix(1))
+
+		mvp_loc := rl.GetShaderLocation(lightray.lighting.shader, "mvp")
+		rl.SetShaderValueMatrix(lightray.lighting.shader, mvp_loc, rl.Matrix(1))
+
+		mat_normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "matNormal")
+		rl.SetShaderValueMatrix(lightray.lighting.shader, mat_normal_loc, rl.Matrix(1))
+
 
 		draw_triangle(points[0], points[1], points[2], face_color)
 		// rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
@@ -618,16 +631,18 @@ draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
 	rlgl.PushMatrix()
 	defer rlgl.PopMatrix()
 
+	normal := linalg.normalize(linalg.cross(b - a, c - a))
+
 	rlgl.Begin(rlgl.TRIANGLES)
+	defer rlgl.End()
+
 	rlgl.Color4ub(color.r, color.g, color.b, color.a)
 
-	normal := linalg.normalize(linalg.cross(b - a, c - a))
 	rlgl.Normal3f(normal.x, normal.y, normal.z)
 
 	rlgl.Vertex3f(a.x, a.y, a.z)
 	rlgl.Vertex3f(b.x, b.y, b.z)
 	rlgl.Vertex3f(c.x, c.y, c.z)
-	rlgl.End()
 }
 
 get_default_start_location_look_direction :: proc() -> (location, look_direction: spat.Vector) {
