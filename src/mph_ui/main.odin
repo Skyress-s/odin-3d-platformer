@@ -1,7 +1,6 @@
 package mph_ui
 
 import character "../Character"
-import "core:math/linalg"
 import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import e_plr "../editor_player"
@@ -12,6 +11,7 @@ import l "../level"
 import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
+import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
@@ -36,6 +36,7 @@ all_windows :: proc(
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
+
 		stats(ctx, players, game_state, screen_rect)
 
 		if game_state.finished_level {
@@ -46,7 +47,7 @@ all_windows :: proc(
 					fmt.aprintf(
 						"You finished the level in: {:.1f}",
 						time.duration_seconds(
-							time.stopwatch_duration(players.game.speedrun_StopWatch),
+							time.stopwatch_duration(players.game.speedrun_stop_watch),
 						),
 					),
 				)
@@ -153,7 +154,7 @@ speedrun_timer :: proc(
 		current_container.rect = target_rect
 		mu.layout_row(ctx, {-1})
 		duration_seconds := time.duration_seconds(
-			time.stopwatch_duration(players.game.speedrun_StopWatch),
+			time.stopwatch_duration(players.game.speedrun_stop_watch),
 		)
 		mu.text(ctx, fmt.aprintf("Current time: {:.1f}", duration_seconds))
 
@@ -173,6 +174,8 @@ cheats_panel :: proc(
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
+
+	stats_container := mu.get_container(ctx, "stats")
 	if mu.window(
 		ctx,
 		"Cheat Window (TAB to free mouse)",
@@ -181,12 +184,30 @@ cheats_panel :: proc(
 	) {
 		mu.get_current_container(ctx).rect = screen_rect
 
+
 		mu.text(ctx, "CHEATS")
 		mu.layout_row(ctx, {-1})
 		mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
 
 		mu.layout_row(ctx, {-1})
 		mu.checkbox(ctx, "draw_spatial_hash_grid_bounds", &game_state.cheat_state.draw_bounds)
+
+		mu.layout_row(ctx, {-1})
+		mu.checkbox(
+			ctx,
+			"change_color_when\nplayer_in_cell",
+			&game_state.cheat_state.change_color_when_player_in_cell,
+		)
+
+		mu.layout_next(ctx)
+		mu.layout_next(ctx)
+		mu.text(ctx, "MISC")
+
+		mu.layout_row(ctx, {-1})
+		open := bool(stats_container.open) 
+		mu.checkbox(ctx, "display_stats", &open)
+
+		stats_container.open = b32(open)
 	}
 }
 
@@ -310,6 +331,7 @@ stats :: proc(
 		"stats",
 		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h},
 		{
+			mu.Opt.CLOSED,
 			mu.Opt.NO_INTERACT,
 			mu.Opt.NO_SCROLL,
 			mu.Opt.NO_CLOSE,

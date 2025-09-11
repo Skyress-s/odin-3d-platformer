@@ -134,7 +134,6 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	}
 
 	for &obj in loaded_serialized_level_data.objects {
-		fmt.println("loading new object")
 		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
 		loaded_rot := obj.transform.rotation
 		new_loaded_rotation: spat.Quaternion = quaternion(
@@ -155,7 +154,6 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		}
 
 
-		fmt.println("adding to new level")
 		spat.add_to_level(
 			&loaded_level.collision_object_map,
 			&loaded_level.spatial_hash_grid,

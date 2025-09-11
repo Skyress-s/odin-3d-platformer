@@ -17,4 +17,5 @@ make_default_cheat_state :: proc() -> Cheat_State {
 
 Cheat_State :: distinct struct {
 	draw_bounds: bool,
+	change_color_when_player_in_cell: bool
 }

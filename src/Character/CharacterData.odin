@@ -44,20 +44,20 @@ CharacternData :: struct {
 	air_jumping_cheat:      bool,
 
 	// If we pause the game and resume, we want to exclude that period of time -> why its an array of timers
-	speedrun_StopWatch:     time.Stopwatch,
+	speedrun_stop_watch:     time.Stopwatch,
 }
 
 start_speedrun :: proc(game_player: ^CharacternData) {
-	time.stopwatch_start(&game_player.speedrun_StopWatch)
+	time.stopwatch_start(&game_player.speedrun_stop_watch)
 }
 
 
 pause_speedrun :: proc(game_player: ^CharacternData) {
-	time.stopwatch_stop(&game_player.speedrun_StopWatch)
+	time.stopwatch_stop(&game_player.speedrun_stop_watch)
 }
 
 reset_speedrun :: proc(game_player: ^CharacternData) {
-	time.stopwatch_reset(&game_player.speedrun_StopWatch)
+	time.stopwatch_reset(&game_player.speedrun_stop_watch)
 }
 
 @(private)
@@ -69,7 +69,7 @@ update_character :: proc(
 	gamestate: ^game_state.Game_State,
 	dt: f32,
 ) {
-	if rl.IsCursorHidden() && rl.GetTime() > 0.1 {
+	if rl.IsCursorHidden() && rl.GetTime() > 0.1 { // Cursor usually enters screen right after we start the game, will cause a large "flick" when starting (since cursor is teleporting to center of screen).
 		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	}
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
@@ -137,9 +137,9 @@ update_character :: proc(
 		)
 
 		if ok {
-			character_data.current_state = Grounded{10, 50}
+			character_data.current_state = Grounded{10, 280}
 		} else {
-			character_data.current_state = Airborne{10, 30}
+			character_data.current_state = Airborne{10, 150}
 		}
 
 	}
@@ -215,6 +215,8 @@ update_character_physics :: proc(
 			distance_over_max := (distance - character_data.start_distance_to_hook)
 			distance_over_max = max(distance_over_max, 0.0)
 
+			// Update character position so rope length is constant
+			character_data.verlet_component.position = character_data.verlet_component.position + direction_to_hook * distance_over_max
 
 			// huh, this is shit
 			right := linalg.vector_cross3(
@@ -232,7 +234,7 @@ update_character_physics :: proc(
 
 			// Should we lose momentum or not? Kinda hacky atm.
 			target_velocity: spat.Vector
-			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 {
+			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 { // If we lose v < 20% of velocity, dont lose anything 
 				//char_data.verlet_component.velocity = hook_forward * new_vel_length
 				target_velocity = hook_forward * new_vel_length
 			} else {
@@ -241,6 +243,7 @@ update_character_physics :: proc(
 				target_velocity =
 					hook_forward * linalg.length(character_data.verlet_component.velocity)
 			}
+
 			acc := (target_velocity - character_data.verlet_component.velocity) / dt
 			character_data.verlet_component.acceleration += acc
 			// Enegry is now conserved, but its quite hard coded
@@ -248,11 +251,14 @@ update_character_physics :: proc(
 			// what i want in a ideal world:
 			// - [C]ontinous [C]ollision [D]etection
 			// - Energy is conserverd
-		} else if distance * 0.995 < character_data.start_distance_to_hook {
+		} 
+		else if distance < character_data.start_distance_to_hook { // Shorting rope 
 			character_data.start_distance_to_hook = distance
 		}
 
 	}
+
+	// TODO: When continually swinging without intup, we will very gradually gain total engergy. 
 
 
 	// Add gravity

@@ -175,7 +175,7 @@ main :: proc() {
 		// Is our mouse overlapping any widget? (naive implementation)
 		mouse_over_ui := false
 		for &container in gameui.state.mu_ctx.containers {
-			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) {
+			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) && container.zindex >= 0  { // container.zindex >= 0 feels abit hacky
 				mouse_over_ui = true
 				break
 			}
@@ -497,7 +497,7 @@ render :: proc(
 		transformed_tri := t^
 
 		for &p in transformed_tri.points {
-			p4:= mat*spat.Vector4{p.x, p.y, p.z, 1}
+			p4 := mat * spat.Vector4{p.x, p.y, p.z, 1}
 			p = p4.xyz
 		}
 
@@ -525,7 +525,12 @@ render :: proc(
 		// TODO Currently we are transforming each point induvidually, indeally we should just have a few meshes, send them 
 		// once to the gpu and instance it. But Something goes wrong in the shader with normals if we do that. Needs investigation 
 
-		draw_triangle(transformed_tri.points.x, transformed_tri.points.y, transformed_tri.points.z, face_color)
+		draw_triangle(
+			transformed_tri.points.x,
+			transformed_tri.points.y,
+			transformed_tri.points.z,
+			face_color,
+		)
 
 		rl.DrawLine3D(transformed_tri.points.x, transformed_tri.points.y, edge_color)
 		rl.DrawLine3D(transformed_tri.points.x, transformed_tri.points.z, edge_color)
@@ -572,16 +577,18 @@ render :: proc(
 	}
 
 
-	for cell_key in active_cell {
-		for &collision_object_id in level.spatial_hash_grid[cell_key].objects_ids {
-			has_been_drawn := collision_object_id in drawn_collision_objects_ids
-			if (!has_been_drawn) {
-				obj: ^spat.Collision_Object_Data = hms.get(
-					&level.collision_object_map,
-					collision_object_id,
-				)
-				draw_collision_object(obj, rl.GREEN, rl.GRAY)
-				drawn_collision_objects_ids[collision_object_id] = true
+	if game_state.cheat_state.change_color_when_player_in_cell {
+		for cell_key in active_cell {
+			for &collision_object_id in level.spatial_hash_grid[cell_key].objects_ids {
+				has_been_drawn := collision_object_id in drawn_collision_objects_ids
+				if (!has_been_drawn) {
+					obj: ^spat.Collision_Object_Data = hms.get(
+						&level.collision_object_map,
+						collision_object_id,
+					)
+					draw_collision_object(obj, rl.GREEN, rl.GRAY)
+					drawn_collision_objects_ids[collision_object_id] = true
+				}
 			}
 		}
 	}
@@ -610,7 +617,6 @@ render :: proc(
 	rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
 	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
-
 
 
 	if game_state.cheat_state.draw_bounds {
