@@ -83,8 +83,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 			rotation = {real(rot), imag(rot), jmag(rot), kmag(rot)},
 			scale    = i.transform.scale,
 		}
-		fmt.println("rot to save: ", serializable_transform.rotation)
-
+		
 		append_elem(
 			&level_serialization_data.objects,
 			Serializable_Collision_Object_Data {

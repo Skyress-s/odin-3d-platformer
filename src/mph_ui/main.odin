@@ -299,6 +299,16 @@ details_panel :: proc(
 
 			mu.layout_next(ctx) // Also function as a spaces
 
+			// @(static)
+			// level_name_buffer : [128]byte
+			// @(static)
+			// level_name_buffer_len : int
+			//
+			// mu.layout_row(ctx, {65, -1})
+			// mu.text(ctx, "Name")
+			//
+			// mu.textbox(ctx, level_name_buffer[:], &level_name_buffer_len)
+
 			mu.layout_row(ctx, {65, -1})
 			mu.text(ctx, "Level:")
 			if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
