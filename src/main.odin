@@ -147,6 +147,13 @@ main :: proc() {
 	defer lightray.destroy_lighting()
 
 	lightray.create_light(.DIRECTIONAL, {10, 10, 10}, spat.ZERO_VEC3, rl.RAYWHITE)
+	{
+		// backlight_color := rl.SKYBLUE
+		backlight_color := rl.SKYBLUE
+// Color{ 102, 191, 255, 255 }
+
+		lightray.create_light(.DIRECTIONAL, {-10, -10, 10}, spat.ZERO_VEC3, backlight_color)
+	}
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
@@ -175,7 +182,8 @@ main :: proc() {
 		// Is our mouse overlapping any widget? (naive implementation)
 		mouse_over_ui := false
 		for &container in gameui.state.mu_ctx.containers {
-			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) && container.zindex >= 0  { // container.zindex >= 0 feels abit hacky
+			if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
+			   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
 				mouse_over_ui = true
 				break
 			}
