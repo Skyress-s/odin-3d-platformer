@@ -1,6 +1,7 @@
 package mph_ui
 
 import character "../Character"
+import "core:math/linalg"
 import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import e_plr "../editor_player"
@@ -35,6 +36,7 @@ all_windows :: proc(
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
+		stats(ctx, players, game_state, screen_rect)
 
 		if game_state.finished_level {
 			if mu.window(ctx, "FINISHED LEVEL", screen_rect) {
@@ -171,7 +173,12 @@ cheats_panel :: proc(
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
-	if mu.window(ctx, "Cheat Window (TAB to free mouse)", screen_rect, {mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME}) {
+	if mu.window(
+		ctx,
+		"Cheat Window (TAB to free mouse)",
+		screen_rect,
+		{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME},
+	) {
 		mu.get_current_container(ctx).rect = screen_rect
 
 		mu.text(ctx, "CHEATS")
@@ -289,6 +296,76 @@ details_panel :: proc(
 
 			}
 		}
+	}
+}
+
+stats :: proc(
+	ctx: ^mu.Context,
+	players: ^plrs.Players,
+	game_state: ^game_state.Game_State,
+	screen_rect: mu.Rect,
+) {
+	if mu.window(
+		ctx,
+		"stats",
+		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h},
+		{
+			mu.Opt.NO_INTERACT,
+			mu.Opt.NO_SCROLL,
+			mu.Opt.NO_CLOSE,
+			mu.Opt.NO_FRAME,
+			mu.Opt.NO_RESIZE,
+			mu.Opt.NO_TITLE,
+		},
+	) {
+		char_data := &players.game
+		mu.get_current_container(ctx).zindex = -100000
+		// mu.layout_row(ctx, {-1})
+		// mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Position {}", char_data.verlet_component.position))
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Velocity {}", char_data.verlet_component.velocity))
+
+		mu.layout_row(ctx, {-1})
+		vel_xz := char_data.verlet_component.velocity
+		vel_xz.y = 0
+		mu.label(ctx, fmt.aprintf("Velocity_XZ {}", linalg.length(vel_xz)))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
+
+		// Rope length
+		rope_length := linalg.distance(
+			char_data.verlet_component.position,
+			char_data.hooked_position,
+		)
+		mu.layout_row(ctx, {-1})
+		mu.text(ctx, fmt.aprintf("Rope Length {}", char_data.is_hooked ? rope_length : 0))
+
+
+		m: f32 = 0.01
+		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+		kinetic_energy :=
+			0.5 *
+			m *
+			linalg.length(char_data.verlet_component.velocity) *
+			linalg.length(char_data.verlet_component.velocity)
+		total_energy := potential_energy + kinetic_energy
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Potential {}", potential_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Kinetic {}", kinetic_energy))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
+
+
 	}
 }
 

@@ -575,13 +575,15 @@ add_shape_to_hash_map :: proc(
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	shape: ^Collision_Shape,
 	blocking_geo: bool = true,
-) {
+) -> Collision_Object_Id {
 	bounds := get_bounds(shape^)
 
 	collision_object_data := shape_to_collision_object(shape)
 
 	id := add_to_object_map(collision_object_map, collision_object_data)
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
+
+	return id
 }
 create_and_add_collision_object_from_tris_transform :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,

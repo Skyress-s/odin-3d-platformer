@@ -146,6 +146,8 @@ main :: proc() {
 	lightray.init_lighting()
 	defer lightray.destroy_lighting()
 
+	lightray.create_light(.DIRECTIONAL, {10, 10, 10}, spat.ZERO_VEC3, rl.RAYWHITE)
+
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
 		dt := rl.GetFrameTime()
@@ -356,12 +358,12 @@ render :: proc(
 	// player_loc := players.game.verlet_component.position
 	// rl.SetShaderValue(shader, shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW], &player_loc, rlgl.ShaderUniformDataType.VEC3)
 
-	dir_light := lightray.create_light(
-		.DIRECTIONAL,
-		spat.Vector{1, 1, 1},
-		spat.Vector{0, 0, 0},
-		rl.RAYWHITE,
-	)
+	// dir_light := lightray.create_light(
+	// 	.DIRECTIONAL,
+	// 	spat.Vector{1, 1, 1},
+	// 	spat.Vector{0, 0, 0},
+	// 	rl.RAYWHITE,
+	// )
 
 
 	// point_light := lightray.create_light(
@@ -371,12 +373,17 @@ render :: proc(
 	// 	rl.WHITE,
 	// )
 	// point_light := lightray.create_light(.POINT, spat.Vector{60, 0, 0}, spat.Vector{0, -1, 0}, rl.MAGENTA) 
+	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
+	rl.SetShaderValue(
+		lightray.lighting.shader,
+		view_loc,
+		&cam.position,
+		rlgl.ShaderUniformDataType.VEC3,
+	)
 
 	lightray.begin_lighting()
 	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
-	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
-	rl.SetShaderValue(lightray.lighting.shader, view_loc, &cam.position, rlgl.ShaderUniformDataType.VEC3)
 
 	tool := &players.editor.transform_tool
 
@@ -479,31 +486,50 @@ render :: proc(
 		using transform
 
 		rlgl.PushMatrix()
+		// rlgl.Scalef(transform.scale.x,transform.scale.y, transform.scale.z)
+		// euler_x, euler_y, euler_z:= linalg.euler_angles_from_quaternion_f32(transform.rotation, linalg.Euler_Angle_Order.XYZ)
+		// rlgl.Rotatef(euler_x, 1, 0, 0)
+		// rlgl.Rotatef(euler_y, 0, 1, 0)
+		// rlgl.Rotatef(euler_z, 0, 0, 1)
+
 		mat := spat.get_matrix_from_transform(transform^)
-		matrix_data := rl.MatrixToFloatV(mat)
-		rlgl.MultMatrixf(auto_cast &matrix_data)
 
-		normal := linalg.cross(points[0] - points[1], points[2] - points[1])
-		normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "normal")
+		transformed_tri := t^
 
-// uniform mat4 mvp;
-// uniform mat4 matModel;
-// uniform mat4 matNormal;
-		mat_model_loc := rl.GetShaderLocation(lightray.lighting.shader, "matModel")
-		rl.SetShaderValueMatrix(lightray.lighting.shader, mat_model_loc, rl.Matrix(1))
+		for &p in transformed_tri.points {
+			p4:= mat*spat.Vector4{p.x, p.y, p.z, 1}
+			p = p4.xyz
+		}
 
-		mvp_loc := rl.GetShaderLocation(lightray.lighting.shader, "mvp")
-		rl.SetShaderValueMatrix(lightray.lighting.shader, mvp_loc, rl.Matrix(1))
+		// rlgl.Translatef(transform.position.x, transform.position.y, transform.position.z)
 
-		mat_normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "matNormal")
-		rl.SetShaderValueMatrix(lightray.lighting.shader, mat_normal_loc, rl.Matrix(1))
+		// matrix_data := rl.MatrixToFloatV(mat)
+		// rlgl.MultMatrixf(auto_cast &matrix_data)
+
+		// normal := linalg.cross(points[0] - points[1], points[2] - points[1])
+		// normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "normal")
+
+		// uniform mat4 mvp;
+		// uniform mat4 matModel;
+		// uniform mat4 matNormal;
+		// mat_model_loc := rl.GetShaderLocation(lightray.lighting.shader, "matModel")
+		// rl.SetShaderValueMatrix(lightray.lighting.shader, mat_model_loc, rl.Matrix(1))
+		//
+		// mvp_loc := rl.GetShaderLocation(lightray.lighting.shader, "mvp")
+		// rl.SetShaderValueMatrix(lightray.lighting.shader, mvp_loc, rl.Matrix(1))
+		//
+		// mat_normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "matNormal")
+		// rl.SetShaderValueMatrix(lightray.lighting.shader, mat_normal_loc, rl.Matrix(1))
 
 
-		draw_triangle(points[0], points[1], points[2], face_color)
-		// rl.DrawTriangle3D(points[0], points[1], points[2], face_color)
-		rl.DrawLine3D(points[0], points[1], edge_color)
-		rl.DrawLine3D(points[0], points[2], edge_color)
-		rl.DrawLine3D(points[1], points[2], edge_color)
+		// TODO Currently we are transforming each point induvidually, indeally we should just have a few meshes, send them 
+		// once to the gpu and instance it. But Something goes wrong in the shader with normals if we do that. Needs investigation 
+
+		draw_triangle(transformed_tri.points.x, transformed_tri.points.y, transformed_tri.points.z, face_color)
+
+		rl.DrawLine3D(transformed_tri.points.x, transformed_tri.points.y, edge_color)
+		rl.DrawLine3D(transformed_tri.points.x, transformed_tri.points.z, edge_color)
+		rl.DrawLine3D(transformed_tri.points.y, transformed_tri.points.z, edge_color)
 		rlgl.PopMatrix()
 	}
 
@@ -585,12 +611,6 @@ render :: proc(
 	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
 	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
-	rl.DrawCube({0, 0, f32(math.sin(rl.GetTime()) * 10)}, 10, 10, 10, rl.GRAY)
-
-	draw_triangle({100, 10, 100}, {-100, 10, -100}, {-100, 10, 100}, rl.WHITE)
-	draw_triangle({100, 10, 100}, {-100, 10, 100}, {-100, 10, -100}, rl.WHITE)
-	// rl.DrawTriangle3D({100, 10, 100}, {-100, 10, -100}, {-100, 10, 100}, rl.WHITE)
-	// rl.DrawTriangle3D({100, 10, 100}, {-100, 10, 100}, {-100, 10, -100}, rl.WHITE)
 
 
 	if game_state.cheat_state.draw_bounds {
@@ -706,7 +726,7 @@ add_debug_level_objects :: proc(
 	)
 
 	for box_num in 0 ..= 5 {
-		spat.add_shape_to_hash_map(
+		id := spat.add_shape_to_hash_map(
 			collision_objects,
 			spaital_hash_grid,
 			&spat.Collision_Shape {
@@ -714,6 +734,8 @@ add_debug_level_objects :: proc(
 				spat.Box{{3, 3, 40}},
 			},
 		)
+
+		level.grappable[id] = true
 
 	}
 
