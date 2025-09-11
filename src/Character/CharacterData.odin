@@ -146,12 +146,14 @@ update_character :: proc(
 }
 
 reset_run :: proc(character_data: ^CharacternData, start_location, start_direction: ^spat.Vector) {
-	character_data.verlet_component.position = {1, 5, 1}
-	character_data.verlet_component.velocity = {}
 	reset_speedrun(character_data)
 	start_speedrun(character_data)
 
+	character_data.verlet_component.position = {1, 5, 1}
+	character_data.verlet_component.velocity = {}
 	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
+	character_data.is_hooked = false
+	character_data.hooked_position = spat.ZERO_VEC3
 
 }
 
