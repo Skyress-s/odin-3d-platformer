@@ -80,7 +80,7 @@ map_directory :: proc(ctx: ^mu.Context) -> string {
 	}
 
 
-	return vis_dir(ctx, os.File_Info{fullpath = filepath.join({cwd, "levels"})}, true)
+	return vis_dir(ctx, os.File_Info{fullpath = filepath.join({cwd, "content/levels"})}, true)
 }
 
 vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = false) -> string {

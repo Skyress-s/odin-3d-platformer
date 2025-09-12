@@ -84,7 +84,7 @@ main :: proc() {
 	}
 
 
-	current_level := serialization.load_from_file_level("levels/2.I.map")
+	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
 	character.reset_run(&players.game, &current_level.start_position, &current_level.start_look_direction)
 
