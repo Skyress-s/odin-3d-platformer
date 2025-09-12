@@ -83,32 +83,10 @@ main :: proc() {
 		movement_speed = 30,
 	}
 
-	current_level: l.Level
-	current_level.name = "test_level"
 
-	add_debug_level_objects(
-		&current_level,
-		&current_level.collision_object_map,
-		&current_level.spatial_hash_grid,
-	)
+	current_level := serialization.load_from_file_level("levels/2.I.map")
 
-	current_level.start_position = {0, 0, 0}
-	current_level.start_look_direction = {1, 0, 0}
-
-	//serialization.save_to_file_level(&current_level, "test.map")
-	//loaded_level := serialization.load_from_file_level("test.map")
-
-	//current_level = loaded_level
-	// current_level.start_position = loaded_level.start_position
-	// current_level.start_look_direction = linalg.normalize0(loaded_level.start_look_direction)
-
-	// Set look anglesaftfrt
-	// TODO: Make this shit into a function. P.S.Dima was here
-	players.game.look_angles.x = -math.asin(current_level.start_look_direction.y)
-	players.game.look_angles.y = linalg.vector_angle_between(
-		spat.Vector{0, 0, 1},
-		current_level.start_look_direction,
-	)
+	character.reset_run(&players.game, &current_level.start_position, &current_level.start_look_direction)
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
