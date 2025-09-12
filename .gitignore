@@ -1,4 +1,7 @@
 /.idea/
 /bin/
 src.exe
+src.o
 .idea/
+/ignore/
+
