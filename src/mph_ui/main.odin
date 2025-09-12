@@ -34,10 +34,10 @@ all_windows :: proc(
 
 	switch players.mode {
 	case .Game:
+		stats(ctx, players, game_state, screen_rect)
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
 
-		stats(ctx, players, game_state, screen_rect)
 
 		if game_state.finished_level {
 			if mu.window(ctx, "FINISHED LEVEL", screen_rect) {
@@ -161,6 +161,18 @@ speedrun_timer :: proc(
 	}
 }
 
+controls_sheet :: proc(ctx: ^mu.Context) {
+	mu.layout_row(ctx, {-1})
+	mu.text(ctx, "WASD		- Movement")
+	mu.layout_row(ctx, {-1})
+	mu.text(ctx, "SPACE		- Jump")
+	mu.layout_row(ctx, {-1})
+	mu.text(ctx, "R			- Reset Run")
+
+	mu.layout_row(ctx, {-1})
+	mu.text(ctx, "Q			- Open / Close Editor")
+}
+
 cheats_panel :: proc(
 	ctx: ^mu.Context,
 	screen_dimentions: [2]i32,
@@ -175,39 +187,57 @@ cheats_panel :: proc(
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
 
-	stats_container := mu.get_container(ctx, "stats")
+	stats_container := mu.get_container(ctx, "stats", {
+			// mu.Opt.NO_INTERACT,
+			// mu.Opt.NO_SCROLL,
+			// mu.Opt.CLOSED,
+			// mu.Opt.NO_FRAME,
+			// mu.Opt.NO_RESIZE,
+			// mu.Opt.NO_TITLE,
+	}) // TODO this crashes the game.
 	if mu.window(
 		ctx,
 		"Cheat Window (TAB to free mouse)",
 		screen_rect,
-		{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME},
+		{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME, .NO_TITLE},
 	) {
-		mu.get_current_container(ctx).rect = screen_rect
+		if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)") {
+			if .ACTIVE in mu.treenode(ctx, "Controls") {
+				controls_sheet(ctx)
+			}
 
+			mu.get_current_container(ctx).rect = screen_rect
 
-		mu.text(ctx, "CHEATS")
-		mu.layout_row(ctx, {-1})
-		mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
+			mu.layout_next(ctx)
 
-		mu.layout_row(ctx, {-1})
-		mu.checkbox(ctx, "draw_spatial_hash_grid_bounds", &game_state.cheat_state.draw_bounds)
+			if .ACTIVE in mu.treenode(ctx, "CHEATS") {
+				mu.layout_row(ctx, {-1})
+				mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
 
-		mu.layout_row(ctx, {-1})
-		mu.checkbox(
-			ctx,
-			"change_color_when\nplayer_in_cell",
-			&game_state.cheat_state.change_color_when_player_in_cell,
-		)
+				mu.layout_row(ctx, {-1})
+				mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
 
-		mu.layout_next(ctx)
-		mu.layout_next(ctx)
-		mu.text(ctx, "MISC")
+				mu.layout_row(ctx, {-1})
+				mu.checkbox(
+					ctx,
+					"player_in_active_cell",
+					&game_state.cheat_state.change_color_when_player_in_cell,
+				)
+			}
 
-		mu.layout_row(ctx, {-1})
-		open := bool(stats_container.open) 
-		mu.checkbox(ctx, "display_stats", &open)
+			mu.layout_next(ctx)
 
-		stats_container.open = b32(open)
+			if .ACTIVE in mu.treenode(ctx, "MISC") {
+				if stats_container != nil{
+				mu.layout_row(ctx, {-1})
+				open := bool(stats_container.open)
+				mu.checkbox(ctx, "display_stats", &open)
+
+				stats_container.open = b32(open)
+				}
+			}
+		}
+
 	}
 }
 
@@ -341,10 +371,9 @@ stats :: proc(
 		"stats",
 		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h},
 		{
-			mu.Opt.CLOSED,
 			mu.Opt.NO_INTERACT,
 			mu.Opt.NO_SCROLL,
-			mu.Opt.NO_CLOSE,
+			mu.Opt.CLOSED,
 			mu.Opt.NO_FRAME,
 			mu.Opt.NO_RESIZE,
 			mu.Opt.NO_TITLE,
