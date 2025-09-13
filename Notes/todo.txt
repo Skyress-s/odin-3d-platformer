@@ -6,13 +6,27 @@ Dima
 - [ ] Help for controls (text or a image should be enough for now)
 
 Maja
-- [ ] Føles ut som å bevege seg som en snegle i slow motion, i lav tyngde kraft - maja 2025
+- [v?] Føles ut som å bevege seg som en snegle i slow motion, i lav tyngde kraft - maja 2025
 	- [ ] Levelene føles for store ut, føles ikke ut som om man beveger seg fort.
 - [ ] Kill volumes, tvinge spiller til å *ikke* gjøre spesefikke ting (over under x osv)
 - [ ] Hook only volumes, man kunne hooke seg i alt, kan chease lett
 
-
-
-
 General
-- [ ] - Make a grapple only volume
+- [x] - Make a grapple only volume
+
+Morgan 
+- [ ] When duping a object, copy the properties too :)
+- [ ] Speed indicator / White stripes at the edges for screen, sounds etc (Super Flight / Elytra fra MC)
+- [ ] Textures / seeing where you are is difficult.
+- [ ] Notify player that the lenght is shortening?
+- [ ]
+- [ ]
+- [ ]
+- [ ]
+- [ ]
+
+Bernt 
+- [ ] Undo stack?
+- [ ] Best time ranking 
+- [ ] Author time!
+- [ ]

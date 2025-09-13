@@ -139,7 +139,7 @@ update_character :: proc(
 		if ok {
 			character_data.current_state = Grounded{10, 280}
 		} else {
-			character_data.current_state = Airborne{10, 150}
+			character_data.current_state = Airborne{10, 60}
 		}
 
 	}
@@ -289,14 +289,24 @@ collide_with_tri :: proc(
 		verlet_component.position += normal * (char_data.radius - dist)
 		// project velocity to the normal plane, if moving towards it
 		vel_normal_dot: f32 = linalg.dot(vel^, normal)
+	
+		angles_euler := linalg.to_degrees(linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^))
+		should_keep_momentum :=  angles_euler < 20
+		velocity_length := linalg.length(vel^)
+
 		if vel_normal_dot < 0 {
 			diff := (vel^ - normal * vel_normal_dot) - verlet_component.velocity
 			acceleration := diff / dt
 			//verlet_component.acceleration += acceleration
 			verlet_component.velocity -= normal * vel_normal_dot
+
+			if should_keep_momentum {
+				verlet_component.velocity = linalg.normalize(verlet_component.velocity) * velocity_length
+
+				fmt.println(should_keep_momentum)
+			}
 		}
 	}
-
 }
 
 

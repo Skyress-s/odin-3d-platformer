@@ -206,6 +206,8 @@ cheats_panel :: proc(
 		screen_rect,
 		{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME, .NO_TITLE},
 	) {
+		mu.get_current_container(ctx).rect = screen_rect
+
 		if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)") {
 			if .ACTIVE in mu.treenode(ctx, "Controls") {
 				controls_sheet(ctx)
@@ -280,6 +282,10 @@ details_panel :: proc(
 							&level.spatial_hash_grid,
 							current_coll_obj.data,
 						)
+					}
+					_, is_kill_volume := level.kill_volumes[current_id]
+					if is_kill_volume {
+						// TODO Finish copying values  
 					}
 				}
 				{
@@ -371,10 +377,13 @@ stats :: proc(
 	game_state: ^game_state.Game_State,
 	screen_rect: mu.Rect,
 ) {
+	target_rect := 
+		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
+
 	if mu.window(
 		ctx,
 		"stats",
-		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h},
+		target_rect,
 		{
 			mu.Opt.NO_INTERACT,
 			mu.Opt.NO_SCROLL,
@@ -386,6 +395,7 @@ stats :: proc(
 	) {
 		char_data := &players.game
 		mu.get_current_container(ctx).zindex = -100000
+		mu.get_current_container(ctx).rect = target_rect
 		// mu.layout_row(ctx, {-1})
 		// mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
 		mu.layout_row(ctx, {-1})
