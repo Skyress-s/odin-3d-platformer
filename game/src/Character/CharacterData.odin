@@ -45,6 +45,8 @@ CharacternData :: struct {
 
 	// If we pause the game and resume, we want to exclude that period of time -> why its an array of timers
 	speedrun_stop_watch:     time.Stopwatch,
+
+	// best_time: f32
 }
 
 start_speedrun :: proc(game_player: ^CharacternData) {

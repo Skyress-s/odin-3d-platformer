@@ -13,7 +13,12 @@ Level :: distinct struct {
 	grappable:            map[spat.Collision_Object_Id]bool,
 
 
+
 	// Player Start
-	start_position:       spat.Vector,
-	start_look_direction: spat.Vector,
+	start_position,
+	start_look_direction,
+	start_velocity: spat.Vector,
+
+	// Stats
+	author_time: f32
 }

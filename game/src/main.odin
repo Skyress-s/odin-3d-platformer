@@ -176,8 +176,8 @@ main :: proc() {
 
 		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
 		   position_transform_tool.target_object_id.idx != 0 {
-			   fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
-			   
+			fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
+
 			if !mouse_over_ui {
 				if position_transform_tool.dragging == true {
 					position_transform_tool.dragging = false
@@ -214,7 +214,7 @@ main :: proc() {
 
 		switch players.mode {
 		case _players.Player_Mode.Game:
-			character.update_character(&players.game, &current_level, &game_state, dt)
+				character.update_character(&players.game, &current_level, &game_state, dt)
 		case _players.Player_Mode.Editor:
 			if rl.IsKeyPressed(.ONE) {
 				position_transform_tool.active_tool = e_tools.Position_Tool{}
@@ -283,14 +283,16 @@ main :: proc() {
 
 		switch players.mode {
 		case _players.Player_Mode.Game:
-			verlet.velocity_verlet_leap(&players.game.verlet_component, dt)
-			character.update_character_physics(
-				&players.game,
-				&current_level,
-				&player_overlapping_cells,
-				dt,
-			)
-			verlet.velocity_verlet_frog(&players.game.verlet_component, dt)
+			if !game_state.finished_level {
+				verlet.velocity_verlet_leap(&players.game.verlet_component, dt)
+				character.update_character_physics(
+					&players.game,
+					&current_level,
+					&player_overlapping_cells,
+					dt,
+				)
+				verlet.velocity_verlet_frog(&players.game.verlet_component, dt)
+			}
 		case _players.Player_Mode.Editor:
 		}
 
