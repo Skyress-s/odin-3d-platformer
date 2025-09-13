@@ -302,8 +302,6 @@ collide_with_tri :: proc(
 
 			if should_keep_momentum {
 				verlet_component.velocity = linalg.normalize(verlet_component.velocity) * velocity_length
-
-				fmt.println(should_keep_momentum)
 			}
 		}
 	}

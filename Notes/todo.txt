@@ -19,14 +19,24 @@ Morgan
 - [ ] Speed indicator / White stripes at the edges for screen, sounds etc (Super Flight / Elytra fra MC)
 - [ ] Textures / seeing where you are is difficult.
 - [ ] Notify player that the lenght is shortening?
-- [ ]
-- [ ]
+- [ ] Add tooltips to always be drawn in front!
+- [ ] 
 - [ ]
 - [ ]
 - [ ]
 
 Bernt 
+- [ ] Pipes & Cyllinders
 - [ ] Undo stack?
 - [ ] Best time ranking 
 - [ ] Author time!
-- [ ]
+- [ ] automatically add .map when saving a map.
+- [ ] Boring to start every retrail by just walking of a ledge or even just falling to gain speed. Can add a speed pad / volume or start level with speed.
+- [ ] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
+
+
+
+Defenistration the game
+every level starts and ends with crashing into a window
+Always starts the Defenistration with some momentum
+

@@ -188,8 +188,8 @@ cheats_panel :: proc(
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
 
-	stats_container := mu.get_container( // TODO we should get the container, but it should be hidden / closed by default!
-	ctx,
+	stats_container := mu.get_container(
+	ctx,// TODO we should get the container, but it should be hidden / closed by default!
 	"stats",
 	{
 		// mu.Opt.NO_INTERACT,
@@ -277,16 +277,23 @@ details_panel :: proc(
 				mu.layout_row(ctx, {-1})
 				if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
 					if current_coll_obj != nil {
-						spat.add_to_level(
+						new_id := spat.add_to_level(
 							&level.collision_object_map,
 							&level.spatial_hash_grid,
 							current_coll_obj.data,
 						)
+
+						_, is_kill_volume := level.kill_volumes[current_id]
+						if is_kill_volume {
+							level.kill_volumes[new_id] = true
+						}
+
+						_, is_grappable := level.grappable[current_id]
+						if is_grappable {
+							level.grappable[new_id] = true
+						}
 					}
-					_, is_kill_volume := level.kill_volumes[current_id]
-					if is_kill_volume {
-						// TODO Finish copying values  
-					}
+
 				}
 				{
 					_, is_kill_volume := level.kill_volumes[current_id]
@@ -377,8 +384,7 @@ stats :: proc(
 	game_state: ^game_state.Game_State,
 	screen_rect: mu.Rect,
 ) {
-	target_rect := 
-		mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
+	target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
 
 	if mu.window(
 		ctx,

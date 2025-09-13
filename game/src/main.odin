@@ -86,13 +86,18 @@ main :: proc() {
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
-	character.reset_run(&players.game, &current_level.start_position, &current_level.start_look_direction)
+	character.reset_run(
+		&players.game,
+		&current_level.start_position,
+		&current_level.start_look_direction,
+	)
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1200, 900, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
 
+	// rl.SetTargetFPS(180)
 	rl.SetTargetFPS(180)
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
@@ -128,7 +133,7 @@ main :: proc() {
 	{
 		// backlight_color := rl.SKYBLUE
 		backlight_color := rl.SKYBLUE
-// Color{ 102, 191, 255, 255 }
+		// Color{ 102, 191, 255, 255 }
 
 		lightray.create_light(.DIRECTIONAL, {-10, -10, 10}, spat.ZERO_VEC3, backlight_color)
 	}
@@ -170,18 +175,22 @@ main :: proc() {
 		// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 
 		if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
-		   position_transform_tool.target_object_id.idx != 0 &&
-		   !mouse_over_ui {
-
-			if position_transform_tool.dragging == true {
-				position_transform_tool.dragging = false
-				position_transform_tool.target_object_id = spat.notify_object_transform_changed(
-					&current_level.collision_object_map,
-					&current_level.spatial_hash_grid,
-					position_transform_tool.target_object_id,
-				)
-				//position_transform_tool.target_object_id.idx = 0
+		   position_transform_tool.target_object_id.idx != 0 {
+			   fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
+			   
+			if !mouse_over_ui {
+				if position_transform_tool.dragging == true {
+					position_transform_tool.dragging = false
+					position_transform_tool.target_object_id =
+						spat.notify_object_transform_changed(
+							&current_level.collision_object_map,
+							&current_level.spatial_hash_grid,
+							position_transform_tool.target_object_id,
+						)
+					//position_transform_tool.target_object_id.idx = 0
+				}
 			}
+
 
 		}
 
