@@ -34,8 +34,9 @@ all_windows :: proc(
 
 	switch players.mode {
 	case .Game:
-		stats(ctx, players, game_state, screen_rect)
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
+		stats(ctx, players, game_state, screen_rect)
+
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
 
 
@@ -187,14 +188,18 @@ cheats_panel :: proc(
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
 
-	stats_container := mu.get_container(ctx, "stats", {
-			// mu.Opt.NO_INTERACT,
-			// mu.Opt.NO_SCROLL,
-			// mu.Opt.CLOSED,
-			// mu.Opt.NO_FRAME,
-			// mu.Opt.NO_RESIZE,
-			// mu.Opt.NO_TITLE,
-	}) // TODO this crashes the game.
+	stats_container := mu.get_container( // TODO we should get the container, but it should be hidden / closed by default!
+	ctx,
+	"stats",
+	{
+		// mu.Opt.NO_INTERACT,
+		// mu.Opt.NO_SCROLL,
+		// mu.Opt.CLOSED,
+		// mu.Opt.NO_FRAME,
+		// mu.Opt.NO_RESIZE,
+		// mu.Opt.NO_TITLE,
+	},
+	) // TODO this crashes the game.
 	if mu.window(
 		ctx,
 		"Cheat Window (TAB to free mouse)",
@@ -227,15 +232,15 @@ cheats_panel :: proc(
 
 			mu.layout_next(ctx)
 
-			if .ACTIVE in mu.treenode(ctx, "MISC") {
-				if stats_container != nil{
-				mu.layout_row(ctx, {-1})
-				open := bool(stats_container.open)
-				mu.checkbox(ctx, "display_stats", &open)
-
-				stats_container.open = b32(open)
-				}
-			}
+			// if .ACTIVE in mu.treenode(ctx, "MISC") {
+			// 	if stats_container != nil {
+			// 		mu.layout_row(ctx, {-1})
+			// 		open := bool(stats_container.open)
+			// 		mu.checkbox(ctx, "display_stats", &open)
+			//
+			// 		stats_container.open = b32(open)
+			// 	}
+			// }
 		}
 
 	}
