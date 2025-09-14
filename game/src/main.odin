@@ -65,6 +65,10 @@ import rlgl "vendor:raylib/rlgl"
 
 // some_type :: distinct union #no_nil {i32, f32}
 
+game_static_shaders :: struct {
+	shader_editor_tool_depth: ^rl.Shader,
+}
+
 main :: proc() {
 	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
 
@@ -125,6 +129,10 @@ main :: proc() {
 	position_transform_tool := &players.editor.transform_tool
 
 	character.start_speedrun(&players.game)
+
+	// Shader stuff
+	
+
 
 	lightray.init_lighting()
 	defer lightray.destroy_lighting()
@@ -214,7 +222,7 @@ main :: proc() {
 
 		switch players.mode {
 		case _players.Player_Mode.Game:
-				character.update_character(&players.game, &current_level, &game_state, dt)
+			character.update_character(&players.game, &current_level, &game_state, dt)
 		case _players.Player_Mode.Editor:
 			if rl.IsKeyPressed(.ONE) {
 				position_transform_tool.active_tool = e_tools.Position_Tool{}
@@ -347,29 +355,8 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	shader := rl.LoadShader("content/shaders/editor_tool_depth/depth.vert", "content/shaders/editor_tool_depth/depth.frag")
-	// shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW] = rl.GetShaderLocation(shader, "viewPos")
-	//
-	// ambient_loc := rl.GetShaderLocation(shader, "ambient")
-	// rl.SetShaderValue(shader, ambient_loc, &rl.Vector4{0.1, 0.1,0.1,0.1}, rlgl.ShaderUniformDataType.VEC4)	
-	// player_loc := players.game.verlet_component.position
-	// rl.SetShaderValue(shader, shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW], &player_loc, rlgl.ShaderUniformDataType.VEC3)
-
-	// dir_light := lightray.create_light(
-	// 	.DIRECTIONAL,
-	// 	spat.Vector{1, 1, 1},
-	// 	spat.Vector{0, 0, 0},
-	// 	rl.RAYWHITE,
-	// )
-
-
-	// point_light := lightray.create_light(
-	// 	.POINT,
-	// 	spat.Vector{1, 10, 1},
-	// 	spat.Vector{0, 0, 0},
-	// 	rl.WHITE,
-	// )
-	// point_light := lightray.create_light(.POINT, spat.Vector{60, 0, 0}, spat.Vector{0, -1, 0}, rl.MAGENTA) 
+	shader_editor_tool_depth := rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
+	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
 	rl.SetShaderValue(
 		lightray.lighting.shader,
@@ -406,56 +393,6 @@ render :: proc(
 		)
 		rl.DrawLine3D(player_verlet.position, player_verlet.position + forward * 8, rl.RED)
 
-		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
-		if found_object != nil {
-
-			switch &active_tool in tool.active_tool {
-			case e_tools.Position_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
-						found_object.transform.position,
-						players.editor.position,
-					),
-				)
-
-			case e_tools.Rotation_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
-						found_object.transform.position,
-						players.editor.position,
-					),
-				)
-			case e_tools.Scale_Tool:
-				scale_bars := e_tools.calculate_scale_bars(
-					found_object.transform,
-					players.editor.position,
-				)
-				//e_tools.draw_scale_boxes(scale_bars)
-				tris := e_tools.scale_bars_to_tris(&scale_bars)
-
-				for &scale_bars_triangles, i in tris {
-					color: rl.Color = rl.MAGENTA
-					switch i {
-					case 0:
-						color = rl.RED
-					case 1:
-						color = rl.GREEN
-					case 2:
-						color = rl.BLUE
-					}
-
-					for &tri in scale_bars_triangles {
-						rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
-					}
-				}
-
-			// e_tools.draw_scale_boxes(
-			// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-			// )
-
-			}
-
-		}
 	}
 
 	// rl.DrawCube(tool.transform.position, 50, 50, 50, rl.MAGENTA)
@@ -639,6 +576,59 @@ render :: proc(
 
 		*/
 	lightray.end_lighting()
+	rl.BeginShaderMode(shader_editor_tool_depth)
+
+	found_object := hms.get(&level.collision_object_map, tool.target_object_id)
+	if found_object != nil {
+
+		switch &active_tool in tool.active_tool {
+		case e_tools.Position_Tool:
+			e_tools.draw_position_tooltip_new(
+				e_tools.calculate_drag_planes(
+					found_object.transform.position,
+					players.editor.position,
+				),
+			)
+
+		case e_tools.Rotation_Tool:
+			e_tools.draw_position_tooltip_new(
+				e_tools.calculate_drag_planes(
+					found_object.transform.position,
+					players.editor.position,
+				),
+			)
+		case e_tools.Scale_Tool:
+			scale_bars := e_tools.calculate_scale_bars(
+				found_object.transform,
+				players.editor.position,
+			)
+			//e_tools.draw_scale_boxes(scale_bars)
+			tris := e_tools.scale_bars_to_tris(&scale_bars)
+
+			for &scale_bars_triangles, i in tris {
+				color: rl.Color = rl.MAGENTA
+				switch i {
+				case 0:
+					color = rl.RED
+				case 1:
+					color = rl.GREEN
+				case 2:
+					color = rl.BLUE
+				}
+
+				for &tri in scale_bars_triangles {
+					rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
+				}
+			}
+
+		// e_tools.draw_scale_boxes(
+		// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+		// )
+
+		}
+
+	}
+	rl.EndShaderMode()
 
 	rl.EndMode3D()
 
