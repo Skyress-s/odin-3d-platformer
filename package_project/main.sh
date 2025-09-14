@@ -15,7 +15,7 @@ ZIP_NAME=$(sed -n '1p' build_data.txt | tr -d '[:space:]')
 # r = recursive, q = quite
 zip -rq ${ZIP_NAME}.zip build
 
-sudo rm -r build
+# sudo rm -r build
 
 sleep 2
 

@@ -5,4 +5,5 @@ src.o
 .idea/
 /.ignore/
 /package_project/*.zip
+/package_project/Release*/
 
