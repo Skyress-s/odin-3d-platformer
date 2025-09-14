@@ -6,4 +6,5 @@ src.o
 /.ignore/
 /package_project/*.zip
 /package_project/Release*/
+/package_project/build/
 
