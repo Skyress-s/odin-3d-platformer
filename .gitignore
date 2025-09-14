@@ -4,4 +4,5 @@ src.exe
 src.o
 .idea/
 /.ignore/
+/package_project/*.zip
 
