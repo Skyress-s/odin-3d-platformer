@@ -347,7 +347,7 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	// shader := rl.LoadShader("content/shaders/basic_lighting/lighting.vert", "content/shaders/basic_lighting/lighting.frag")
+	shader := rl.LoadShader("content/shaders/editor_tool_depth/depth.vert", "content/shaders/editor_tool_depth/depth.frag")
 	// shader.locs[rlgl.ShaderLocationIndex.VECTOR_VIEW] = rl.GetShaderLocation(shader, "viewPos")
 	//
 	// ambient_loc := rl.GetShaderLocation(shader, "ambient")
