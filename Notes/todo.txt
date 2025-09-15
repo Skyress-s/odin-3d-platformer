@@ -34,7 +34,13 @@ Bernt
 - [ ] Boring to start every retrail by just walking of a ledge or even just falling to gain speed. Can add a speed pad / volume or start level with speed.
 - [ ] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
 
-
+Arian
+- [ ] Don't allow you to close the editor details panel
+- [ ] Esc ikke lukk spillet
+- [ ] COTINOUS COLL DETECTION!!!
+- [ ] Change FOV based on speed? 
+Per object motion blur?
+- [ ]
 
 Defenistration the game
 every level starts and ends with crashing into a window
