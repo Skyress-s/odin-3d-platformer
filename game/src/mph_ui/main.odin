@@ -208,8 +208,8 @@ cheats_panel :: proc(
 	) {
 		mu.get_current_container(ctx).rect = screen_rect
 
-		if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)") {
-			if .ACTIVE in mu.treenode(ctx, "Controls") {
+		if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)", {mu.Opt.EXPANDED}) {
+			if .ACTIVE in mu.treenode(ctx, "Controls", {mu.Opt.EXPANDED}) {
 				controls_sheet(ctx)
 			}
 

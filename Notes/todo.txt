@@ -2,24 +2,24 @@ Dima
 - [ ] Entire render screen is offset half way down?!!?!?!?
 - [ ] Need some form of continious collision detection.
 - [ ] Stars, have some fluff and effects, some rewards?
-- [ ] Hard to orient yourself -> shadows or textures, or atleast a direction light
+- [x](for now) Hard to orient yourself -> shadows or textures, or atleast a direction light
 - [ ] Help for controls (text or a image should be enough for now)
 
 Maja
-- [v?] Føles ut som å bevege seg som en snegle i slow motion, i lav tyngde kraft - maja 2025
+- [x?] Føles ut som å bevege seg som en snegle i slow motion, i lav tyngde kraft - maja 2025
 	- [ ] Levelene føles for store ut, føles ikke ut som om man beveger seg fort.
-- [ ] Kill volumes, tvinge spiller til å *ikke* gjøre spesefikke ting (over under x osv)
-- [ ] Hook only volumes, man kunne hooke seg i alt, kan chease lett
+- [x] Kill volumes, tvinge spiller til å *ikke* gjøre spesefikke ting (over under x osv)
+- [x] Hook only volumes, man kunne hooke seg i alt, kan chease lett
 
 General
 - [x] - Make a grapple only volume
 
 Morgan 
-- [ ] When duping a object, copy the properties too :)
+- [x] When duping a object, copy the properties too :)
 - [ ] Speed indicator / White stripes at the edges for screen, sounds etc (Super Flight / Elytra fra MC)
 - [ ] Textures / seeing where you are is difficult.
 - [ ] Notify player that the lenght is shortening?
-- [ ] Add tooltips to always be drawn in front!
+- [x] Add tooltips to always be drawn in front!
 - [ ] 
 - [ ]
 - [ ]
@@ -33,8 +33,6 @@ Bernt
 - [ ] automatically add .map when saving a map.
 - [ ] Boring to start every retrail by just walking of a ledge or even just falling to gain speed. Can add a speed pad / volume or start level with speed.
 - [ ] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
-
-
 
 Defenistration the game
 every level starts and ends with crashing into a window
