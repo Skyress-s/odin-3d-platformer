@@ -47,7 +47,7 @@ all_windows :: proc(
 				mu.text(
 					ctx,
 					fmt.aprintf(
-						"You finished the level in: {:.1f}",
+						"You finished the level in: {:.3f}",
 						time.duration_seconds(
 							time.stopwatch_duration(players.game.speedrun_stop_watch),
 						),
@@ -118,11 +118,9 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = fal
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), ".map") {
 				if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
-					clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
-					// fmt.println("cwd:", os.get_current_directory())
-					// fmt.println("target: ", fi.fullpath)
-					// fmt.println(clicked_map_name)
-					//clicked_map_name = fi.fullpath
+					
+					// clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
+					clicked_map_name, _ = filepath.rel(filepath.join({os.get_current_directory(), "content/levels"}), fi.fullpath)
 				}
 			}
 
@@ -158,7 +156,7 @@ speedrun_timer :: proc(
 		duration_seconds := time.duration_seconds(
 			time.stopwatch_duration(players.game.speedrun_stop_watch),
 		)
-		mu.text(ctx, fmt.aprintf("Current time: {:.1f}", duration_seconds))
+		mu.text(ctx, fmt.aprintf("Current time: {:.3f}", duration_seconds))
 
 	}
 }
@@ -166,8 +164,10 @@ speedrun_timer :: proc(
 controls_sheet :: proc(ctx: ^mu.Context) {
 	mu.layout_row(ctx, {-1})
 	mu.text(ctx, "WASD		- Movement")
+
 	mu.layout_row(ctx, {-1})
 	mu.text(ctx, "SPACE		- Jump")
+
 	mu.layout_row(ctx, {-1})
 	mu.text(ctx, "R			- Reset Run")
 
@@ -264,7 +264,7 @@ details_panel :: proc(
 	screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
 	screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
 
-	if mu.window(ctx, "details_panel", screen_rect, {}) {
+	if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
 
 		current_container := mu.get_current_container(ctx)
 		current_container.rect = screen_rect
@@ -451,10 +451,10 @@ stats :: proc(
 		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Best run    {}", players.game.best_time))
+		mu.label(ctx, fmt.aprintf("Best run    {:.3f}", players.game.best_time))
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Author time {}", level.author_time))
+		mu.label(ctx, fmt.aprintf("Author time {:.3f}", level.author_time))
 
 	}
 }
