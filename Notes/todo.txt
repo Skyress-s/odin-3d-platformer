@@ -29,10 +29,10 @@ Bernt
 - [ ] Pipes & Cyllinders
 - [ ] Undo stack?
 - [ ] Best time ranking 
-- [ ] Author time!
-- [ ] automatically add .map when saving a map.
+- [x] Author time!
+- [x] automatically add .map when saving a map.
 - [ ] Boring to start every retrail by just walking of a ledge or even just falling to gain speed. Can add a speed pad / volume or start level with speed.
-- [ ] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
+- [x] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
 
 Arian
 - [ ] Don't allow you to close the editor details panel

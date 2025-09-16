@@ -18,6 +18,24 @@ import "core:strings"
 import "core:time"
 import mu "vendor:microui"
 
+PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
+
+// Examples will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
+to_cwd_map_path_from_local :: proc(local_path: string) -> string {
+	return filepath.join({PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, ".map"})})
+}
+
+to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
+	local_path, _ := filepath.rel(
+		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
+		cwd_path,
+	)
+	local_path = local_path[:(len(local_path) - len(".map"))]
+
+	return local_path
+}
+
+
 all_windows :: proc(
 	ctx: ^mu.Context,
 	players: ^plrs.Players,
@@ -82,7 +100,11 @@ map_directory :: proc(ctx: ^mu.Context) -> string {
 	}
 
 
-	return vis_dir(ctx, os.File_Info{fullpath = filepath.join({cwd, "content/levels"})}, true)
+	return vis_dir(
+		ctx,
+		os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})},
+		true,
+	)
 }
 
 vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = false) -> string {
@@ -111,16 +133,21 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = fal
 	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
 		for fi in fis {
 			full_directory, name := filepath.split(fi.fullpath)
-
+			name = name[:(len(name) - len(".map"))]
 
 			if fi.is_dir {
 				dir_name := vis_dir(ctx, fi)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), ".map") {
 				if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
-					
+
 					// clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
-					clicked_map_name, _ = filepath.rel(filepath.join({os.get_current_directory(), "content/levels"}), fi.fullpath)
+					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
+					// clicked_map_name, _ = filepath.rel(
+					// 	filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
+					// 	fi.fullpath,
+					// )
+					// clicked_map_name = clicked_map_name[:(len(clicked_map_name) - len(".map"))]
 				}
 			}
 
@@ -190,7 +217,7 @@ cheats_panel :: proc(
 	// rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
 
 	stats_container := mu.get_container(
-	ctx,// TODO we should get the container, but it should be hidden / closed by default!
+	ctx, // TODO we should get the container, but it should be hidden / closed by default!
 	"stats",
 	{
 		// mu.Opt.NO_INTERACT,
@@ -335,11 +362,15 @@ details_panel :: proc(
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
 				level.author_time = players.game.best_time
-				serialization.save_to_file(level, string(buf[:buf_len]))
+
+				serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+
 			}
+
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
-				level^ = serialization.load_from_file_level(string(buf[:buf_len]))
+				level^ = serialization.load_from_file_level(to_cwd_map_path_from_local(string(buf[:buf_len])))
+
 				character.reset_run(
 					&players.game,
 					&level.start_position,
@@ -385,7 +416,7 @@ stats :: proc(
 	players: ^plrs.Players,
 	game_state: ^game_state.Game_State,
 	screen_rect: mu.Rect,
-	level: ^l.Level
+	level: ^l.Level,
 ) {
 	target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
 
