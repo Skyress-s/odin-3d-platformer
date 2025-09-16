@@ -20,5 +20,5 @@ Level :: distinct struct {
 	start_velocity: spat.Vector,
 
 	// Stats
-	author_time: f32
+	author_time: f64
 }

@@ -44,6 +44,7 @@ Level_Serialization_Data :: struct {
 	kill_volume_ids:      [dynamic]spat.Collision_Object_Id,
 	grapple_volume_ids:   [dynamic]spat.Collision_Object_Id,
 
+	author_time: 		  f64
 
 	//objects: [dynamic]int,
 }
@@ -55,6 +56,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
 		start_position       = level.start_position,
 		start_look_direction = level.start_look_direction,
+		author_time = level.author_time
 	}
 
 	for id in level.finish_volumes {
@@ -121,6 +123,9 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.name = loaded_serialized_level_data.name
 	loaded_level.start_position = loaded_serialized_level_data.start_position
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
+
+	// In case somebody loads an old level (author_time will be laoded as 0)
+	loaded_level.author_time = loaded_serialized_level_data.author_time != 0 ? loaded_serialized_level_data.author_time : max(f64)
 
 	for &id in loaded_serialized_level_data.finish_volumes_ids {
 		loaded_level.finish_volumes[id] = true

@@ -44,9 +44,8 @@ CharacternData :: struct {
 	air_jumping_cheat:      bool,
 
 	// If we pause the game and resume, we want to exclude that period of time -> why its an array of timers
-	speedrun_stop_watch:     time.Stopwatch,
-
-	// best_time: f32
+	speedrun_stop_watch:    time.Stopwatch,
+	best_time:              f64,
 }
 
 start_speedrun :: proc(game_player: ^CharacternData) {
@@ -62,6 +61,10 @@ reset_speedrun :: proc(game_player: ^CharacternData) {
 	time.stopwatch_reset(&game_player.speedrun_stop_watch)
 }
 
+get_current_speedrun_time :: proc(game_player: ^CharacternData) -> f64 {
+	return time.duration_seconds(time.stopwatch_duration(game_player.speedrun_stop_watch))
+}
+
 @(private)
 cursor_enabled: bool = false
 
@@ -71,7 +74,7 @@ update_character :: proc(
 	gamestate: ^game_state.Game_State,
 	dt: f32,
 ) {
-	if rl.IsCursorHidden() && rl.GetTime() > 0.1 { // Cursor usually enters screen right after we start the game, will cause a large "flick" when starting (since cursor is teleporting to center of screen).
+	if rl.IsCursorHidden() && rl.GetTime() > 0.1 { 	// Cursor usually enters screen right after we start the game, will cause a large "flick" when starting (since cursor is teleporting to center of screen).
 		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
 	}
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
@@ -218,7 +221,8 @@ update_character_physics :: proc(
 			distance_over_max = max(distance_over_max, 0.0)
 
 			// Update character position so rope length is constant
-			character_data.verlet_component.position = character_data.verlet_component.position + direction_to_hook * distance_over_max
+			character_data.verlet_component.position =
+				character_data.verlet_component.position + direction_to_hook * distance_over_max
 
 			// huh, this is shit
 			right := linalg.vector_cross3(
@@ -236,7 +240,7 @@ update_character_physics :: proc(
 
 			// Should we lose momentum or not? Kinda hacky atm.
 			target_velocity: spat.Vector
-			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 { // If we lose v < 20% of velocity, dont lose anything 
+			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 { 	// If we lose v < 20% of velocity, dont lose anything 
 				//char_data.verlet_component.velocity = hook_forward * new_vel_length
 				target_velocity = hook_forward * new_vel_length
 			} else {
@@ -253,8 +257,7 @@ update_character_physics :: proc(
 			// what i want in a ideal world:
 			// - [C]ontinous [C]ollision [D]etection
 			// - Energy is conserverd
-		} 
-		else if distance < character_data.start_distance_to_hook { // Shorting rope 
+		} else if distance < character_data.start_distance_to_hook { 	// Shorting rope 
 			character_data.start_distance_to_hook = distance
 		}
 
@@ -291,9 +294,11 @@ collide_with_tri :: proc(
 		verlet_component.position += normal * (char_data.radius - dist)
 		// project velocity to the normal plane, if moving towards it
 		vel_normal_dot: f32 = linalg.dot(vel^, normal)
-	
-		angles_euler := linalg.to_degrees(linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^))
-		should_keep_momentum :=  angles_euler < 20
+
+		angles_euler := linalg.to_degrees(
+			linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^),
+		)
+		should_keep_momentum := angles_euler < 20
 		velocity_length := linalg.length(vel^)
 
 		if vel_normal_dot < 0 {
@@ -303,7 +308,8 @@ collide_with_tri :: proc(
 			verlet_component.velocity -= normal * vel_normal_dot
 
 			if should_keep_momentum {
-				verlet_component.velocity = linalg.normalize(verlet_component.velocity) * velocity_length
+				verlet_component.velocity =
+					linalg.normalize(verlet_component.velocity) * velocity_length
 			}
 		}
 	}

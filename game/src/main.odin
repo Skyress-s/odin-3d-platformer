@@ -131,7 +131,6 @@ main :: proc() {
 	character.start_speedrun(&players.game)
 
 	// Shader stuff
-	
 
 
 	lightray.init_lighting()
@@ -259,6 +258,11 @@ main :: proc() {
 		if overlapping_finish_volume != spat.INVALID_OBJECT_ID {
 			game_state.finished_level = true
 			character.pause_speedrun(&players.game)
+			run_time := character.get_current_speedrun_time(&players.game)
+
+			if players.game.best_time > run_time || players.game.best_time == 0 {
+				players.game.best_time = run_time
+			}
 		}
 
 		// Kill volumes
@@ -355,7 +359,9 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	shader_editor_tool_depth := rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
+	@(static)
+	shader_editor_tool_depth :rl.Shader
+	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
 	rl.SetShaderValue(
@@ -578,53 +584,55 @@ render :: proc(
 	lightray.end_lighting()
 	rl.BeginShaderMode(shader_editor_tool_depth)
 
-	found_object := hms.get(&level.collision_object_map, tool.target_object_id)
-	if found_object != nil {
+	if players.mode == _players.Player_Mode.Editor {
+		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
+		if found_object != nil {
 
-		switch &active_tool in tool.active_tool {
-		case e_tools.Position_Tool:
-			e_tools.draw_position_tooltip_new(
-				e_tools.calculate_drag_planes(
-					found_object.transform.position,
+			switch &active_tool in tool.active_tool {
+			case e_tools.Position_Tool:
+				e_tools.draw_position_tooltip_new(
+					e_tools.calculate_drag_planes(
+						found_object.transform.position,
+						players.editor.position,
+					),
+				)
+
+			case e_tools.Rotation_Tool:
+				e_tools.draw_position_tooltip_new(
+					e_tools.calculate_drag_planes(
+						found_object.transform.position,
+						players.editor.position,
+					),
+				)
+			case e_tools.Scale_Tool:
+				scale_bars := e_tools.calculate_scale_bars(
+					found_object.transform,
 					players.editor.position,
-				),
-			)
+				)
+				//e_tools.draw_scale_boxes(scale_bars)
+				tris := e_tools.scale_bars_to_tris(&scale_bars)
 
-		case e_tools.Rotation_Tool:
-			e_tools.draw_position_tooltip_new(
-				e_tools.calculate_drag_planes(
-					found_object.transform.position,
-					players.editor.position,
-				),
-			)
-		case e_tools.Scale_Tool:
-			scale_bars := e_tools.calculate_scale_bars(
-				found_object.transform,
-				players.editor.position,
-			)
-			//e_tools.draw_scale_boxes(scale_bars)
-			tris := e_tools.scale_bars_to_tris(&scale_bars)
+				for &scale_bars_triangles, i in tris {
+					color: rl.Color = rl.MAGENTA
+					switch i {
+					case 0:
+						color = rl.RED
+					case 1:
+						color = rl.GREEN
+					case 2:
+						color = rl.BLUE
+					}
 
-			for &scale_bars_triangles, i in tris {
-				color: rl.Color = rl.MAGENTA
-				switch i {
-				case 0:
-					color = rl.RED
-				case 1:
-					color = rl.GREEN
-				case 2:
-					color = rl.BLUE
+					for &tri in scale_bars_triangles {
+						rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
+					}
 				}
 
-				for &tri in scale_bars_triangles {
-					rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
-				}
+			// e_tools.draw_scale_boxes(
+			// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
+			// )
+
 			}
-
-		// e_tools.draw_scale_boxes(
-		// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-		// )
-
 		}
 
 	}

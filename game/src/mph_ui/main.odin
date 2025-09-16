@@ -35,7 +35,8 @@ all_windows :: proc(
 	switch players.mode {
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
-		stats(ctx, players, game_state, screen_rect)
+		stats(ctx, players, game_state, screen_rect, level)
+
 
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
 
@@ -333,6 +334,7 @@ details_panel :: proc(
 
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+				level.author_time = players.game.best_time
 				serialization.save_to_file(level, string(buf[:buf_len]))
 			}
 			mu.layout_row(ctx, {-1})
@@ -383,6 +385,7 @@ stats :: proc(
 	players: ^plrs.Players,
 	game_state: ^game_state.Game_State,
 	screen_rect: mu.Rect,
+	level: ^l.Level
 ) {
 	target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
 
@@ -447,6 +450,11 @@ stats :: proc(
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
 
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Best run    {}", players.game.best_time))
+
+		mu.layout_row(ctx, {-1})
+		mu.label(ctx, fmt.aprintf("Author time {}", level.author_time))
 
 	}
 }
