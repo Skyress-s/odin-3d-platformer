@@ -19,18 +19,21 @@ import "core:time"
 import mu "vendor:microui"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
+MAP_FILE_EXTENSION :: ".map"
+MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
-// Examples will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
+// Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
 to_cwd_map_path_from_local :: proc(local_path: string) -> string {
-	return filepath.join({PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, ".map"})})
+	return filepath.join({PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})})
 }
 
+// Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
 to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
 	local_path, _ := filepath.rel(
 		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
 		cwd_path,
 	)
-	local_path = local_path[:(len(local_path) - len(".map"))]
+	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
 
 	return local_path
 }
@@ -43,8 +46,6 @@ all_windows :: proc(
 	screen_dimensions: [2]i32,
 	level: ^l.Level,
 ) {
-	// 	timer := time.Stopwatch{}
-	// time.stopwatch_start(&timer)
 
 	screen_rect := mu.Rect{0, 0, screen_dimensions.x, screen_dimensions.y}
 
@@ -133,27 +134,18 @@ vis_dir :: proc(ctx: ^mu.Context, file_dir: os.File_Info, force_open: bool = fal
 	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
 		for fi in fis {
 			full_directory, name := filepath.split(fi.fullpath)
-			name = name[:(len(name) - len(".map"))]
+
+			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
 
 			if fi.is_dir {
 				dir_name := vis_dir(ctx, fi)
 				if dir_name != "" do clicked_map_name = dir_name
-			} else if strings.contains(filepath.ext(fi.name), ".map") {
+			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
 				if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
 
-					// clicked_map_name, _ = filepath.rel(os.get_current_directory(), fi.fullpath)
 					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
-					// clicked_map_name, _ = filepath.rel(
-					// 	filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
-					// 	fi.fullpath,
-					// )
-					// clicked_map_name = clicked_map_name[:(len(clicked_map_name) - len(".map"))]
 				}
 			}
-
-			//mu.layout_row(ctx, {-1})
-
-			//fmt.printfln("%v (%v bytes)", name, fi.size)
 
 		}
 
@@ -359,6 +351,28 @@ details_panel :: proc(
 			@(static) buf: [128]byte
 			@(static) buf_len: int
 
+
+			clicked_file_path := map_directory(ctx)
+			
+			double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
+
+			if clicked_file_path != "" {
+				builder := strings.builder_make()
+
+				fmt.println(clicked_file_path)
+				buf_len = copy(buf[0:], clicked_file_path)
+
+			}
+
+			mu.layout_next(ctx)
+			mu.layout_row(ctx, {65, -1})
+
+			mu.text(ctx, "Level:")
+			if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+				fmt.println("Submit!")
+			}
+
+
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
 				level.author_time = players.game.best_time
@@ -368,14 +382,17 @@ details_panel :: proc(
 			}
 
 			mu.layout_row(ctx, {-1})
-			if mu.Result.SUBMIT in mu.button(ctx, "load_level") {
+			if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
 				level^ = serialization.load_from_file_level(to_cwd_map_path_from_local(string(buf[:buf_len])))
 
+				character.notify_level_loaded(&players.game)
 				character.reset_run(
 					&players.game,
 					&level.start_position,
 					&level.start_look_direction,
 				)
+
+
 			}
 
 			mu.layout_next(ctx) // Also function as a spaces
@@ -390,23 +407,6 @@ details_panel :: proc(
 			//
 			// mu.textbox(ctx, level_name_buffer[:], &level_name_buffer_len)
 
-			mu.layout_row(ctx, {65, -1})
-			mu.text(ctx, "Level:")
-			if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-				fmt.println("Submit!")
-			}
-
-
-			clicked_file_path := map_directory(ctx)
-			if clicked_file_path != "" {
-				// level^ = serialization.load_from_file_level(clicked_file_path)
-				builder := strings.builder_make()
-
-				// state.log_buf_len += copy(state.log_buf[state.log_buf_len:], str)
-				fmt.println(clicked_file_path)
-				buf_len = copy(buf[0:], clicked_file_path)
-
-			}
 		}
 	}
 }
@@ -439,20 +439,17 @@ stats :: proc(
 		// mu.layout_row(ctx, {-1})
 		// mu.label(ctx, fmt.aprintf("FPS {}", rl.GetFPS()))
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Position {}", char_data.verlet_component.position))
+		mu.label(ctx, fmt.aprintf("Position {:.1f}", char_data.verlet_component.position))
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Velocity {}", char_data.verlet_component.velocity))
+		mu.label(ctx, fmt.aprintf("Velocity {:.1f}", char_data.verlet_component.velocity))
 
 		mu.layout_row(ctx, {-1})
 		vel_xz := char_data.verlet_component.velocity
 		vel_xz.y = 0
-		mu.label(ctx, fmt.aprintf("Velocity_XZ {}", linalg.length(vel_xz)))
+		mu.label(ctx, fmt.aprintf("Velocity_XZ {:.1f}", linalg.length(vel_xz)))
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Current State {}", char_data.current_state))
-
-		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Player Data {}", char_data.verlet_component.position))
+		mu.label(ctx, fmt.aprintf("Current State {:.1f}", char_data.current_state))
 
 		// Rope length
 		rope_length := linalg.distance(
@@ -460,7 +457,7 @@ stats :: proc(
 			char_data.hooked_position,
 		)
 		mu.layout_row(ctx, {-1})
-		mu.text(ctx, fmt.aprintf("Rope Length {}", char_data.is_hooked ? rope_length : 0))
+		mu.text(ctx, fmt.aprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0))
 
 
 		m: f32 = 0.01
@@ -473,13 +470,13 @@ stats :: proc(
 		total_energy := potential_energy + kinetic_energy
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Potential {}", potential_energy))
+		mu.label(ctx, fmt.aprintf("Potential {:.1f}", potential_energy))
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Kinetic {}", kinetic_energy))
+		mu.label(ctx, fmt.aprintf("Kinetic {:.1f}", kinetic_energy))
 
 		mu.layout_row(ctx, {-1})
-		mu.label(ctx, fmt.aprintf("Total {}", total_energy))
+		mu.label(ctx, fmt.aprintf("Total {:.1f}", total_energy))
 
 		mu.layout_row(ctx, {-1})
 		mu.label(ctx, fmt.aprintf("Best run    {:.3f}", players.game.best_time))

@@ -159,7 +159,11 @@ reset_run :: proc(character_data: ^CharacternData, start_location, start_directi
 	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
 	character_data.is_hooked = false
 	character_data.hooked_position = spat.ZERO_VEC3
+}
 
+notify_level_loaded :: proc(character_data: ^CharacternData){
+	character_data.speedrun_stop_watch = time.Stopwatch{}
+	character_data.best_time = 0
 }
 
 update_character_physics :: proc(
