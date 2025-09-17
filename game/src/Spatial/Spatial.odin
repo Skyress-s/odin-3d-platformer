@@ -94,7 +94,7 @@ Hash_Cell :: struct {
 
 Hash_Int :: i32
 
-HASH_CELL_SIZE_METERS :: 1 << 6 // 256
+HASH_CELL_SIZE_METERS :: 1 << 7 // 256
 HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
@@ -795,6 +795,7 @@ ray_trace_object_multi :: proc(
 
 	return hits
 }
+
 
 ray_plane_intersect :: proc(
 	ray: ^Ray,
