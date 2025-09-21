@@ -1,28 +1,28 @@
 package game
 
 import character "../Character"
-import "../render"
 import col "../color"
+import "../render"
 
-import "core:math"
-import ddu "../debug_draw_utils/"
-import "core:math/linalg"
 import verlet "../Physics/verlet"
-import "../player_data"
-import "../editor_player"
 import spat "../Spatial"
+import ddu "../debug_draw_utils/"
+import "../editor_player"
 import gs "../game_state"
 import l "../level"
 import gameui "../micro-ui/"
 import "../mph_ui/"
+import "../player_data"
 import plrs "../players"
 import "core:fmt"
+import "core:math"
+import "core:math/linalg"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 
 import e_tools "../editor/tools"
 
-update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data){
+update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
 	free_all(context.temp_allocator)
 
 
@@ -199,13 +199,17 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	// Update Camera
 	switch gc.players.mode {
 	case plrs.Player_Mode.Game:
-		_, forward, right := player_data.calculate_direction_from_look(&gc.players.game.look_angles)
+		_, forward, right := player_data.calculate_direction_from_look(
+			&gc.players.game.look_angles,
+		)
 		gc.cam.position = gc.players.game.verlet_component.position
 		gc.cam.target = gc.cam.position + forward
 		gc.cam.up = linalg.cross(forward, right)
 
 	case plrs.Player_Mode.Editor:
-		_, forward, right := player_data.calculate_direction_from_look(&gc.players.editor.look_data)
+		_, forward, right := player_data.calculate_direction_from_look(
+			&gc.players.editor.look_data,
+		)
 		gc.cam.position = gc.players.editor.position
 		gc.cam.target = gc.cam.position + forward
 		gc.cam.up = linalg.cross(forward, right)
@@ -215,23 +219,58 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	_, player_look_direction, _ := player_data.calculate_direction_from_look(
 		&gc.players.game.look_angles,
 	)
-	sphere_trace := spat.Sphere_Trace {
-		spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 1000},
-		7,
-	}
-	cells := spat.calculate_hashes_by_sphere_trace(&sphere_trace)
 
-	for key, &cell in &cells {
-		key := key
-		locaiton := spat.calculate_hash_cell_width_location(&key)
+	sphere_trace := spat.Sphere_Trace {
+		ray = spat.Ray {
+			origin = player_loction + spat.UP_VEC3,
+			end = player_loction + player_look_direction * 1000,
+		},
+		radius = 100,
+	}
+
+
+	ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Line_Instruction {
+		ray   = sphere_trace.ray,
+		color = col.ORANGE,
+	}
+	ddu.enqueue_draw_instruction(&ins)
+
+	rays := spat.calculate_rays_by_sphere_trace(&sphere_trace)
+	for &ray in &rays {
+
+		ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Line_Instruction {
+			ray   = ray,
+			color = col.DARKBLUE,
+		}
+		ddu.enqueue_draw_instruction(&ins)
+	}
+
+	hashes := spat.calculate_hashes_by_rays(&rays)
+	for hash in &hashes {
+		hash := hash
+		loc := spat.calculate_hash_cell_width_location(&hash)
 		ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
-			location = locaiton,
+			location = loc,
 			size     = spat.HASH_CELL_SIZE,
 			color    = col.DARKPURPLE,
 		}
 		ddu.enqueue_draw_instruction(&ins)
-
 	}
+
+
+	// cells := spat.calculate_hashes_by_ray(spat.Ray{origin = player_loction, end = player_loction + spat.FORWARD_VEC3 * 10000})
+
+	// for key, &cell in &cells {
+	// 	key := key
+	// 	locaiton := spat.calculate_hash_cell_width_location(&key)
+	// 	ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
+	// 		location = locaiton,
+	// 		size     = spat.HASH_CELL_SIZE,
+	// 		color    = col.DARKPURPLE,
+	// 	}
+	// 	ddu.enqueue_draw_instruction(&ins)
+	//
+	// }
 
 
 	test: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Cube_Instruction {
@@ -241,7 +280,6 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		color    = col.DARKBROWN,
 	}
 	ddu.enqueue_draw_instruction(&test)
-
 
 
 	debug_draw_data.active_cell = player_overlapping_cells

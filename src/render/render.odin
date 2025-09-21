@@ -31,13 +31,14 @@ render :: proc(
 	// active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
 ) {
-
 	rl.BeginDrawing()
+
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
 	@(static) shader_editor_tool_depth: rl.Shader
 	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
+
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
 	rl.SetShaderValue(

@@ -42,6 +42,9 @@ Arian
 Per object motion blur?
 - [ ]
 
+Mathias
+- [ ] Take a pass on memory leaks (arrays and maps needs to have delete(...) called on them)
+
 Defenistration the game
 every level starts and ends with crashing into a window
 Always starts the Defenistration with some momentum

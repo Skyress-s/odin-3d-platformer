@@ -165,9 +165,7 @@ main :: proc() {
 	}
 }
 
-
 get_default_start_location_look_direction :: proc() -> (location, look_direction: spat.Vector) {
-
 	location = {0, 0, 0}
 	look_direction = {1, 0, 0}
 	return location, look_direction

@@ -19,6 +19,7 @@ Debug_Draw_Instruction :: distinct union #no_nil {
 	Debug_Draw_Sphere_Instruction,
 	Debug_Draw_Wire_Sphere_Instruction,
 	Debug_Draw_Text_Instruction,
+	Debug_Draw_Line_Instruction,
 }
 
 Debug_Draw_Cube_Instruction :: distinct struct {
@@ -44,8 +45,13 @@ Debug_Draw_Wire_Sphere_Instruction :: distinct struct {
 }
 
 Debug_Draw_Text_Instruction :: distinct struct {
-	message : string,
-} 
+	message: string,
+}
+
+Debug_Draw_Line_Instruction :: distinct struct {
+	ray:   spat.Ray,
+	color: col.Color,
+}
 
 draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 	rlgl.PushMatrix()
@@ -60,7 +66,8 @@ draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 		rl.DrawCube(spat.ZERO_VEC3, v.size.x, v.size.y, v.size.z, v.color)
 	case Debug_Draw_Wire_Cube_Instruction:
 		mat := spat.calculate_matrix_from_loc_rot(&v.location, &v.rot)
-		rlgl.MultMatrixf(auto_cast &mat)
+		matrix_data := rl.MatrixToFloatV(mat)
+		rlgl.MultMatrixf(auto_cast &matrix_data)
 		rl.DrawCubeWires(spat.ZERO_VEC3, v.size.x, v.size.y, v.size.z, v.color)
 	case Debug_Draw_Sphere_Instruction:
 		rlgl.Translatef(v.location.x, v.location.y, v.location.z)
@@ -68,8 +75,10 @@ draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 	case Debug_Draw_Wire_Sphere_Instruction:
 		rlgl.Translatef(v.location.x, v.location.y, v.location.z)
 		rl.DrawSphereWires(spat.ZERO_VEC3, v.radius, 8, 8, v.color)
- 	case Debug_Draw_Text_Instruction:
-		// Drawn in the game ui package
+	case Debug_Draw_Text_Instruction:
+	case Debug_Draw_Line_Instruction:
+		rl.DrawLine3D(v.ray.origin, v.ray.end, v.color)
+	// Drawn in the game ui package
 
 	}
 }

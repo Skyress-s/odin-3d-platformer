@@ -18,6 +18,9 @@ ZERO_VEC2 :: Vector2{0, 0}
 ZERO_VEC4 :: Vector4{0, 0, 0, 0}
 ONE_VEC3 :: Vector{1, 1, 1}
 
+FORWARD_VEC3 :: Vector{1,0,0}
+UP_VEC3 :: Vector{0,1,0}
+
 // Transform :: rl.Transform
 Transform :: distinct struct {
 	position: Vector,
