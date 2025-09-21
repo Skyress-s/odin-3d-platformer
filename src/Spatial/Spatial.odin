@@ -97,6 +97,8 @@ Hash_Int :: i32
 HASH_CELL_SIZE_METERS :: 1 << 7 // 256
 HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
+HASH_CELL_SIZE :: Vector{HASH_CELL_SIZE_METERS_FLOAT, HASH_CELL_SIZE_METERS_FLOAT, HASH_CELL_SIZE_METERS_FLOAT}
+
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
 
@@ -123,6 +125,21 @@ key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
 	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
 	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
 	return {x, y, z}
+}
+
+calculate_hash_cell_width_location :: proc(hash_key: ^Hash_Key) -> (location: Vector) {
+	x := cast(f32)(hash_key.x * HASH_CELL_SIZE_METERS)
+	y := cast(f32)(hash_key.y * HASH_CELL_SIZE_METERS)
+	z := cast(f32)(hash_key.z * HASH_CELL_SIZE_METERS)
+
+	offset := cast(f32)(HASH_CELL_SIZE_METERS) / 2.0
+	t := cast(f32)HASH_CELL_SIZE_METERS
+
+	location.x = x + offset
+	location.y = y + offset
+	location.z = z + offset
+
+	return
 }
 
 Draw_Hash_Cell_Bounds :: proc(vec: Hash_Key, color: rl.Color = rl.GREEN) {
@@ -202,6 +219,19 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 	// transform := matScale * matRotation * matTranslation
 	// transform := matTranslation * matRotation * matScale
 	return transform
+}
+
+// Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
+calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Matrix{
+	matRotation := rl.QuaternionToMatrix(rot^)
+
+	matTranslation := rl.MatrixTranslate(loc.x, loc.y, loc.z)
+
+	// Combine them: Scale -> Rotate -> Translate
+	// Order matters: S * R * T
+	transform := matTranslation * matRotation
+	// transform = transform * matScale
+	return matTranslation
 }
 
 
@@ -470,13 +500,49 @@ calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 	return bound
 }
 
-calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+calculate_overlapping_cells :: proc{calculate_overlapping_cells2, calculate_hashes_by_ray, calculate_hashes_by_sphere_trace }
 
+calculate_overlapping_cells3 :: proc(bound: Bound, hash_keys: ^map[Hash_Key]bool)  {
 	min_hash := Hash_Location(bound.min)
 	hash_keys[min_hash] = true
 	max_hash := Hash_Location(bound.max)
 	hash_keys[max_hash] = true
 
+	// Early bail if bound is contained within one cell
+	// Todo is this actually more efficient? Have to test
+	// if min_hash == max_hash do return 
+	//
+	// // need to walk to the max cell, and go through every path
+	//
+	// minX, maxX: i32 = min_hash.x, max_hash.x
+	// minY, maxY: i32 = min_hash.y, max_hash.y
+	// minZ, maxZ: i32 = min_hash.z, max_hash.z
+	//
+	//
+	// // fmt.println("printing new cells for min: ", min_hash, " max: ", max_hash)
+	// for x := minX; x <= maxX; x += 1 {
+	//
+	// 	//new_hash := Hash_Key{x, y, z}
+	// 	//hash_keys[new_hash] = true
+	// 	for y := minY; y <= maxY; y += 1 {
+	//
+	// 		//new_hash := Hash_Key{x, y, z}
+	// 		//hash_keys[new_hash] = true
+	// 		for z := minZ; z <= maxZ; z += 1 {
+	//
+	// 			new_hash := Hash_Key{x, y, z}
+	// 			hash_keys[new_hash] = true
+	// 			// fmt.println("\t", new_hash)
+	// 		}
+	// 	}
+	// }
+}
+
+calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+	min_hash := Hash_Location(bound.min)
+	hash_keys[min_hash] = true
+	max_hash := Hash_Location(bound.max)
+	hash_keys[max_hash] = true
 	// Early bail if bound is contained within one cell
 	// Todo is this actually more efficient? Have to test
 	if min_hash == max_hash do return hash_keys

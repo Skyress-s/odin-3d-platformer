@@ -1,5 +1,8 @@
 package main
 
+import col "color"
+import ddu "debug_draw_utils"
+import "core:testing"
 import character "Character"
 import p "Physics"
 import cc "Physics/collision_channel"
@@ -147,6 +150,8 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		free_all(context.temp_allocator)
+
+
 		dt := rl.GetFrameTime()
 
 		if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
@@ -334,6 +339,24 @@ main :: proc() {
 			cam.target = cam.position + forward
 			cam.up = linalg.cross(forward, right)
 		}
+
+		player_loction := players.game.verlet_component.position
+		_,player_look_direction,_ := player_data.calculate_direction_from_look(&players.game.look_angles)
+		sphere_trace := spat.Sphere_Trace{spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 1000}, 7}
+		cells := spat.calculate_hashes_by_sphere_trace(&sphere_trace)
+
+		for key, &cell in &cells {
+			key := key
+ 			locaiton := spat.calculate_hash_cell_width_location(&key)
+			ins :ddu.Debug_Draw_Instruction= ddu.Debug_Draw_Wire_Cube_Instruction{location = locaiton, size = spat.HASH_CELL_SIZE, color = col.DARKPURPLE}
+			ddu.enqueue_draw_instruction(&ins)
+
+		}
+
+
+		test : ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Cube_Instruction{location = spat.Vector{5, 0, 0}, rot = spat.QUATERNION_IDENTITY, size = spat.ONE_VEC3 * 5, color = col.DARKBROWN}
+		ddu.enqueue_draw_instruction(&test)
+
 		render(
 			&current_level,
 			&players,
@@ -342,7 +365,6 @@ main :: proc() {
 			active_hash_key,
 			&game_state,
 		)
-
 	}
 }
 
@@ -359,8 +381,7 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	@(static)
-	shader_editor_tool_depth :rl.Shader
+	@(static) shader_editor_tool_depth: rl.Shader
 	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
@@ -377,6 +398,8 @@ render :: proc(
 
 	tool := &players.editor.transform_tool
 
+	// Draw debug tooltips
+	ddu.draw_all_instructions_and_reset()
 
 	switch players.mode {
 	case _players.Player_Mode.Game:
@@ -780,3 +803,10 @@ add_debug_level_objects :: proc(
 	spat.add_to_spatial_hash_grid(spaital_hash_grid, collision_object_data, id)
 	spat.add_to_finish_volumes(&level.finish_volumes, id)
 }
+
+@(test)
+first_test ::proc(t: ^testing.T){
+	testing.expect(t, true)
+
+}
+

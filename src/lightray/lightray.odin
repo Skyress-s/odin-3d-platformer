@@ -64,7 +64,8 @@ init_lighting :: proc(
 	ambient_light_intensity: f32 = 0.3,
 ) {
 	lighting = new(Lighting)
-	lighting.shader = rl.LoadShaderFromMemory(LIGHT_VERTEX_SHADER, LIGHT_FRAGMENT_SHADER)
+	// lighting.shader = rl.LoadShaderFromMemory(LIGHT_VERTEX_SHADER, LIGHT_FRAGMENT_SHADER)
+	lighting.shader = rl.LoadShader("content/shaders/basic_lighting/lighting.vert", "content/shaders/basic_lighting/lighting.frag")
 	lighting.ambient_loc = rl.GetShaderLocation(lighting.shader, "ambient")
 	lighting.lights = make([dynamic]^Light)
 	lighting.debug_enabled = ODIN_DEBUG

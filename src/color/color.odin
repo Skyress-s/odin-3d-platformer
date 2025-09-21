@@ -3,6 +3,8 @@ package color
 
 import rl "vendor:raylib"
 
+Color :: rl.Color
+
 LIGHTGRAY :: rl.LIGHTGRAY
 GRAY :: rl.GRAY
 DARKGRAY :: rl.DARKGRAY
