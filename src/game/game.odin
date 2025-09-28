@@ -183,6 +183,8 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 				&player_overlapping_cells,
 				dt,
 			)
+
+			gc.players.game.verlet_component.position_last_update = gc.players.game.verlet_component.position
 			verlet.velocity_verlet_frog(&gc.players.game.verlet_component, dt)
 		}
 	case plrs.Player_Mode.Editor:

@@ -4,7 +4,7 @@ import spat "../../Spatial"
 
 
 Velocity_Verlet_Component :: struct {
-	position, velocity, acceleration: spat.Vector,
+	position, velocity, acceleration, position_last_update: spat.Vector,
 }
 
 // Do the first half of the timestep of leapfrog
