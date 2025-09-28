@@ -102,21 +102,24 @@ sphere_trace_spatial_hash_grid :: proc(
 ) {
 	rays := calculate_rays_by_sphere_trace(sphere_trace)
 	defer delete(rays)
+
 	hashes := calculate_hashes_by_rays(&rays)
+	defer delete(hashes)
 
 	for hash_key in &hashes {
 		object_ids, ok := shg[hash_key]
 		if ok {
 			for object_id in &object_ids.objects_ids {
 				object := hms.get(com, object_id)
-				for &tri in &object.tris{
-
+				for &tri in &object.tris {
 
 
 				}
 			}
 		}
 	}
+
+	return
 }
 
 calculate_rays_by_sphere_trace :: proc(
@@ -173,6 +176,11 @@ calculate_rays_by_sphere_trace :: proc(
 
 	return rays
 }
+
+sphere_trace_triangle_intersect :: proc(sphere_trace: ^Sphere_Trace, tri: ^Collision_Triangle) {
+	close
+}
+
 
 calculate_hashes_by_rays :: proc(rays: ^[dynamic]Ray) -> (hashes: map[Hash_Key]bool) {
 	for &ray in rays {

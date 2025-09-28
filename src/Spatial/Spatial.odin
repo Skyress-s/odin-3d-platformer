@@ -1027,6 +1027,6 @@ collide_with_tri_continous :: proc(
 ) {
 	trace:= Sphere_Trace{ray=Ray{origin= position_last_update^, end = position^}, radius = radius}
 
-	calculate_hashes_by_sphere_trace(trace, )
+	// calculate_hashes_by_sphere_trace(trace, )
 
 }
