@@ -222,10 +222,18 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 
 	sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
-			origin = player_loction + spat.UP_VEC3,
+			origin = player_loction,
 			end = player_loction + player_look_direction * 1000,
 		},
 		radius = 100,
+	}
+
+	{
+		cyl_ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cyllinder_Instruction {
+			sphere_trace = sphere_trace,
+			color        = col.RED,
+		}
+		ddu.enqueue_draw_instruction(&cyl_ins)
 	}
 
 
@@ -243,6 +251,11 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			color = col.DARKBLUE,
 		}
 		ddu.enqueue_draw_instruction(&ins)
+		// ins2 := ddu.Debug_Draw_Instruction{ddu.Debug_Draw_Line_Instruction {
+		// 	ray   = ray,
+		// 	color = col.DARKBLUE,
+		// }}
+		// ddu.enqueue_draw_instruction(&ins2)
 	}
 
 	hashes := spat.calculate_hashes_by_rays(&rays)

@@ -107,7 +107,7 @@ calculate_rays_by_sphere_trace :: proc(
 		sphere_trace.radius * up -
 		sphere_trace.radius * right
 
-	num_rays_per_side := i32(sphere_trace.radius * 2 / HASH_CELL_SIZE_METERS) + 1
+	num_rays_per_side := i32(math.ceil(sphere_trace.radius * 2 / HASH_CELL_SIZE_METERS)) + 1
 
 	for i: i32 = 0; i < num_rays_per_side * num_rays_per_side; i += 1 {
 		x := f32((i % num_rays_per_side)) * (sphere_trace.radius * 2 / f32(num_rays_per_side - 1))

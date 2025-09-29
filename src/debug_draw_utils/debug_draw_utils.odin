@@ -18,6 +18,9 @@ Debug_Draw_Instruction :: distinct union #no_nil {
 	Debug_Draw_Wire_Cube_Instruction,
 	Debug_Draw_Sphere_Instruction,
 	Debug_Draw_Wire_Sphere_Instruction,
+	Debug_Draw_Cyllinder_Instruction,
+	Debug_Draw_Wire_Cyllinder_Instruction,
+	Debug_Draw_Circle_Instruction,
 	Debug_Draw_Text_Instruction,
 	Debug_Draw_Line_Instruction,
 }
@@ -42,6 +45,21 @@ Debug_Draw_Sphere_Instruction :: distinct struct {
 
 Debug_Draw_Wire_Sphere_Instruction :: distinct struct {
 	using draw_instruction: Debug_Draw_Sphere_Instruction,
+}
+
+Debug_Draw_Cyllinder_Instruction :: distinct struct {
+	using sphere_trace: spat.Sphere_Trace,
+	color:              col.Color,
+}
+
+Debug_Draw_Wire_Cyllinder_Instruction :: distinct struct {
+	using instruction: Debug_Draw_Cyllinder_Instruction,
+}
+
+Debug_Draw_Circle_Instruction :: distinct struct {
+	location, up, forward: spat.Vector,
+	radius:                f32,
+	color:                 col.Color,
 }
 
 Debug_Draw_Text_Instruction :: distinct struct {
@@ -75,6 +93,11 @@ draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 	case Debug_Draw_Wire_Sphere_Instruction:
 		rlgl.Translatef(v.location.x, v.location.y, v.location.z)
 		rl.DrawSphereWires(spat.ZERO_VEC3, v.radius, 8, 8, v.color)
+	case Debug_Draw_Cyllinder_Instruction:
+
+	case Debug_Draw_Wire_Cyllinder_Instruction:
+		draw_cyllinder(&v)
+	case Debug_Draw_Circle_Instruction:
 	case Debug_Draw_Text_Instruction:
 	case Debug_Draw_Line_Instruction:
 		rl.DrawLine3D(v.ray.origin, v.ray.end, v.color)
@@ -93,3 +116,8 @@ draw_all_instructions_and_reset :: proc() {
 enqueue_draw_instruction :: proc(draw_ins: ^Debug_Draw_Instruction) {
 	append_elem(&debug_draw_instruction_array, draw_ins^)
 }
+
+enqueue_draw_instruction2 :: proc(draw_ins: $T) {
+
+}
+
