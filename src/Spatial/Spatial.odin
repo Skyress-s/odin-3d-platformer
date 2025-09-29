@@ -18,8 +18,8 @@ ZERO_VEC2 :: Vector2{0, 0}
 ZERO_VEC4 :: Vector4{0, 0, 0, 0}
 ONE_VEC3 :: Vector{1, 1, 1}
 
-FORWARD_VEC3 :: Vector{1,0,0}
-UP_VEC3 :: Vector{0,1,0}
+FORWARD_VEC3 :: Vector{1, 0, 0}
+UP_VEC3 :: Vector{0, 1, 0}
 
 // Transform :: rl.Transform
 Transform :: distinct struct {
@@ -100,7 +100,11 @@ Hash_Int :: i32
 HASH_CELL_SIZE_METERS :: 1 << 7 // 256
 HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
-HASH_CELL_SIZE :: Vector{HASH_CELL_SIZE_METERS_FLOAT, HASH_CELL_SIZE_METERS_FLOAT, HASH_CELL_SIZE_METERS_FLOAT}
+HASH_CELL_SIZE :: Vector {
+	HASH_CELL_SIZE_METERS_FLOAT,
+	HASH_CELL_SIZE_METERS_FLOAT,
+	HASH_CELL_SIZE_METERS_FLOAT,
+}
 
 MAX_WORLD_LOCATION :: f32(max(Hash_Int)) * f32(HASH_CELL_SIZE_METERS)
 
@@ -225,7 +229,7 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 }
 
 // Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
-calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Matrix{
+calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Matrix {
 	matRotation := rl.QuaternionToMatrix(rot^)
 
 	matTranslation := rl.MatrixTranslate(loc.x, loc.y, loc.z)
@@ -503,9 +507,13 @@ calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 	return bound
 }
 
-calculate_overlapping_cells :: proc{calculate_overlapping_cells2, calculate_hashes_by_ray, calculate_hashes_by_sphere_trace }
+calculate_overlapping_cells :: proc {
+	calculate_overlapping_cells2,
+	calculate_hashes_by_ray,
+	calculate_hashes_by_sphere_trace,
+}
 
-calculate_overlapping_cells3 :: proc(bound: Bound, hash_keys: ^map[Hash_Key]bool)  {
+calculate_overlapping_cells3 :: proc(bound: Bound, hash_keys: ^map[Hash_Key]bool) {
 	min_hash := Hash_Location(bound.min)
 	hash_keys[min_hash] = true
 	max_hash := Hash_Location(bound.max)
@@ -848,7 +856,7 @@ ray_trace_object_multi :: proc(
 ) {
 	mat := get_matrix_from_transform(collision_object.transform)
 	for tri in collision_object.tris {
-		tri:= tri
+		tri := tri
 
 		tri.points.x = (mat * rl.Vector4{tri.points.x.x, tri.points.x.y, tri.points.x.z, 1}).xyz
 		tri.points.y = (mat * rl.Vector4{tri.points.y.x, tri.points.y.y, tri.points.y.z, 1}).xyz
@@ -970,4 +978,55 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	v := vb * denom
 	w := vc * denom
 	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
+}
+
+distance_to_tri :: proc(t: ^Collision_Triangle, position: ^Vector) -> (dist: f32, normal: Vector) {
+	closest := closest_point_on_triangle(position^, t.points[0], t.points[1], t.points[2])
+	diff := position^ - closest
+
+	dist = linalg.length(diff)
+	normal = diff / dist
+	return
+}
+
+
+// NOTE this has keep the momentum if you collide at a certain angle.
+collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
+	dist, normal := distance_to_tri(t, position)
+
+	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
+
+	if dist < radius {
+		position^ += normal * (radius - dist)
+		// project velocity to the normal plane, if moving towards it
+		vel_normal_dot: f32 = linalg.dot(vel^, normal)
+
+		angles_euler := linalg.to_degrees(
+			linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^),
+		)
+		should_keep_momentum := angles_euler < 20
+		velocity_length := linalg.length(vel^)
+
+		if vel_normal_dot < 0 {
+			diff := (vel^ - normal * vel_normal_dot) - vel^
+			acceleration := diff / dt
+			//verlet_component.acceleration += acceleration
+			vel^ -= normal * vel_normal_dot
+
+			if should_keep_momentum {
+				vel^ = linalg.normalize(vel^) * velocity_length
+			}
+		}
+	}
+}
+
+collide_with_tri_continous :: proc(
+	t: ^Collision_Triangle,
+	velocity, position, position_last_update: ^Vector,
+	radius, dt: f32,
+) {
+	trace:= Sphere_Trace{ray=Ray{origin= position_last_update^, end = position^}, radius = radius}
+
+	// calculate_hashes_by_sphere_trace(trace, )
+
 }

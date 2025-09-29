@@ -192,10 +192,11 @@ update_character_physics :: proc(
 					p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
 					// p += coll_obj.transform.position
 				}
-				collide_with_tri(
+				spat.collide_with_tri(
 					&tri,
 					&character_data.verlet_component.velocity,
-					character_data,
+					&character_data.verlet_component.position,
+					character_data.radius,
 					dt,
 				)
 			}
@@ -274,50 +275,8 @@ update_character_physics :: proc(
 	character_data.verlet_component.acceleration += {0, -30, 0}
 
 }
-collide_with_tri :: proc(
-	t: ^spat.Collision_Triangle,
-	vel: ^spat.Vector,
-	char_data: ^CharacternData,
-	dt: f32,
-) {
-	using char_data
 
-	closest := spat.closest_point_on_triangle(
-		verlet_component.position,
-		t.points[0],
-		t.points[1],
-		t.points[2],
-	)
-	diff := verlet_component.position - closest
-	dist := linalg.length(diff)
-	normal := diff / dist
 
-	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
-
-	if dist < char_data.radius {
-		verlet_component.position += normal * (char_data.radius - dist)
-		// project velocity to the normal plane, if moving towards it
-		vel_normal_dot: f32 = linalg.dot(vel^, normal)
-
-		angles_euler := linalg.to_degrees(
-			linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^),
-		)
-		should_keep_momentum := angles_euler < 20
-		velocity_length := linalg.length(vel^)
-
-		if vel_normal_dot < 0 {
-			diff := (vel^ - normal * vel_normal_dot) - verlet_component.velocity
-			acceleration := diff / dt
-			//verlet_component.acceleration += acceleration
-			verlet_component.velocity -= normal * vel_normal_dot
-
-			if should_keep_momentum {
-				verlet_component.velocity =
-					linalg.normalize(verlet_component.velocity) * velocity_length
-			}
-		}
-	}
-}
 
 
 @(private)
