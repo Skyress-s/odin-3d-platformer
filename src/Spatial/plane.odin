@@ -15,7 +15,7 @@ Plane_Bounded :: distinct struct {
 }
 
 
-distance_point_to_plane :: proc(plane: ^Plane, point: ^Vector){
+distance_point_to_plane :: proc(plane: ^Plane, point: ^Vector) -> f32{
 	assert(linalg.length(plane.normal) > 0)
-	return linalg.dot(plane.normal, point) / linalg.length(plane.normal)
+	return linalg.dot(plane.normal, point^) / linalg.length(plane.normal)
 }
