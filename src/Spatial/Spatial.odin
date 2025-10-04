@@ -73,10 +73,6 @@ Collision_Shape :: struct {
 Bound :: rl.BoundingBox
 
 
-Collision_Triangle :: struct {
-	points: [3]Vector,
-}
-
 Collision_Object_Id :: distinct hms.Handle
 
 

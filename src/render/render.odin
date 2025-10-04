@@ -1,24 +1,24 @@
 package render
 
-import l "../level"
-import plrs "../players/"
 import spat "../Spatial"
-import rl "vendor:raylib"
-import rlgl "vendor:raylib/rlgl"
 import gs "../game_state"
+import l "../level"
 import lightray "../lightray"
+import plrs "../players/"
 import "core:math"
 import "core:math/linalg"
+import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 import ddu "../debug_draw_utils"
-import "../player_data/"
-import hms "../handle_map/handle_map_static/"
 import e_tools "../editor/tools"
+import hms "../handle_map/handle_map_static/"
+import "../player_data/"
 
 import gameui "../micro-ui/"
 
 Debug_Draw_Data :: distinct struct {
-	active_cell: map[spat.Hash_Key]bool,
+	active_cell:      map[spat.Hash_Key]bool,
 	active_cell_hash: spat.Hash_Key,
 }
 
@@ -55,7 +55,11 @@ render :: proc(
 	tool := &players.editor.transform_tool
 
 	// Draw debug tooltips
-	ddu.draw_all_instructions_and_reset()
+	if game_state.cheat_state.draw_debug_draw_utilities_instructions {
+		ddu.draw_all_instructions_and_reset()
+	} else {
+		ddu.clear_all_instructions()
+	}
 
 	switch players.mode {
 	case plrs.Player_Mode.Game:
@@ -141,8 +145,8 @@ render :: proc(
 		// rl.SetShaderValueMatrix(lightray.lighting.shader, mat_normal_loc, rl.Matrix(1))
 
 
-		// TODO Currently we are transforming each point induvidually, indeally we should just have a few meshes, send them 
-		// once to the gpu and instance it. But Something goes wrong in the shader with normals if we do that. Needs investigation 
+		// TODO Currently we are transforming each point induvidually, indeally we should just have a few meshes, send them
+		// once to the gpu and instance it. But Something goes wrong in the shader with normals if we do that. Needs investigation
 
 		draw_triangle(
 			transformed_tri.points.x,

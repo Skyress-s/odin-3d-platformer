@@ -12,10 +12,11 @@ Game_State :: distinct struct {
 }
 
 make_default_cheat_state :: proc() -> Cheat_State {
-	return Cheat_State{draw_bounds = false}
+	return Cheat_State{draw_bounds = false, draw_debug_draw_utilities_instructions = true}
 }
 
 Cheat_State :: distinct struct {
 	draw_bounds: bool,
+	draw_debug_draw_utilities_instructions: bool,
 	change_color_when_player_in_cell: bool
 }

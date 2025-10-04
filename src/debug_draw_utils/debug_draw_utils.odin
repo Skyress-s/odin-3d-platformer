@@ -110,6 +110,11 @@ draw_all_instructions_and_reset :: proc() {
 	for &instruction in &debug_draw_instruction_array {
 		draw_instruction(&instruction)
 	}
+	clear_all_instructions()
+}
+
+clear_all_instructions :: proc() 
+{
 	clear(&debug_draw_instruction_array)
 }
 

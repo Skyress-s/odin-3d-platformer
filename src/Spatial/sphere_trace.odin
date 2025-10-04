@@ -85,7 +85,7 @@ calculate_hashes_by_sphere_trace :: proc(
 	// return cells
 }
 
-disance_point_to_line :: proc(p_on_line, v, point: ^Vector) -> f32 {
+distance_point_to_line :: proc(p_on_line, v, point: ^Vector) -> f32 {
 	to_point := (point^ - p_on_line^)
 	c := linalg.cross(to_point, v^)
 	return linalg.length(c) / linalg.length(v^)
@@ -177,8 +177,149 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
-sphere_trace_triangle_intersect :: proc(sphere_trace: ^Sphere_Trace, tri: ^Collision_Triangle) {
-	close
+sphere_trace_triangle_intersect :: proc(sphere_trace: ^Sphere_Trace, tri: ^Collision_Triangle, reaction: ^Vector) {
+	//
+	// i: i32
+	// nvelo := ray_direction(sphere_trace.ray)
+	// nvelo = linalg.normalize(nvelo)
+	//
+	// tri_normal := collision_triangle_normal(tri)
+	//
+	// if linalg.dot(tri_normal, nvelo) > -0.001 do return false
+	//
+	// minDist := max(f32)
+	// reaction: Vector
+	// col :i32= -1
+	// _distTravel :f32= max(f32)
+	//
+	//
+	// plane : Plane = Plane{point_on_plane = tri.points.x, normal = tri_normal}
+	//
+	// // pass1: sphere VS plane
+	// h :f32= plane.dist( _sphere.center );
+	// h :f32= distance_point_to_plane(&plane, &sphere_trace.ray.origin)
+	// if h < -_sphere.radius do return false
+	//
+	// if h > _sphere.radius {
+	// 	h -= _sphere.radius;
+	// 	dot := linalg.dot(tri_normal, nvelo)
+	// 	if (dot != 0) {
+	// 		t :f32= -h / dot;
+	// 		onPlane :Vector= _sphere.center + nvelo * t;
+	// 		if (collision_triangle_point_inside(tri, onPlane)) {
+	// 			if (t < _distTravel) {
+	// 				_distTravel = t;
+	// 				if reaction != nil{
+	// 					reaction = tri_normal;
+	// 				}
+	// 				col = 0;
+	// 			}
+	// 		}
+	// 	}
+	// }
+	//
+	// // pass2: sphere VS triangle vertices
+	// for i:i32= 0; i < 3; i += 1{
+	//
+	// 	seg_pt0 :Vector= tri.points[i];
+	// 		 seg_pt1 :Vector= seg_pt0 - nvelo;
+	// 			  v :Vector= seg_pt1 - seg_pt0;
+	//
+	// 			     inter1, inter2:=max(f32), max(f32)
+	// 	nbInter:i32 = 0
+	// 	ozbool res = testIntersectionSphereLine(_sphere, seg_pt0, seg_pt1, &nbInter, &inter1, &inter2);
+	// 	if (res == OZFALSE)
+	// 		continue;
+	//
+	// 	float t = inter1;
+	// 	if (inter2 < t)
+	// 		t = inter2;
+	//
+	// 	if (t < 0)
+	// 		continue;
+	//
+	// 	if (t < _distTravel) {
+	// 		_distTravel = t;
+	// 		Vec3f onSphere = seg_pt0 + v * t;
+	// 		if (_reaction)
+	// 			*_reaction = _sphere.center - onSphere;
+	// 		col = 1;
+	// 	}
+	// }
+	//
+	// // pass3: sphere VS triangle edges
+	// for (i = 0; i < 3; i++) {
+	// 	Vec3f edge0 = *_triPts[i];
+	// 	int j = i + 1;
+	// 	if (j == 3)
+	// 		j = 0;
+	// 	Vec3f edge1 = *_triPts[j];
+	//
+	// 	Plane plane;
+	// 	plane.fromPoints(edge0, edge1, edge1 - nvelo);
+	// 	float d = plane.dist(_sphere.center);
+	// 	if (d > _sphere.radius || d < -_sphere.radius)
+	// 		continue;
+	//
+	// 	float srr = _sphere.radius * _sphere.radius;
+	// 	float r = sqrtf(srr - d*d);
+	//
+	// 	Vec3f pt0 = plane.project(_sphere.center); // center of the sphere slice (a circle)
+	//
+	// 	Vec3f onLine;
+	// 	float h = distancePointToLine(pt0, edge0, edge1, &onLine);
+	// 	Vec3f v = onLine - pt0;
+	// 	v.normalize();
+	// 	Vec3f pt1 = v * r + pt0; // point on the sphere that will maybe collide with the edge
+	//
+	// 	int a0 = 0, a1 = 1;
+	// 	float pl_x = fabsf(plane.a);
+	// 	float pl_y = fabsf(plane.b);
+	// 	float pl_z = fabsf(plane.c);
+	// 	if (pl_x > pl_y && pl_x > pl_z) {
+	// 		a0 = 1;
+	// 		a1 = 2;
+	// 	}
+	// 	else {
+	// 		if (pl_y > pl_z) {
+	// 			a0 = 0;
+	// 			a1 = 2;
+	// 		}
+	// 	}
+	//
+	// 	Vec3f vv = pt1 + nvelo;
+	//
+	// 	float t;
+	// 	ozbool res = testIntersectionLineLine(  Vec2f(pt1[a0], pt1[a1]),
+	// 											Vec2f(vv[a0], vv[a1]),
+	// 											Vec2f(edge0[a0], edge0[a1]),
+	// 											Vec2f(edge1[a0], edge1[a1]),
+	// 											&t);
+	// 	if (!res || t < 0)
+	// 		continue;
+	//
+	// 	Vec3f inter = pt1 + nvelo * t;
+	//
+	// 	Vec3f r1 = edge0 - inter;
+	// 	Vec3f r2 = edge1 - inter;
+	// 	if (r1.dot(r2) > 0)
+	// 		continue;
+	//
+	// 	if (t > _distTravel)
+	// 		continue;
+	//
+	// 	_distTravel = t;
+	// 	if (_reaction)
+	// 		*_reaction = _sphere.center - pt1;
+	// 	col = 2;
+	// }
+	//
+	// if (_reaction && col != -1)
+	// 	_reaction->normalize();
+	//
+	// return col == -1 ? OZFALSE : OZTRUE;
+	//
+	//
 }
 
 

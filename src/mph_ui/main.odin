@@ -245,6 +245,9 @@ cheats_panel :: proc(
 				mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
 
 				mu.layout_row(ctx, {-1})
+				mu.checkbox(ctx, "debug_draw_utils", &game_state.cheat_state.draw_debug_draw_utilities_instructions)
+
+				mu.layout_row(ctx, {-1})
 				mu.checkbox(
 					ctx,
 					"player_in_active_cell",
