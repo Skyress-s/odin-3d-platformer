@@ -177,7 +177,12 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
-sphere_trace_triangle_intersect :: proc(sphere_trace: ^Sphere_Trace, tri: ^Collision_Triangle, reaction: ^Vector) {
+sphere_trace_triangle_intersect :: proc(
+	sphere_trace: ^Sphere_Trace,
+	tri: ^Collision_Triangle,
+	reaction: ^Vector,
+) -> bool {
+	return false
 	//
 	// i: i32
 	// nvelo := ray_direction(sphere_trace.ray)
@@ -188,138 +193,143 @@ sphere_trace_triangle_intersect :: proc(sphere_trace: ^Sphere_Trace, tri: ^Colli
 	// if linalg.dot(tri_normal, nvelo) > -0.001 do return false
 	//
 	// minDist := max(f32)
-	// reaction: Vector
-	// col :i32= -1
-	// _distTravel :f32= max(f32)
+	// col: i32 = -1
+	// _distTravel: f32 = max(f32)
 	//
 	//
-	// plane : Plane = Plane{point_on_plane = tri.points.x, normal = tri_normal}
+	// plane: Plane = Plane {
+	// 	point_on_plane = tri.points.x,
+	// 	normal         = tri_normal,
+	// }
 	//
 	// // pass1: sphere VS plane
-	// h :f32= plane.dist( _sphere.center );
-	// h :f32= distance_point_to_plane(&plane, &sphere_trace.ray.origin)
-	// if h < -_sphere.radius do return false
+	// h: f32 = distance_point_to_plane(&plane, &sphere_trace.ray.origin)
+	// if h < -sphere_trace.radius do return false
 	//
-	// if h > _sphere.radius {
-	// 	h -= _sphere.radius;
+	// if h > sphere_trace.radius {
+	// 	h -= sphere_trace.radius
 	// 	dot := linalg.dot(tri_normal, nvelo)
 	// 	if (dot != 0) {
-	// 		t :f32= -h / dot;
-	// 		onPlane :Vector= _sphere.center + nvelo * t;
-	// 		if (collision_triangle_point_inside(tri, onPlane)) {
+	// 		t: f32 = -h / dot
+	// 		onPlane: Vector = sphere_trace.ray.origin + nvelo * t
+	// 		if (collision_triangle_point_inside(tri, &onPlane)) {
 	// 			if (t < _distTravel) {
-	// 				_distTravel = t;
-	// 				if reaction != nil{
-	// 					reaction = tri_normal;
+	// 				_distTravel = t
+	// 				if reaction != nil {
+	// 					reaction^ = tri_normal
 	// 				}
-	// 				col = 0;
+	// 				col = 0
 	// 			}
 	// 		}
 	// 	}
 	// }
 	//
 	// // pass2: sphere VS triangle vertices
-	// for i:i32= 0; i < 3; i += 1{
+	// for i: i32 = 0; i < 3; i += 1 {
 	//
-	// 	seg_pt0 :Vector= tri.points[i];
-	// 		 seg_pt1 :Vector= seg_pt0 - nvelo;
-	// 			  v :Vector= seg_pt1 - seg_pt0;
+	// 	seg_pt0: Vector = tri.points[i]
+	// 	seg_pt1: Vector = seg_pt0 - nvelo
+	// 	v: Vector = seg_pt1 - seg_pt0
 	//
-	// 			     inter1, inter2:=max(f32), max(f32)
-	// 	nbInter:i32 = 0
-	// 	ozbool res = testIntersectionSphereLine(_sphere, seg_pt0, seg_pt1, &nbInter, &inter1, &inter2);
-	// 	if (res == OZFALSE)
-	// 		continue;
+	// 	inter1, inter2 := max(f32), max(f32)
+	// 	nbInter: i32 = 0
+	// 	res: bool = testIntersectionSphereLine(
+	// 		_sphere,
+	// 		seg_pt0,
+	// 		seg_pt1,
+	// 		&nbInter,
+	// 		&inter1,
+	// 		&inter2,
+	// 	)
+	// 	if res == false do continue
 	//
-	// 	float t = inter1;
-	// 	if (inter2 < t)
-	// 		t = inter2;
+	// 	t: f32 = inter1
+	// 	if inter2 < t do t = inter2
 	//
-	// 	if (t < 0)
-	// 		continue;
+	// 	if t < 0 do continue
 	//
-	// 	if (t < _distTravel) {
-	// 		_distTravel = t;
-	// 		Vec3f onSphere = seg_pt0 + v * t;
-	// 		if (_reaction)
-	// 			*_reaction = _sphere.center - onSphere;
-	// 		col = 1;
+	// 	if t < _distTravel {
+	// 		_distTravel = t
+	// 		onSphere: Vector = seg_pt0 + v * t
+	// 		if reaction != nil {
+	// 			reaction^ = sphere_trace.ray.origin - onSphere
+	// 		}
+	// 		col = 1
 	// 	}
 	// }
 	//
 	// // pass3: sphere VS triangle edges
-	// for (i = 0; i < 3; i++) {
-	// 	Vec3f edge0 = *_triPts[i];
-	// 	int j = i + 1;
-	// 	if (j == 3)
-	// 		j = 0;
-	// 	Vec3f edge1 = *_triPts[j];
+	// for i = 0; i < 3; i += 1 {
+	// 	edge0: Vector = tri.points[i]
+	// 	j: i32 = i + 1
+	// 	if j == 3 do j = 0
+	// 	edge1: Vector = tri.points[j]
 	//
-	// 	Plane plane;
-	// 	plane.fromPoints(edge0, edge1, edge1 - nvelo);
-	// 	float d = plane.dist(_sphere.center);
-	// 	if (d > _sphere.radius || d < -_sphere.radius)
-	// 		continue;
+	// 	plane: Plane
+	// 	plane.point_on_plane = edge1
+	// 	plane.normal = collision_triangle_normal(tri)
+	// 	// plane.fromPoints(edge0, edge1, edge1 - nvelo);
+	// 	d: f32 = distance_point_to_plane(&plane, &sphere_trace.ray.origin)
+	// 	if d > sphere_trace.radius || d < -sphere_trace.radius do continue
 	//
-	// 	float srr = _sphere.radius * _sphere.radius;
-	// 	float r = sqrtf(srr - d*d);
+	// 	srr: f32 = sphere_trace.radius * sphere_trace.radius
+	// 	r: f32 = math.sqrt(srr - d * d)
 	//
-	// 	Vec3f pt0 = plane.project(_sphere.center); // center of the sphere slice (a circle)
+	// 	pt0: Vector = plane.project(sphere_trace.ray.origin) // center of the sphere slice (a circle)
 	//
-	// 	Vec3f onLine;
-	// 	float h = distancePointToLine(pt0, edge0, edge1, &onLine);
-	// 	Vec3f v = onLine - pt0;
-	// 	v.normalize();
-	// 	Vec3f pt1 = v * r + pt0; // point on the sphere that will maybe collide with the edge
+	// 	onLine: Vector
+	// 	h: f32 = distancePointToLine(pt0, edge0, edge1, &onLine)
+	// 	v: Vector = onLine - pt0
+	// 	v = linalg.normalize(v)
+	// 	pt1: Vector = v * r + pt0 // point on the sphere that will maybe collide with the edge
 	//
-	// 	int a0 = 0, a1 = 1;
-	// 	float pl_x = fabsf(plane.a);
-	// 	float pl_y = fabsf(plane.b);
-	// 	float pl_z = fabsf(plane.c);
+	// 	// int a0 = 0, a1 = 1;
+	// 	a0, a1 := 0, 1
+	// 	pl_x: f32 = math.abs(plane.a)
+	// 	pl_y: f32 = math.abs(plane.b)
+	// 	pl_z: f32 = math.abs(plane.c)
 	// 	if (pl_x > pl_y && pl_x > pl_z) {
-	// 		a0 = 1;
-	// 		a1 = 2;
-	// 	}
-	// 	else {
+	// 		a0 = 1
+	// 		a1 = 2
+	// 	} else {
 	// 		if (pl_y > pl_z) {
-	// 			a0 = 0;
-	// 			a1 = 2;
+	// 			a0 = 0
+	// 			a1 = 2
 	// 		}
 	// 	}
 	//
-	// 	Vec3f vv = pt1 + nvelo;
+	// 	vv: Vector = pt1 + nvelo
 	//
-	// 	float t;
-	// 	ozbool res = testIntersectionLineLine(  Vec2f(pt1[a0], pt1[a1]),
-	// 											Vec2f(vv[a0], vv[a1]),
-	// 											Vec2f(edge0[a0], edge0[a1]),
-	// 											Vec2f(edge1[a0], edge1[a1]),
-	// 											&t);
-	// 	if (!res || t < 0)
-	// 		continue;
+	// 	t: f32
+	// 	res: bool = testIntersectionLineLine(
+	// 		Vec2f(pt1[a0], pt1[a1]),
+	// 		Vec2f(vv[a0], vv[a1]),
+	// 		Vec2f(edge0[a0], edge0[a1]),
+	// 		Vec2f(edge1[a0], edge1[a1]),
+	// 		&t,
+	// 	)
+	// 	if (!res || t < 0) do continue
 	//
-	// 	Vec3f inter = pt1 + nvelo * t;
+	// 	inter: Vector = pt1 + nvelo * t
 	//
-	// 	Vec3f r1 = edge0 - inter;
-	// 	Vec3f r2 = edge1 - inter;
-	// 	if (r1.dot(r2) > 0)
-	// 		continue;
+	// 	r1: Vector = edge0 - inter
+	// 	r2: Vector = edge1 - inter
+	// 	if (linalg.dot(r1, r2) > 0) do continue
 	//
-	// 	if (t > _distTravel)
-	// 		continue;
+	// 	if (t > _distTravel) do continue
 	//
-	// 	_distTravel = t;
-	// 	if (_reaction)
-	// 		*_reaction = _sphere.center - pt1;
-	// 	col = 2;
+	// 	_distTravel = t
+	// 	if (reaction != nil) {
+	// 		reaction^ = sphere_trace.ray.origin - pt1
+	// 	}
+	// 	col = 2
 	// }
 	//
-	// if (_reaction && col != -1)
-	// 	_reaction->normalize();
+	// if reaction != nil && col != -1 do reaction^ = linalg.normalize(reaction^)
 	//
-	// return col == -1 ? OZFALSE : OZTRUE;
+	// return col == -1 ? false : true
 	//
-	//
+
 }
 
 
