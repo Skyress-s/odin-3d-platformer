@@ -1,7 +1,9 @@
 package game
 
+import "core:time"
 import character "../Character"
 import col "../color"
+import hms "../handle_map/handle_map_static"
 import "../render"
 
 import verlet "../Physics/verlet"
@@ -184,7 +186,8 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 				dt,
 			)
 
-			gc.players.game.verlet_component.position_last_update = gc.players.game.verlet_component.position
+			gc.players.game.verlet_component.position_last_update =
+				gc.players.game.verlet_component.position
 			verlet.velocity_verlet_frog(&gc.players.game.verlet_component, dt)
 		}
 	case plrs.Player_Mode.Editor:
@@ -270,6 +273,33 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			color    = col.DARKPURPLE,
 		}
 		ddu.enqueue_draw_instruction(&ins)
+	}
+
+	// Test agains all objects in hashes
+
+	{
+		for hash in &hashes {
+			object_ids := gc.current_level.spatial_hash_grid[hash]
+			for &object_id in object_ids.objects_ids {
+				object := hms.get(&gc.current_level.collision_object_map, object_id)
+				transform_matrix := spat.get_matrix_from_transform(object.transform)
+
+				for &t in object.tris {
+					// TODO: also implement rotations when the time comes
+					tri := t
+					for &p in tri.points {
+						p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
+						// p += coll_obj.transform.position
+					}
+					reaction : spat.Vector
+					hit := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+					if hit {
+						fmt.println("We hit something boys!", time.now())
+						ins := ddu.Debug_Draw_Sphere_Instruction{}
+					}
+				}
+			}
+		}
 	}
 
 

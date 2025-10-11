@@ -50,6 +50,7 @@ Box_Better :: struct {
 
 Sphere :: struct {
 	radius: f32,
+	center: Vector
 }
 
 QuaternionData :: distinct struct {
