@@ -1,5 +1,6 @@
 package game
 
+import "core:reflect"
 import "core:time"
 import character "../Character"
 import col "../color"
@@ -228,9 +229,9 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
 			origin = player_loction,
-			end = player_loction + player_look_direction * 30,
+			end = player_loction + player_look_direction * 10,
 		},
-		radius = 0.3,
+		radius = 1.3,
 	}
 
 	{
@@ -283,8 +284,10 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		
 
 		tri := spat.Collision_Triangle{{spat.Vector{0,0,-10}, spat.Vector{5,0,-10}, spat.Vector{0,-5,-10}}}
+
+		plane := spat.plane_comp_from_tri(tri.points)
 		reaction : spat.Vector
-		hit, reason:=spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+		hit, reason, loc:=spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
 
 		tri_col := col.BLACK
 
@@ -294,6 +297,27 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 
 		cube_ins := ddu.Debug_Draw_Triangle_Instruction{tri.points.x, tri.points.y, tri.points.z, tri_col}
 		ddu.enqueue_draw_instruction2(&cube_ins)
+
+		ddu.enqueue_draw_instruction2(&ddu.Debug_Draw_Sphere_Instruction{loc, sphere_trace.radius, col.YELLOW})
+
+		if hit != -1 {
+			dist := linalg.distance(loc, sphere_trace.origin)
+			remaining_distance := spat.ray_length(&sphere_trace.ray) - dist
+
+			dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
+
+			reflected:= linalg.reflect(spat.ray_direction(sphere_trace.ray), normal)
+
+			end_pos := loc + reflected * remaining_distance
+
+			ddu.enqueue_draw_instruction2(&ddu.Debug_Draw_Sphere_Instruction{end_pos, sphere_trace.radius, col.VIOLET})
+
+			// reflected := spat.plane_comp_reflect(&plane, spat.ray_direction(sphere_trace.ray) * remaining_distance)
+
+
+
+
+		}
 
 		fmt.println(hit, reason)
 
