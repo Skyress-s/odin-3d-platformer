@@ -7,7 +7,7 @@ import "core:math/linalg"
 import "core:testing"
 
 Sphere_Trace :: distinct struct {
-	ray:    Ray,
+	using ray:    Ray,
 	radius: f32,
 }
 
@@ -340,4 +340,77 @@ calculate_hashes_by_rays :: proc(rays: ^[dynamic]Ray) -> (hashes: map[Hash_Key]b
 	}
 
 	return hashes
+}
+
+
+sphere_trace_triangle :: proc(
+    sphere_start: Vector,
+    sphere_end: Vector,
+    radius: f32,
+    tri_a: Vector,
+    tri_b: Vector,
+    tri_c: Vector,
+    t_out: ^f32,         // Optional: time of impact (0..1)
+    hit_point: ^Vector   // Optional: point of contact
+) -> bool {
+    dir := sphere_end - sphere_start
+    length := linalg.length(dir)
+
+    if length < 1e-6 {
+        return false // Not moving
+    }
+
+    norm_dir := linalg.normalize(dir)
+
+    // Triangle edges and normal
+    edge1 := tri_b - tri_a
+    edge2 := tri_c - tri_a
+    tri_normal := linalg.normalize(linalg.cross(edge1, edge2))
+
+    // Plane equation: dot(N, X) + d = 0
+    plane_d := -linalg.dot(tri_normal, tri_a)
+    dist_to_plane := linalg.dot(tri_normal, sphere_start) + plane_d
+
+    // Adjust distance by sphere radius
+    expanded_dist := dist_to_plane - radius
+    denom := linalg.dot(tri_normal, norm_dir)
+
+    if math.abs(denom) < 1e-6 {
+        return false // Ray is parallel to triangle
+    }
+
+    t := -expanded_dist / denom
+    if t < 0.0 || t > 1.0 {
+        return false // Not in movement range
+    }
+
+    contact_point := sphere_start + norm_dir * (t * length)
+
+    // Point-in-triangle test (barycentric coordinates)
+    v0 := edge1
+    v1 := edge2
+    v2 := contact_point - tri_a
+
+    d00 := linalg.dot(v0, v0)
+    d01 := linalg.dot(v0, v1)
+    d11 := linalg.dot(v1, v1)
+    d20 := linalg.dot(v2, v0)
+    d21 := linalg.dot(v2, v1)
+
+    denom_bary := d00 * d11 - d01 * d01
+    if math.abs(denom_bary) < 1e-6 {
+        return false // Degenerate triangle
+    }
+
+    v := (d11 * d20 - d01 * d21) / denom_bary
+    w := (d00 * d21 - d01 * d20) / denom_bary
+    u := 1.0 - v - w
+
+    if u >= 0 && v >= 0 && w >= 0 {
+        if t_out != nil do t_out^ = t
+        if hit_point != nil do hit_point^ = contact_point
+        return true
+    }
+
+    return false
 }

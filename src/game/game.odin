@@ -292,7 +292,8 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 						// p += coll_obj.transform.position
 					}
 					reaction : spat.Vector
-					hit := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+					hit := spat.sphere_trace_triangle(sphere_trace.origin, sphere_trace.end, sphere_trace.radius, tri.points.x, tri.points.y, tri.points.z, nil, nil)
+					// hit := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
 					if hit {
 						fmt.println("We hit something boys!", time.now())
 						ins := ddu.Debug_Draw_Sphere_Instruction{}
