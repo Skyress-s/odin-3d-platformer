@@ -21,5 +21,5 @@ draw_cyllinder :: proc(ins: ^Debug_Draw_Wire_Cyllinder_Instruction) {
 	rlgl.Rotatef(rotate_angles, rotate_axis.x, rotate_axis.y, rotate_axis.z)
 
 	ray_length := spat.ray_length(&ins.ray)
-	rl.DrawCylinderWires(spat.ZERO_VEC3, ins.radius, ins.radius, ray_length, 8, ins.color)
+	rl.DrawCylinderWires(spat.ZERO_VEC3, ins.radius, ins.radius, ray_length, 16, ins.color)
 }

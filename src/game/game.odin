@@ -228,9 +228,9 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
 			origin = player_loction,
-			end = player_loction + player_look_direction * 1000,
+			end = player_loction + player_look_direction * 30,
 		},
-		radius = 100,
+		radius = 0.3,
 	}
 
 	{
@@ -278,29 +278,48 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	// Test agains all objects in hashes
 
 	{
-		for hash in &hashes {
-			object_ids := gc.current_level.spatial_hash_grid[hash]
-			for &object_id in object_ids.objects_ids {
-				object := hms.get(&gc.current_level.collision_object_map, object_id)
-				transform_matrix := spat.get_matrix_from_transform(object.transform)
+		// cube_ins :ddu.Debug_Draw_Instruction= ddu.Debug_Draw_Cube_Instruction{location = spat.Vector{0,0,-10}, size = spat.Vector{1,1,1}, rot = spat.QUATERNION_IDENTITY, color = rl.RED}
 
-				for &t in object.tris {
-					// TODO: also implement rotations when the time comes
-					tri := t
-					for &p in tri.points {
-						p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
-						// p += coll_obj.transform.position
-					}
-					reaction : spat.Vector
-					hit := spat.sphere_trace_triangle(sphere_trace.origin, sphere_trace.end, sphere_trace.radius, tri.points.x, tri.points.y, tri.points.z, nil, nil)
-					// hit := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
-					if hit {
-						fmt.println("We hit something boys!", time.now())
-						ins := ddu.Debug_Draw_Sphere_Instruction{}
-					}
-				}
-			}
-		}
+		
+
+		tri := spat.Collision_Triangle{{spat.Vector{0,0,-10}, spat.Vector{5,0,-10}, spat.Vector{0,-5,-10}}}
+		reaction : spat.Vector
+		hit, reason:=spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+
+		tri_col := col.BLACK
+
+		if hit == 0 do tri_col = col.RED
+		if hit == 1 do tri_col = col.GREEN
+		if hit == 2 do tri_col = col.BLUE
+
+		cube_ins := ddu.Debug_Draw_Triangle_Instruction{tri.points.x, tri.points.y, tri.points.z, tri_col}
+		ddu.enqueue_draw_instruction2(&cube_ins)
+
+		fmt.println(hit, reason)
+
+		// for hash in &hashes {
+		// 	object_ids := gc.current_level.spatial_hash_grid[hash]
+		// 	for &object_id in object_ids.objects_ids {
+		// 		object := hms.get(&gc.current_level.collision_object_map, object_id)
+		// 		transform_matrix := spat.get_matrix_from_transform(object.transform)
+		//
+		// 		for &t in object.tris {
+		// 			// TODO: also implement rotations when the time comes
+		// 			tri := t
+		// 			for &p in tri.points {
+		// 				p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
+		// 				// p += coll_obj.transform.position
+		// 			}
+		// 			reaction : spat.Vector
+		// 			// hit := spat.sphere_trace_triangle(sphere_trace.origin, sphere_trace.end, sphere_trace.radius, tri.points.x, tri.points.y, tri.points.z, nil, nil)
+		// 			hit := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+		// 			if hit {
+		// 				fmt.println("We hit something boys!", time.now())
+		// 				ins := ddu.Debug_Draw_Sphere_Instruction{}
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 

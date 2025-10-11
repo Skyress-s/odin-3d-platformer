@@ -177,32 +177,30 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
+Return_Reason :: enum
+{ Paralell, Two, EOP  }
+
 sphere_trace_triangle_intersect :: proc(
 	sphere_trace: ^Sphere_Trace,
 	tri: ^Collision_Triangle,
 	reaction: ^Vector,
-) -> bool {
+) -> (i32, Return_Reason) {
 	i: i32
 	nvelo := ray_direction(sphere_trace.ray)
-	nvelo = linalg.normalize(nvelo)
 
 	tri_normal := collision_triangle_normal(tri)
 
-	if linalg.dot(tri_normal, nvelo) > -0.001 do return false
+	if linalg.dot(tri_normal, nvelo) > -0.001 do return -1, .Paralell
 
 	minDist := max(f32)
 	col: i32 = -1
 	_distTravel: f32 = max(f32)
 
 
-	plane: Plane = Plane {
-		point_on_plane = tri.points.x,
-		normal         = tri_normal,
-	}
-
+	plane:  = plane_comp_from_point_and_normal(tri.points.x, tri_normal)
 	// pass1: sphere VS plane
-	h: f32 = distance_point_to_plane(&plane, &sphere_trace.ray.origin)
-	if h < -sphere_trace.radius do return false
+	h: f32 = distance_to_plane_comp(&plane, &sphere_trace.origin)
+	if h < -sphere_trace.radius do return -1, .Two
 
 	if h > sphere_trace.radius {
 		h -= sphere_trace.radius
@@ -263,12 +261,14 @@ sphere_trace_triangle_intersect :: proc(
 		if j == 3 do j = 0
 		edge1: Vector = tri.points[j]
 
-		plane: Plane_Compressed = plane_comp_from_point_and_normal(tri.points.x, tri_normal)
+		plane: Plane_Compressed = plane_comp_from_tri({edge0, edge1, edge1 - nvelo})
 		d: f32 = distance_to_plane_comp(&plane, &sphere_trace.ray.origin)
+		fmt.println("distance_to_plane: ", d)
+
 		if d > sphere_trace.radius || d < -sphere_trace.radius do continue
 
 		srr: f32 = sphere_trace.radius * sphere_trace.radius
-		r: f32 = math.sqrt(srr - d * d)
+		r: f32 = math.sqrt(srr - d*d)
 
 		pt0: Vector = plane_comp_project(&plane, &sphere_trace.ray.origin) // center of the sphere slice (a circle)
 
@@ -323,9 +323,8 @@ sphere_trace_triangle_intersect :: proc(
 
 	if reaction != nil && col != -1 do reaction^ = linalg.normalize(reaction^)
 
-	return col == -1 ? false : true
-
-
+	return col, .EOP
+	// return col == -1 ? false : true, .EOP
 }
 
 

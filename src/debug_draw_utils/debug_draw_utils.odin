@@ -21,6 +21,7 @@ Debug_Draw_Instruction :: distinct union #no_nil {
 	Debug_Draw_Cyllinder_Instruction,
 	Debug_Draw_Wire_Cyllinder_Instruction,
 	Debug_Draw_Circle_Instruction,
+	Debug_Draw_Triangle_Instruction,
 	Debug_Draw_Text_Instruction,
 	Debug_Draw_Line_Instruction,
 }
@@ -62,6 +63,11 @@ Debug_Draw_Circle_Instruction :: distinct struct {
 	color:                 col.Color,
 }
 
+Debug_Draw_Triangle_Instruction :: distinct struct {
+	a, b, c: spat.Vector,
+	col:     col.Color,
+}
+
 Debug_Draw_Text_Instruction :: distinct struct {
 	message: string,
 }
@@ -98,12 +104,17 @@ draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 	case Debug_Draw_Wire_Cyllinder_Instruction:
 		draw_cyllinder(&v)
 	case Debug_Draw_Circle_Instruction:
+
+	case Debug_Draw_Triangle_Instruction:
+		rl.DrawTriangle3D(v.a, v.b, v.c, v.col)
+		rl.DrawTriangle3D(v.b, v.a, v.c, v.col)
 	case Debug_Draw_Text_Instruction:
 	case Debug_Draw_Line_Instruction:
 		rl.DrawLine3D(v.ray.origin, v.ray.end, v.color)
 	// Drawn in the game ui package
 
 	}
+
 }
 
 draw_all_instructions_and_reset :: proc() {
@@ -113,8 +124,7 @@ draw_all_instructions_and_reset :: proc() {
 	clear_all_instructions()
 }
 
-clear_all_instructions :: proc() 
-{
+clear_all_instructions :: proc() {
 	clear(&debug_draw_instruction_array)
 }
 
@@ -123,6 +133,6 @@ enqueue_draw_instruction :: proc(draw_ins: ^Debug_Draw_Instruction) {
 }
 
 enqueue_draw_instruction2 :: proc(draw_ins: $T) {
-
+	ins :Debug_Draw_Instruction=draw_ins^
+	append_elem(&debug_draw_instruction_array, ins)
 }
-
