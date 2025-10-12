@@ -132,7 +132,7 @@ enqueue_draw_instruction :: proc(draw_ins: ^Debug_Draw_Instruction) {
 	append_elem(&debug_draw_instruction_array, draw_ins^)
 }
 
-enqueue_draw_instruction2 :: proc(draw_ins: $T) {
+enqueue_ins :: proc(draw_ins: $T) {
 	ins :Debug_Draw_Instruction=draw_ins^
 	append_elem(&debug_draw_instruction_array, ins)
 }

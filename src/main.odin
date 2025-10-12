@@ -96,6 +96,8 @@ main :: proc() {
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
+	current_level.start_position = spat.Vector{0, 100, 0}
+
 	character.reset_run(
 		&players.game,
 		&current_level.start_position,

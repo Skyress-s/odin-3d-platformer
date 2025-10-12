@@ -9,7 +9,7 @@ Collision_Triangle :: struct {
 
 collision_triangle_normal :: proc(coll_tri: ^Collision_Triangle) -> Vector {
 	return linalg.normalize(
-		linalg.cross(coll_tri.points.x - coll_tri.points.y, coll_tri.points.z - coll_tri.points.y),
+		linalg.cross(coll_tri.points.z - coll_tri.points.y, coll_tri.points.x - coll_tri.points.y),
 	)
 }
 

@@ -6,12 +6,14 @@ import "../game_state"
 import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
+import col "../color"
 import "../player_data"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 import "core:time"
 import rl "vendor:raylib"
+import ddu "../debug_draw_utils" 
 
 
 Grounded :: struct {
@@ -150,18 +152,18 @@ update_character :: proc(
 	}
 }
 
-reset_run :: proc(character_data: ^CharacternData, start_location, start_direction: ^spat.Vector) {
+reset_run :: proc(character_data: ^CharacternData, start_location, start_velocity: ^spat.Vector) {
 	reset_speedrun(character_data)
 	start_speedrun(character_data)
 
-	character_data.verlet_component.position = {1, 5, 1}
-	character_data.verlet_component.velocity = {}
-	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_direction^)
+	character_data.verlet_component.position = start_location^ 
+	character_data.verlet_component.velocity = start_velocity^
+	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_velocity^)
 	character_data.is_hooked = false
 	character_data.hooked_position = spat.ZERO_VEC3
 }
 
-notify_level_loaded :: proc(character_data: ^CharacternData){
+notify_level_loaded :: proc(character_data: ^CharacternData) {
 	character_data.speedrun_stop_watch = time.Stopwatch{}
 	character_data.best_time = 0
 }
@@ -172,6 +174,17 @@ update_character_physics :: proc(
 	player_hash_cells: ^map[spat.Hash_Key]bool,
 	dt: f32,
 ) {
+	movement_sphere_trace := spat.Sphere_Trace {
+		ray = spat.Ray {
+			origin = character_data.verlet_component.position,
+			end = character_data.verlet_component.position +
+			character_data.verlet_component.velocity * dt,
+		},
+		radius = character_data.radius,
+	}
+
+	ddu.enqueue_ins(&ddu.Debug_Draw_Wire_Cyllinder_Instruction{sphere_trace = movement_sphere_trace, color = col.GREEN})
+
 	for hash_key in player_hash_cells {
 		object_ids := level.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
@@ -192,13 +205,40 @@ update_character_physics :: proc(
 					p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
 					// p += coll_obj.transform.position
 				}
-				spat.collide_with_tri(
-					&tri,
-					&character_data.verlet_component.velocity,
-					&character_data.verlet_component.position,
-					character_data.radius,
-					dt,
-				)
+				hit, loc := spat.sphere_trace_triangle_intersect(&movement_sphere_trace, &tri, nil)
+				if hit {
+					dist := linalg.distance(loc, movement_sphere_trace.origin)
+					remaining_distance := spat.ray_length(&movement_sphere_trace.ray) - dist
+
+					dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
+
+					reflected := linalg.reflect(spat.ray_direction(movement_sphere_trace.ray), normal)
+
+					end_pos := loc + reflected * remaining_distance
+
+					// ddu.enqueue_ins(
+					// 	&ddu.Debug_Draw_Sphere_Instruction {
+					// 		end_pos,
+					// 		sphere_trace.radius,
+					// 		col.VIOLET,
+					// 	},
+					// )
+					fmt.println("did, hit something: ", collision_object_id, " | " , tri)
+
+					if rl.GetTime() > 3 {
+					character_data.verlet_component.position = end_pos
+					character_data.verlet_component.velocity = linalg.reflect(character_data.verlet_component.velocity, normal)
+					}
+					
+
+				}
+				// spat.collide_with_tri(
+				// 	&tri,
+				// 	&character_data.verlet_component.velocity,
+				// 	&character_data.verlet_component.position,
+				// 	character_data.radius,
+				// 	dt,
+				// )
 			}
 
 		}
@@ -245,7 +285,7 @@ update_character_physics :: proc(
 
 			// Should we lose momentum or not? Kinda hacky atm.
 			target_velocity: spat.Vector
-			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 { 	// If we lose v < 20% of velocity, dont lose anything 
+			if new_vel_length < linalg.length(character_data.verlet_component.velocity) * 0.8 { 	// If we lose v < 20% of velocity, dont lose anything
 				//char_data.verlet_component.velocity = hook_forward * new_vel_length
 				target_velocity = hook_forward * new_vel_length
 			} else {
@@ -262,21 +302,19 @@ update_character_physics :: proc(
 			// what i want in a ideal world:
 			// - [C]ontinous [C]ollision [D]etection
 			// - Energy is conserverd
-		} else if distance < character_data.start_distance_to_hook { 	// Shorting rope 
+		} else if distance < character_data.start_distance_to_hook { 	// Shorting rope
 			character_data.start_distance_to_hook = distance
 		}
 
 	}
 
-	// TODO: When continually swinging without intup, we will very gradually gain total engergy. 
+	// TODO: When continually swinging without intup, we will very gradually gain total engergy.
 
 
 	// Add gravity
 	character_data.verlet_component.acceleration += {0, -30, 0}
 
 }
-
-
 
 
 @(private)
@@ -294,7 +332,7 @@ handle_movement_input_Airborne :: proc(
 	// rules
 	//	- Cannot change movement beoynd a certain speed that should be very low
 	//	- Air strafing should be minimal, only slight changes allowed. (Should be tested and confirm if its fun or not)
-	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff 
+	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff
 	velocity_before_xz: spat.Vector = char_data.verlet_component.velocity
 	velocity_before_xz.y = 0
 	speed_xz: f32 = linalg.length(velocity_before_xz)
@@ -334,7 +372,7 @@ handle_movement_input_Grounded :: proc(
 	// rules
 	//	- Cannot change movement beoynd a certain speed that should be very low
 	//	- Air strafing should be minimal, only slight changes allowed. (Should be tested and confirm if its fun or not)
-	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff 
+	//		- The main fun of the game should be to change the direction with the hook and possibly other stuff
 	velocity_before_xz: spat.Vector = char_data.verlet_component.velocity
 	velocity_before_xz.y = 0
 	speed_xz: f32 = linalg.length(velocity_before_xz)

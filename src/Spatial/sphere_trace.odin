@@ -177,20 +177,18 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
-Return_Reason :: enum
-{ Paralell, Two, EOP  }
 
 sphere_trace_triangle_intersect :: proc(
 	sphere_trace: ^Sphere_Trace,
 	tri: ^Collision_Triangle,
 	reaction: ^Vector,
-) -> (i32, Return_Reason, Vector) {
+) -> (bool, Vector) {
 	i: i32
 	nvelo := ray_direction(sphere_trace.ray)
 
 	tri_normal := collision_triangle_normal(tri)
 
-	if linalg.dot(tri_normal, nvelo) > -0.001 do return -1, .Paralell, ZERO_VEC3
+	if linalg.dot(tri_normal, nvelo) > -0.001 do return false, ZERO_VEC3
 
 	minDist := max(f32)
 	col: i32 = -1
@@ -200,7 +198,7 @@ sphere_trace_triangle_intersect :: proc(
 	plane:  = plane_comp_from_point_and_normal(tri.points.x, tri_normal)
 	// pass1: sphere VS plane
 	h: f32 = distance_to_plane_comp(&plane, &sphere_trace.origin)
-	if h < -sphere_trace.radius do return -1, .Two, ZERO_VEC3
+	if h < -sphere_trace.radius do return false, ZERO_VEC3
 
 	if h > sphere_trace.radius {
 		h -= sphere_trace.radius
@@ -322,9 +320,9 @@ sphere_trace_triangle_intersect :: proc(
 
 	if reaction != nil && col != -1 do reaction^ = linalg.normalize(reaction^)
 
-	if _distTravel > ray_length(&sphere_trace.ray) do return -1, .EOP, ZERO_VEC3
+	if _distTravel > ray_length(&sphere_trace.ray) do return false, ZERO_VEC3
 
-	return col, .EOP, sphere_trace.origin + nvelo * _distTravel
+	return col != -1, sphere_trace.origin + nvelo * _distTravel
 	// return col == -1 ? false : true, .EOP
 }
 
