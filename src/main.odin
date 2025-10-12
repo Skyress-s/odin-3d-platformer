@@ -1,8 +1,9 @@
 package main
 
 
+import "core:strings"
 import "render"
-
+import "core:time"
 import "core:log"
 import "core:os"
 import character "Character"
@@ -38,6 +39,7 @@ import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
+import m_log "mph_log"
 
 
 // global_trace_ctx: trace.Context
@@ -81,13 +83,19 @@ game_static_shaders :: struct {
 
 logger_proc :: proc(data: rawptr, level: runtime.Logger_Level, text: string, options: runtime.Logger_Options, location := #caller_location)
 {
+	// string_data := cast(^string)data
+	fmt.println(text)
+	m_log.write_log(fmt.aprintf("{}: {}", strings.to_upper(fmt.aprint(level)), text))
+
+	log.file_logger_proc(data, level, text, options, location)
 	// string_data := cast(^log.File_Console_Logger_Data)data
-	string_data := cast(^string)data
-	fmt.println("jahoo: ", text)
+
+	// fmt.printfln("{}: {}", level, text)
 }
 
-main :: proc() {
+some_val :int  
 
+main :: proc() {
 
 	hand, open_file_err := os.open("test_log4.log", os.O_CREATE | os.O_RDWR | os.O_TRUNC, 0o666)
 	if open_file_err != nil {
@@ -95,35 +103,29 @@ main :: proc() {
 		fmt.println(open_file_err)
 		return
 	}
+	defer os.close(hand)
 
 	logger := log.create_file_logger(hand)
-	// defer log.destroy_file_logger(logger)
-
-
-
+	defer log.destroy_file_logger(logger)
 
 
 	context.logger = logger
-	// context.logger.procedure = logger_proc
+	context.logger.procedure = logger_proc
 
-	log.logf(log.Level.Error, "logging")
-	log.errorf("Error!!!!")
+	m_log.write_log("hello")
+	log.infof("test")
+	log.warn("This is a warning")
+	// log.warn("This is a warning")
+	// log.warn("This is a warning")
+	// log.warn("This is a warning")
 
-	log.debug("test")
-	log.warnf("this is a warning")
+	// log.logf(log.Level.Error, "logging")
+	// log.errorf("Error!!!!")
+	//
+	// log.debug("test")
+	// log.warnf("this is a warning")
 
 
-	dataa, read_file_err := os.read_entire_file_or_err("test_log4.log")
-
-	if read_file_err != nil{
-
-		fmt.println(read_file_err)
-		return
-	}
-	fmt.println(string(dataa))
-
-	log.destroy_file_logger(logger)
-	os.close(hand)
 	// fmt.println("tufntufnt")
 
 
@@ -154,7 +156,7 @@ main :: proc() {
 	)
 
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	rl.InitWindow(1200, 900, "mph*0.5mv^2")
+	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
 

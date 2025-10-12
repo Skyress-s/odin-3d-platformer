@@ -1,11 +1,12 @@
 package game
 
-import "core:reflect"
-import "core:time"
+import "core:log"
 import character "../Character"
 import col "../color"
 import hms "../handle_map/handle_map_static"
 import "../render"
+import "core:reflect"
+import "core:time"
 
 
 import verlet "../Physics/verlet"
@@ -57,14 +58,15 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	for &container in gameui.state.mu_ctx.containers {
 		if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
 		   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
+
 			mouse_over_ui = true
 			break
 		}
 	}
 
 	if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
-		
-		container :=  mu.get_container(&gameui.state.mu_ctx, "Log")
+
+		container := mu.get_container(&gameui.state.mu_ctx, "Log")
 		container.open = !container.open
 	}
 	// time.stopwatch_stop(&timer)
@@ -234,10 +236,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	)
 
 	sphere_trace := spat.Sphere_Trace {
-		ray = spat.Ray {
-			origin = player_loction,
-			end = player_loction + player_look_direction * 10,
-		},
+		ray = spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 10},
 		radius = 1,
 	}
 
@@ -288,36 +287,42 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	{
 		// cube_ins :ddu.Debug_Draw_Instruction= ddu.Debug_Draw_Cube_Instruction{location = spat.Vector{0,0,-10}, size = spat.Vector{1,1,1}, rot = spat.QUATERNION_IDENTITY, color = rl.RED}
 
-		
 
-		tri := spat.Collision_Triangle{{spat.Vector{0,0,-10}, spat.Vector{5,0,-10}, spat.Vector{0,-5,-10}}}
+		tri := spat.Collision_Triangle {
+			{spat.Vector{0, 0, -10}, spat.Vector{5, 0, -10}, spat.Vector{0, -5, -10}},
+		}
 
 		plane := spat.plane_comp_from_tri(tri.points)
-		reaction : spat.Vector
-		hit, loc:=spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+		reaction: spat.Vector
+		hit, loc := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
 
 		tri_col := col.BLACK
 
-		cube_ins := ddu.Debug_Draw_Triangle_Instruction{tri.points.x, tri.points.y, tri.points.z, tri_col}
+		cube_ins := ddu.Debug_Draw_Triangle_Instruction {
+			tri.points.x,
+			tri.points.y,
+			tri.points.z,
+			tri_col,
+		}
 		ddu.enqueue_ins(&cube_ins)
 
 		ddu.enqueue_ins(&ddu.Debug_Draw_Sphere_Instruction{loc, sphere_trace.radius, col.YELLOW})
 
-		if hit { 
+		if hit {
 			dist := linalg.distance(loc, sphere_trace.origin)
 			remaining_distance := spat.ray_length(&sphere_trace.ray) - dist
 
 			dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
 
-			reflected:= linalg.reflect(spat.ray_direction(sphere_trace.ray), normal)
+			reflected := linalg.reflect(spat.ray_direction(sphere_trace.ray), normal)
 
 			end_pos := loc + reflected * remaining_distance
 
-			ddu.enqueue_ins(&ddu.Debug_Draw_Sphere_Instruction{end_pos, sphere_trace.radius, col.VIOLET})
+			ddu.enqueue_ins(
+				&ddu.Debug_Draw_Sphere_Instruction{end_pos, sphere_trace.radius, col.VIOLET},
+			)
 
 			// reflected := spat.plane_comp_reflect(&plane, spat.ray_direction(sphere_trace.ray) * remaining_distance)
-
-
 
 
 		}
@@ -335,11 +340,21 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 						p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
 						// p += coll_obj.transform.position
 					}
-					reaction : spat.Vector
+					reaction: spat.Vector
 					// hit := spat.sphere_trace_triangle(sphere_trace.origin, sphere_trace.end, sphere_trace.radius, tri.points.x, tri.points.y, tri.points.z, nil, nil)
-					hit, loc := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
+					hit, loc := spat.sphere_trace_triangle_intersect(
+						&sphere_trace,
+						&tri,
+						&reaction,
+					)
 					if hit {
-						ddu.enqueue_ins(&ddu.Debug_Draw_Sphere_Instruction{location = loc, radius = sphere_trace.radius, color = col.SUNSET})
+						ddu.enqueue_ins(
+							&ddu.Debug_Draw_Sphere_Instruction {
+								location = loc,
+								radius = sphere_trace.radius,
+								color = col.SUNSET,
+							},
+						)
 					}
 				}
 			}

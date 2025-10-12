@@ -8,6 +8,7 @@ import gs "../game_state"
 import "../game_state"
 import hms "../handle_map/handle_map_static/"
 import l "../level"
+import m_log "../mph_log"
 import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
@@ -24,7 +25,9 @@ MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
 // Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
 to_cwd_map_path_from_local :: proc(local_path: string) -> string {
-	return filepath.join({PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})})
+	return filepath.join(
+		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
+	)
 }
 
 // Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
@@ -190,14 +193,26 @@ display_log :: proc(
 	width := screen_dimentions.x
 	height := i32(f32(screen_dimentions.x) * 0.3)
 
-	target_rect := mu.Rect{x = 0, y = screen_dimentions.y - height, w = width, h = height }
-
-	if mu.window(ctx, "Log", target_rect, {}){
-		mu.layout_row(ctx, {-1})
-		mu.text(ctx, "test")
+	target_rect := mu.Rect {
+		x = 0,
+		y = screen_dimentions.y - height,
+		w = width,
+		h = height,
 	}
 
+	if mu.window(ctx, "Log", target_rect, {}) {
+		mu.layout_row(ctx, {-1})
+		mu.text(ctx, "test")
 
+
+		splits, _ := strings.split(m_log.read_log(), "\n")
+		defer delete(splits)
+
+		for &s in splits {
+			mu.layout_row(ctx, {-1})
+			mu.text(ctx, s)
+		}
+	}
 }
 controls_sheet :: proc(ctx: ^mu.Context) {
 	mu.layout_row(ctx, {-1})
@@ -264,7 +279,11 @@ cheats_panel :: proc(
 				mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
 
 				mu.layout_row(ctx, {-1})
-				mu.checkbox(ctx, "debug_draw_utils", &game_state.cheat_state.draw_debug_draw_utilities_instructions)
+				mu.checkbox(
+					ctx,
+					"debug_draw_utils",
+					&game_state.cheat_state.draw_debug_draw_utilities_instructions,
+				)
 
 				mu.layout_row(ctx, {-1})
 				mu.checkbox(
@@ -316,6 +335,9 @@ details_panel :: proc(
 		if current_id != spat.INVALID_OBJECT_ID {
 			current_coll_obj := hms.get(&level.collision_object_map, current_id)
 			if (.ACTIVE in mu.treenode(ctx, "Object Manipulation")) {
+				mu.layout_row(ctx, {-1})
+				mu.text(ctx, fmt.aprint(current_id))
+
 				mu.layout_row(ctx, {-1})
 				if mu.Result.SUBMIT in mu.button(ctx, "duplicate") {
 					if current_coll_obj != nil {
@@ -375,7 +397,7 @@ details_panel :: proc(
 
 
 			clicked_file_path := map_directory(ctx)
-			
+
 			double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
 
 			if clicked_file_path != "" {
@@ -399,13 +421,18 @@ details_panel :: proc(
 			if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
 				level.author_time = players.game.best_time
 
-				serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+				serialization.save_to_file(
+					level,
+					to_cwd_map_path_from_local(string(buf[:buf_len])),
+				)
 
 			}
 
 			mu.layout_row(ctx, {-1})
 			if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
-				level^ = serialization.load_from_file_level(to_cwd_map_path_from_local(string(buf[:buf_len])))
+				level^ = serialization.load_from_file_level(
+					to_cwd_map_path_from_local(string(buf[:buf_len])),
+				)
 
 				character.notify_level_loaded(&players.game)
 				character.reset_run(

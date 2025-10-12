@@ -1,5 +1,6 @@
 package Character
 import cc "../Physics/collision_channel"
+import "core:log"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
 import "../game_state"
@@ -223,7 +224,7 @@ update_character_physics :: proc(
 					// 		col.VIOLET,
 					// 	},
 					// )
-					fmt.println("did, hit something: ", collision_object_id, " | " , tri)
+					log.info("did, hit something: ", collision_object_id) 
 
 					if rl.GetTime() > 3 {
 					character_data.verlet_component.position = end_pos
