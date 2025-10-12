@@ -55,9 +55,9 @@ all_windows :: proc(
 	case .Game:
 		cheats_panel(ctx, screen_dimensions, players, game_state, screen_rect)
 		stats(ctx, players, game_state, screen_rect, level)
-
-
 		speedrun_timer(ctx, screen_dimensions, players, screen_rect)
+
+		display_log(ctx, screen_dimensions, players, screen_rect)
 
 
 		if game_state.finished_level {
@@ -180,6 +180,25 @@ speedrun_timer :: proc(
 	}
 }
 
+display_log :: proc(
+	ctx: ^mu.Context,
+	screen_dimentions: [2]i32,
+	players: ^plrs.Players,
+	screen_rect: mu.Rect,
+) {
+
+	width := screen_dimentions.x
+	height := i32(f32(screen_dimentions.x) * 0.3)
+
+	target_rect := mu.Rect{x = 0, y = screen_dimentions.y - height, w = width, h = height }
+
+	if mu.window(ctx, "Log", target_rect, {}){
+		mu.layout_row(ctx, {-1})
+		mu.text(ctx, "test")
+	}
+
+
+}
 controls_sheet :: proc(ctx: ^mu.Context) {
 	mu.layout_row(ctx, {-1})
 	mu.text(ctx, "WASD		- Movement")

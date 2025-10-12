@@ -2,6 +2,9 @@ package main
 
 
 import "render"
+
+import "core:log"
+import "core:os"
 import character "Character"
 import p "Physics"
 import cc "Physics/collision_channel"
@@ -75,8 +78,54 @@ game_static_shaders :: struct {
 	shader_editor_tool_depth: ^rl.Shader,
 }
 
+
+logger_proc :: proc(data: rawptr, level: runtime.Logger_Level, text: string, options: runtime.Logger_Options, location := #caller_location)
+{
+	// string_data := cast(^log.File_Console_Logger_Data)data
+	string_data := cast(^string)data
+	fmt.println("jahoo: ", text)
+}
+
 main :: proc() {
-	// context.assertion_failure_proc = debug_trace_assertion_failure_proc
+
+
+	hand, open_file_err := os.open("test_log4.log", os.O_CREATE | os.O_RDWR | os.O_TRUNC, 0o666)
+	if open_file_err != nil {
+
+		fmt.println(open_file_err)
+		return
+	}
+
+	logger := log.create_file_logger(hand)
+	// defer log.destroy_file_logger(logger)
+
+
+
+
+
+	context.logger = logger
+	// context.logger.procedure = logger_proc
+
+	log.logf(log.Level.Error, "logging")
+	log.errorf("Error!!!!")
+
+	log.debug("test")
+	log.warnf("this is a warning")
+
+
+	dataa, read_file_err := os.read_entire_file_or_err("test_log4.log")
+
+	if read_file_err != nil{
+
+		fmt.println(read_file_err)
+		return
+	}
+	fmt.println(string(dataa))
+
+	log.destroy_file_logger(logger)
+	os.close(hand)
+	// fmt.println("tufntufnt")
+
 
 	game_state := gs.make_default_game_state()
 
@@ -160,6 +209,7 @@ main :: proc() {
 		cam           = &cam,
 	}
 
+	rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
 	// TODO make esc NOT close the 
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)

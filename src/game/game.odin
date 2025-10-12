@@ -7,6 +7,7 @@ import col "../color"
 import hms "../handle_map/handle_map_static"
 import "../render"
 
+
 import verlet "../Physics/verlet"
 import spat "../Spatial"
 import ddu "../debug_draw_utils/"
@@ -59,6 +60,12 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			mouse_over_ui = true
 			break
 		}
+	}
+
+	if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
+		
+		container :=  mu.get_container(&gameui.state.mu_ctx, "Log")
+		container.open = !container.open
 	}
 	// time.stopwatch_stop(&timer)
 	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
@@ -314,8 +321,6 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 
 
 		}
-
-		fmt.println(hit) 
 
 		for hash in &hashes {
 			object_ids := gc.current_level.spatial_hash_grid[hash]
