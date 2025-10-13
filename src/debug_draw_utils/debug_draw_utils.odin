@@ -15,10 +15,16 @@ Debug_Draw_Instruction_Map :: [dynamic]Data
 
 debug_draw_instruction_array: Debug_Draw_Instruction_Map
 
+Id_Handle :: hms.Handle
+
+Map_Type :: distinct hms.Handle_Map(Data, Id_Handle, 1000)
+ins_map := Map_Type{}
+
 Data :: struct {
 	// cololr : col.Color,
 	instruction: Instruction,
 	duration:    f32,
+	handle:          Id_Handle,
 }
 
 Instruction :: distinct union #no_nil {
@@ -131,31 +137,55 @@ draw_all :: proc() {
 
 update_lifetime_and_clean :: proc(dt: f32) {
 
-	for &data in &debug_draw_instruction_array {
-		data.duration -= dt
-		if data.duration <= 0.0 {
+	for &i in &ins_map.items {
+		if hms.skip(i) do continue
 
+		if i.duration >= 0{
+			i.duration -= dt
+			if i.duration < 0 {
+				hms.remove(&ins_map, i.handle)
+			}
 		}
 	}
+
+	// for &data in &debug_draw_instruction_array {
+	// 	data.duration -= dt
+	// 	if data.duration <= 0.0 {
+	//
+	// 	}
+	// }
 }
 
 draw_all_instructions_and_reset :: proc() {
-	for &instruction in &debug_draw_instruction_array {
-		draw_instruction(&instruction.instruction)
+	// iter := hms.make_iter(&ins_map)
+	for &e in &ins_map.items{
+		if hms.skip(e) do continue 
+		draw_instruction(&e.instruction)
 	}
+	
+
+
+	// for &instruction in &debug_draw_instruction_array {
+	// 	draw_instruction(&instruction.instruction)
+	// }
 	clear_all_instructions()
 }
 
 clear_all_instructions :: proc() {
-	clear(&debug_draw_instruction_array)
+	hms.clear(&ins_map)
+	// clear(&debug_draw_instruction_array)
 }
 
 enqueue_draw_instruction :: proc(draw_ins: ^Instruction) {
-	dat := Data{draw_ins^, 0.0}
+	dat := Data{draw_ins^, 0.0, Id_Handle{}}
 	append_elem(&debug_draw_instruction_array, dat)
+
 }
 
 enqueue_ins :: proc(draw_ins: $T, duration: f32 = 0.0) {
-	ins: Instruction = draw_ins^
-	append_elem(&debug_draw_instruction_array, Data{ins, duration})
+	// ins: Instruction = draw_ins^
+	// append_elem(&debug_draw_instruction_array, Data{ins, duration})
+
+	data := Data{draw_ins^, duration, Id_Handle{}}
+	hms.add(&ins_map, data)
 }
