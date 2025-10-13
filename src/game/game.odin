@@ -241,7 +241,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	}
 
 	{
-		cyl_ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cyllinder_Instruction {
+		cyl_ins: ddu.Instruction = ddu.Debug_Draw_Wire_Cyllinder_Instruction {
 			sphere_trace = sphere_trace,
 			color        = col.RED,
 		}
@@ -249,7 +249,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	}
 
 
-	ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Line_Instruction {
+	ins: ddu.Instruction = ddu.Debug_Draw_Line_Instruction {
 		ray   = sphere_trace.ray,
 		color = col.ORANGE,
 	}
@@ -258,7 +258,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	rays := spat.calculate_rays_by_sphere_trace(&sphere_trace)
 	for &ray in &rays {
 
-		ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Line_Instruction {
+		ins: ddu.Instruction = ddu.Debug_Draw_Line_Instruction {
 			ray   = ray,
 			color = col.DARKBLUE,
 		}
@@ -274,7 +274,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	for hash in &hashes {
 		hash := hash
 		loc := spat.calculate_hash_cell_width_location(&hash)
-		ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
+		ins: ddu.Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
 			location = loc,
 			size     = spat.HASH_CELL_SIZE,
 			color    = col.DARKPURPLE,
@@ -377,7 +377,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	// }
 
 
-	test: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Cube_Instruction {
+	test: ddu.Instruction = ddu.Debug_Draw_Cube_Instruction {
 		location = spat.Vector{5, 0, 0},
 		rot      = spat.QUATERNION_IDENTITY,
 		size     = spat.ONE_VEC3 * 5,

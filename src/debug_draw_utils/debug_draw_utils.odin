@@ -9,11 +9,19 @@ import "core:fmt"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
+import hms "../handle_map/handle_map_static"
+
+Debug_Draw_Instruction_Map :: [dynamic]Data
+
 debug_draw_instruction_array: Debug_Draw_Instruction_Map
 
-Debug_Draw_Instruction_Map :: [dynamic]Debug_Draw_Instruction
+Data :: struct {
+	// cololr : col.Color,
+	instruction: Instruction,
+	duration:    f32,
+}
 
-Debug_Draw_Instruction :: distinct union #no_nil {
+Instruction :: distinct union #no_nil {
 	Debug_Draw_Cube_Instruction,
 	Debug_Draw_Wire_Cube_Instruction,
 	Debug_Draw_Sphere_Instruction,
@@ -77,7 +85,7 @@ Debug_Draw_Line_Instruction :: distinct struct {
 	color: col.Color,
 }
 
-draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
+draw_instruction :: proc(debug_draw_instruction: ^Instruction) {
 	rlgl.PushMatrix()
 	defer rlgl.PopMatrix()
 
@@ -117,9 +125,23 @@ draw_instruction :: proc(debug_draw_instruction: ^Debug_Draw_Instruction) {
 
 }
 
+draw_all :: proc() {
+	for &instruction in &debug_draw_instruction_array do draw_instruction(&instruction.instruction)
+}
+
+update_lifetime_and_clean :: proc(dt: f32) {
+
+	for &data in &debug_draw_instruction_array {
+		data.duration -= dt
+		if data.duration <= 0.0 {
+
+		}
+	}
+}
+
 draw_all_instructions_and_reset :: proc() {
 	for &instruction in &debug_draw_instruction_array {
-		draw_instruction(&instruction)
+		draw_instruction(&instruction.instruction)
 	}
 	clear_all_instructions()
 }
@@ -128,11 +150,12 @@ clear_all_instructions :: proc() {
 	clear(&debug_draw_instruction_array)
 }
 
-enqueue_draw_instruction :: proc(draw_ins: ^Debug_Draw_Instruction) {
-	append_elem(&debug_draw_instruction_array, draw_ins^)
+enqueue_draw_instruction :: proc(draw_ins: ^Instruction) {
+	dat := Data{draw_ins^, 0.0}
+	append_elem(&debug_draw_instruction_array, dat)
 }
 
-enqueue_ins :: proc(draw_ins: $T) {
-	ins :Debug_Draw_Instruction=draw_ins^
-	append_elem(&debug_draw_instruction_array, ins)
+enqueue_ins :: proc(draw_ins: $T, duration: f32 = 0.0) {
+	ins: Instruction = draw_ins^
+	append_elem(&debug_draw_instruction_array, Data{ins, duration})
 }
