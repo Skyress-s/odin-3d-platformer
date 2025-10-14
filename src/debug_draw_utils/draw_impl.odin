@@ -6,11 +6,11 @@ import spat "../Spatial"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-draw_circle :: proc(ins: ^Debug_Draw_Circle_Instruction) {
+draw_circle :: proc(ins: ^Circle_Ins) {
 	rl.DrawCircle3D(ins.location, ins.radius, ins.up, 0, ins.color)
 }
 
-draw_cyllinder :: proc(ins: ^Debug_Draw_Wire_Cyllinder_Instruction) {
+draw_cyllinder :: proc(ins: ^Wire_Cyllinder_Ins) {
 
 	ray_direction := spat.ray_direction(ins.ray)
 	rotate_axis := linalg.normalize(linalg.cross(spat.UP_VEC3, ray_direction)) 
@@ -22,4 +22,8 @@ draw_cyllinder :: proc(ins: ^Debug_Draw_Wire_Cyllinder_Instruction) {
 
 	ray_length := spat.ray_length(&ins.ray)
 	rl.DrawCylinderWires(spat.ZERO_VEC3, ins.radius, ins.radius, ray_length, 16, ins.color)
+}
+
+draw_capsule_wires :: proc(ins: ^Wire_Capsule_Ins){
+	rl.DrawCapsuleWires(ins.sphere_trace.origin, ins.sphere_trace.end, ins.radius, 16, 2, ins.color)
 }

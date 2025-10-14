@@ -161,7 +161,7 @@ main :: proc() {
 	defer rl.CloseWindow()
 
 	// rl.SetTargetFPS(180)
-	rl.SetTargetFPS(180)
+	rl.SetTargetFPS(180) // TODO CCD not working at low fps
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()

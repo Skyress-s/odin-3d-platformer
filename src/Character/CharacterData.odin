@@ -1,20 +1,20 @@
 package Character
 import cc "../Physics/collision_channel"
-import "core:log"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import col "../color"
+import ddu "../debug_draw_utils"
 import "../game_state"
 import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
-import col "../color"
 import "../player_data"
 import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
 import "core:time"
 import rl "vendor:raylib"
-import ddu "../debug_draw_utils" 
 
 
 Grounded :: struct {
@@ -157,7 +157,7 @@ reset_run :: proc(character_data: ^CharacternData, start_location, start_velocit
 	reset_speedrun(character_data)
 	start_speedrun(character_data)
 
-	character_data.verlet_component.position = start_location^ 
+	character_data.verlet_component.position = start_location^
 	character_data.verlet_component.velocity = start_velocity^
 	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_velocity^)
 	character_data.is_hooked = false
@@ -175,16 +175,26 @@ update_character_physics :: proc(
 	player_hash_cells: ^map[spat.Hash_Key]bool,
 	dt: f32,
 ) {
+	copy_comp : verlet.Velocity_Verlet_Component = character_data.verlet_component
+	verlet.velocity_verlet_frog(&copy_comp, dt)
+	verlet.velocity_verlet_leap(&copy_comp, dt)
 	movement_sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
 			origin = character_data.verlet_component.position,
-			end = character_data.verlet_component.position +
-			character_data.verlet_component.velocity * dt,
+			end = copy_comp.position,
 		},
 		radius = character_data.radius,
 	}
 
-	ddu.enqueue_ins(&ddu.Debug_Draw_Wire_Cyllinder_Instruction{sphere_trace = movement_sphere_trace, color = col.GREEN})
+	// ddu.enqueue_ins(
+	// 	&ddu.Wire_Capsule_Ins {
+	// 		sphere_trace = movement_sphere_trace,
+	// 		color = col.GREEN,
+	// 	},
+	// 	10,
+	// )
+
+	collided_this_frame: bool = false
 
 	for hash_key in player_hash_cells {
 		object_ids := level.spatial_hash_grid[hash_key]
@@ -210,39 +220,54 @@ update_character_physics :: proc(
 				if hit {
 					dist := linalg.distance(loc, movement_sphere_trace.origin)
 					remaining_distance := spat.ray_length(&movement_sphere_trace.ray) - dist
+					closest_point := spat.closest_point_on_triangle(
+						movement_sphere_trace.radius,
+						tri.points.x,
+						tri.points.y,
+						tri.points.z,
+					)
 
 					dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
 
-					reflected := linalg.reflect(spat.ray_direction(movement_sphere_trace.ray), normal)
+					ray_direction := spat.ray_direction(movement_sphere_trace.ray)
+
+					reflected := linalg.reflect(ray_direction, normal)
 
 					end_pos := loc + reflected * remaining_distance
 
-					// ddu.enqueue_ins(
-					// 	&ddu.Debug_Draw_Sphere_Instruction {
-					// 		end_pos,
-					// 		sphere_trace.radius,
-					// 		col.VIOLET,
-					// 	},
-					// )
-					log.info("did, hit something: ", collision_object_id) 
+					ddu.enqueue_ins(
+						&ddu.Wire_Sphere_Ins{location = loc, radius = 3, color = col.WHITE}, 0.3
+					)
 
-					if rl.GetTime() > 3 {
-					character_data.verlet_component.position = end_pos
-					character_data.verlet_component.velocity = linalg.reflect(character_data.verlet_component.velocity, normal)
-					}
-					
-
+					// character_data.verlet_component.position = end_pos
+					character_data.verlet_component.velocity = spat.reflect_dampen(
+						character_data.verlet_component.velocity,
+						normal,
+						0.0,
+					)
+					spat.clamp_to_tri(
+						&tri,
+						&character_data.verlet_component.velocity,
+						&character_data.verlet_component.position,
+						character_data.radius,
+						dt,
+					)
+					collided_this_frame = true
+					// break
 				}
-				// spat.collide_with_tri(
-				// 	&tri,
-				// 	&character_data.verlet_component.velocity,
-				// 	&character_data.verlet_component.position,
-				// 	character_data.radius,
-				// 	dt,
-				// )
+				spat.clamp_to_tri(
+					&tri,
+					&character_data.verlet_component.velocity,
+					&character_data.verlet_component.position,
+					character_data.radius,
+					dt,
+				)
 			}
+			if collided_this_frame do break
 
+			if collided_this_frame do break
 		}
+		if collided_this_frame do break
 	}
 
 	// Jumping

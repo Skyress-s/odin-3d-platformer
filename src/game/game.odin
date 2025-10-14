@@ -1,10 +1,10 @@
 package game
 
-import "core:log"
 import character "../Character"
 import col "../color"
 import hms "../handle_map/handle_map_static"
 import "../render"
+import "core:log"
 import "core:reflect"
 import "core:time"
 
@@ -235,155 +235,44 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		&gc.players.game.look_angles,
 	)
 
-	sphere_trace := spat.Sphere_Trace {
-		ray = spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 10},
-		radius = 1,
-	}
-
-	{
-		cyl_ins: ddu.Instruction = ddu.Debug_Draw_Wire_Cyllinder_Instruction {
-			sphere_trace = sphere_trace,
-			color        = col.RED,
-		}
-		ddu.enqueue_draw_instruction(&cyl_ins)
-	}
-
-
-	ins: ddu.Instruction = ddu.Debug_Draw_Line_Instruction {
-		ray   = sphere_trace.ray,
-		color = col.ORANGE,
-	}
-	ddu.enqueue_draw_instruction(&ins)
-
-	rays := spat.calculate_rays_by_sphere_trace(&sphere_trace)
-	for &ray in &rays {
-
-		ins: ddu.Instruction = ddu.Debug_Draw_Line_Instruction {
-			ray   = ray,
-			color = col.DARKBLUE,
-		}
-		ddu.enqueue_draw_instruction(&ins)
-		// ins2 := ddu.Debug_Draw_Instruction{ddu.Debug_Draw_Line_Instruction {
-		// 	ray   = ray,
-		// 	color = col.DARKBLUE,
-		// }}
-		// ddu.enqueue_draw_instruction(&ins2)
-	}
-
-	hashes := spat.calculate_hashes_by_rays(&rays)
-	for hash in &hashes {
-		hash := hash
-		loc := spat.calculate_hash_cell_width_location(&hash)
-		ins: ddu.Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
-			location = loc,
-			size     = spat.HASH_CELL_SIZE,
-			color    = col.DARKPURPLE,
-		}
-		ddu.enqueue_draw_instruction(&ins)
-	}
-
-	// Test agains all objects in hashes
-
-	{
-		// cube_ins :ddu.Debug_Draw_Instruction= ddu.Debug_Draw_Cube_Instruction{location = spat.Vector{0,0,-10}, size = spat.Vector{1,1,1}, rot = spat.QUATERNION_IDENTITY, color = rl.RED}
-
-
-		tri := spat.Collision_Triangle {
-			{spat.Vector{0, 0, -10}, spat.Vector{5, 0, -10}, spat.Vector{0, -5, -10}},
-		}
-
-		plane := spat.plane_comp_from_tri(tri.points)
-		reaction: spat.Vector
-		hit, loc := spat.sphere_trace_triangle_intersect(&sphere_trace, &tri, &reaction)
-
-		tri_col := col.BLACK
-
-		cube_ins := ddu.Debug_Draw_Triangle_Instruction {
-			tri.points.x,
-			tri.points.y,
-			tri.points.z,
-			tri_col,
-		}
-		ddu.enqueue_ins(&cube_ins)
-
-		ddu.enqueue_ins(&ddu.Debug_Draw_Sphere_Instruction{loc, sphere_trace.radius, col.YELLOW})
-
-		if hit {
-			dist := linalg.distance(loc, sphere_trace.origin)
-			remaining_distance := spat.ray_length(&sphere_trace.ray) - dist
-
-			dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
-
-			reflected := linalg.reflect(spat.ray_direction(sphere_trace.ray), normal)
-
-			end_pos := loc + reflected * remaining_distance
-
-			ddu.enqueue_ins(
-				&ddu.Debug_Draw_Sphere_Instruction{end_pos, sphere_trace.radius, col.VIOLET},
-			)
-
-			// reflected := spat.plane_comp_reflect(&plane, spat.ray_direction(sphere_trace.ray) * remaining_distance)
-
-
-		}
-
-		for hash in &hashes {
-			object_ids := gc.current_level.spatial_hash_grid[hash]
-			for &object_id in object_ids.objects_ids {
-				object := hms.get(&gc.current_level.collision_object_map, object_id)
-				transform_matrix := spat.get_matrix_from_transform(object.transform)
-
-				for &t in object.tris {
-					// TODO: also implement rotations when the time comes
-					tri := t
-					for &p in tri.points {
-						p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
-						// p += coll_obj.transform.position
-					}
-					reaction: spat.Vector
-					// hit := spat.sphere_trace_triangle(sphere_trace.origin, sphere_trace.end, sphere_trace.radius, tri.points.x, tri.points.y, tri.points.z, nil, nil)
-					hit, loc := spat.sphere_trace_triangle_intersect(
-						&sphere_trace,
-						&tri,
-						&reaction,
-					)
-					if hit {
-						ddu.enqueue_ins(
-							&ddu.Debug_Draw_Sphere_Instruction {
-								location = loc,
-								radius = sphere_trace.radius,
-								color = col.SUNSET,
-							},
-						)
-					}
-				}
-			}
-		}
-	}
-
-
-	// cells := spat.calculate_hashes_by_ray(spat.Ray{origin = player_loction, end = player_loction + spat.FORWARD_VEC3 * 10000})
-
-	// for key, &cell in &cells {
-	// 	key := key
-	// 	locaiton := spat.calculate_hash_cell_width_location(&key)
-	// 	ins: ddu.Debug_Draw_Instruction = ddu.Debug_Draw_Wire_Cube_Instruction {
-	// 		location = locaiton,
-	// 		size     = spat.HASH_CELL_SIZE,
-	// 		color    = col.DARKPURPLE,
-	// 	}
-	// 	ddu.enqueue_draw_instruction(&ins)
+	// sphere_trace := spat.Sphere_Trace {
+	// 	ray = spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 10},
+	// 	radius = 1,
+	// }
 	//
+	// ddu.enqueue_ins(
+	// 	&ddu.Wire_Cyllinder_Ins{sphere_trace = sphere_trace, color = col.RED},
+	// )
+	//
+	// ddu.enqueue_ins(&ddu.Line_Ins{ray = sphere_trace.ray, color = col.ORANGE})
+	//
+	// rays := spat.calculate_rays_by_sphere_trace(&sphere_trace)
+	// for &ray in &rays {
+	//
+	// 	ddu.enqueue_ins(&ddu.Line_Ins{ray = ray, color = col.DARKBLUE})
+	// }
+	//
+	// hashes := spat.calculate_hashes_by_rays(&rays)
+	// for hash in &hashes {
+	// 	hash := hash
+	// 	loc := spat.calculate_hash_cell_width_location(&hash)
+	// 	ddu.enqueue_ins(
+	// 		&ddu.Wire_Cube_Ins {
+	// 			location = loc,
+	// 			size = spat.HASH_CELL_SIZE,
+	// 			color = col.DARKPURPLE,
+	// 		},
+	// 	)
 	// }
 
-
-	test: ddu.Instruction = ddu.Debug_Draw_Cube_Instruction {
-		location = spat.Vector{5, 0, 0},
-		rot      = spat.QUATERNION_IDENTITY,
-		size     = spat.ONE_VEC3 * 5,
-		color    = col.DARKBROWN,
-	}
-	ddu.enqueue_draw_instruction(&test)
+	ddu.enqueue_ins(
+		&ddu.Cube_Ins {
+			location = spat.Vector{5, 0, 0},
+			rot = spat.QUATERNION_IDENTITY,
+			size = spat.ONE_VEC3 * 5,
+			color = col.DARKBROWN,
+		},
+	)
 
 
 	debug_draw_data.active_cell = player_overlapping_cells

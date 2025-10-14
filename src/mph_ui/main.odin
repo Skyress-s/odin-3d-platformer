@@ -62,6 +62,11 @@ all_windows :: proc(
 
 		display_log(ctx, screen_dimensions, players, screen_rect)
 
+		// if mu.window(ctx, "Entire Screen", screen_rect){
+		// 	mu.layout_row(ctx, {200,-1})
+		// 	mu.text(ctx, "hey")
+		// 	mu.text(ctx, "hey ho")
+		// }
 
 		if game_state.finished_level {
 			if mu.window(ctx, "FINISHED LEVEL", screen_rect) {
@@ -200,8 +205,8 @@ display_log :: proc(
 		h = height,
 	}
 
-	if mu.window(ctx, "Log", target_rect, {}) {
-		mu.layout_row(ctx, {-1})
+	if mu.window(ctx, "Log", target_rect, {.CLOSED}) { // TODO right now we have to press alt twice to open it.
+	 	mu.layout_row(ctx, {-1})
 		mu.text(ctx, "test")
 
 

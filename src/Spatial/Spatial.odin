@@ -50,7 +50,7 @@ Box_Better :: struct {
 
 Sphere :: struct {
 	radius: f32,
-	center: Vector
+	center: Vector,
 }
 
 QuaternionData :: distinct struct {
@@ -321,7 +321,7 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_T
 	// Bottom
 	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
 	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
-	// Left 
+	// Left
 	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
 	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
 	// Right
@@ -518,7 +518,7 @@ calculate_overlapping_cells3 :: proc(bound: Bound, hash_keys: ^map[Hash_Key]bool
 
 	// Early bail if bound is contained within one cell
 	// Todo is this actually more efficient? Have to test
-	// if min_hash == max_hash do return 
+	// if min_hash == max_hash do return
 	//
 	// // need to walk to the max cell, and go through every path
 	//
@@ -844,7 +844,7 @@ ray_trace_object_single :: proc(
 	return hit, location
 }
 
-// TODO: Can make more efficient vairants, that preallocates the array. 
+// TODO: Can make more efficient vairants, that preallocates the array.
 ray_trace_object_multi :: proc(
 	ray: ^Ray,
 	collision_object: ^Collision_Object_Data_Runtime,
@@ -927,7 +927,7 @@ ray_triangle_intersect :: proc(
 		linalg.vector_dot(tri_normal, t2) > 0 &&
 		linalg.vector_dot(tri_normal, t3) > 0
 
-	// if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		 
+	// if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		
 	valid = hit
 	location = p
 	return valid, location
@@ -986,6 +986,12 @@ distance_to_tri :: proc(t: ^Collision_Triangle, position: ^Vector) -> (dist: f32
 	return
 }
 
+reflect_dampen :: proc(vector, normal: Vector, dampen: f32) -> Vector {
+	assert(dampen >= 0 && dampen <= 1)
+	b := normal * (2 * linalg.dot(normal, vector) * (dampen * 0.5 + 0.5))
+	return vector - b
+}
+
 
 // NOTE this has keep the momentum if you collide at a certain angle.
 collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
@@ -1017,12 +1023,38 @@ collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius,
 	}
 }
 
+// NOTE this has keep the momentum if you collide at a certain angle.
+clamp_to_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
+	dist, normal := distance_to_tri(t, position)
+
+	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
+
+	if dist < radius {
+		position^ += normal * (radius - dist)
+		// project velocity to the normal plane, if moving towards it
+
+		vel_normal_dot: f32 = linalg.dot(vel^, normal)
+
+		velocity_length := linalg.length(vel^)
+
+		if vel_normal_dot < 0 {
+			diff := (vel^ - normal * vel_normal_dot) - vel^
+			acceleration := diff / dt
+			vel^ -= normal * vel_normal_dot
+
+		}
+	}
+}
+
 collide_with_tri_continous :: proc(
 	t: ^Collision_Triangle,
 	velocity, position, position_last_update: ^Vector,
 	radius, dt: f32,
 ) {
-	trace:= Sphere_Trace{ray=Ray{origin= position_last_update^, end = position^}, radius = radius}
+	trace := Sphere_Trace {
+		ray = Ray{origin = position_last_update^, end = position^},
+		radius = radius,
+	}
 
 	// calculate_hashes_by_sphere_trace(trace, )
 

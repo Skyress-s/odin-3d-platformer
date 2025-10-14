@@ -183,6 +183,8 @@ sphere_trace_triangle_intersect :: proc(
 	tri: ^Collision_Triangle,
 	reaction: ^Vector,
 ) -> (bool, Vector) {
+	if ray_length(&sphere_trace.ray) == 0 do return false, ZERO_VEC3
+
 	i: i32
 	nvelo := ray_direction(sphere_trace.ray)
 
@@ -193,7 +195,6 @@ sphere_trace_triangle_intersect :: proc(
 	minDist := max(f32)
 	col: i32 = -1
 	_distTravel: f32 = max(f32)
-
 
 	plane:  = plane_comp_from_point_and_normal(tri.points.x, tri_normal)
 	// pass1: sphere VS plane

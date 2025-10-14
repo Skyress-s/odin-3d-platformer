@@ -1,6 +1,7 @@
 package debug_draw_utils
 
 import spat "../Spatial"
+import "core:log"
 
 
 import col "../color"
@@ -11,82 +12,114 @@ import rlgl "vendor:raylib/rlgl"
 
 import hms "../handle_map/handle_map_static"
 
-Debug_Draw_Instruction_Map :: [dynamic]Data
+USE_HMS :: true
 
-debug_draw_instruction_array: Debug_Draw_Instruction_Map
+Map_Type :: map[Id_Handle]Data2
+
+debug_draw_instruction_array: Map_Type
 
 Id_Handle :: hms.Handle
 
-Map_Type :: distinct hms.Handle_Map(Data, Id_Handle, 1000)
-ins_map := Map_Type{}
+Handle_Map_Type :: distinct hms.Handle_Map(Data, Id_Handle, 1000)
+ins_handle_map := Handle_Map_Type{}
+
+ins_map: Map_Type
+
+Id_Type : u32
+
+@(private)
+id_counter :u32 = 0
+
+@(private)
+get_next_id :: proc() -> u32{
+	id_counter += 1
+	return id_counter
+}
+
+Data2 :: struct {
+	// cololr : col.Color,
+	handle:      Id_Handle,
+	instruction: Instruction,
+	duration:    f32,
+}
 
 Data :: struct {
 	// cololr : col.Color,
+	handle:      Id_Handle,
 	instruction: Instruction,
 	duration:    f32,
-	handle:          Id_Handle,
 }
 
 Instruction :: distinct union #no_nil {
-	Debug_Draw_Cube_Instruction,
-	Debug_Draw_Wire_Cube_Instruction,
-	Debug_Draw_Sphere_Instruction,
-	Debug_Draw_Wire_Sphere_Instruction,
-	Debug_Draw_Cyllinder_Instruction,
-	Debug_Draw_Wire_Cyllinder_Instruction,
-	Debug_Draw_Circle_Instruction,
-	Debug_Draw_Triangle_Instruction,
-	Debug_Draw_Text_Instruction,
-	Debug_Draw_Line_Instruction,
+	Cube_Ins,
+	Wire_Cube_Ins,
+	Sphere_Ins,
+	Wire_Sphere_Ins,
+	Cyllinder_Ins,
+	Wire_Cyllinder_Ins,
+	Capsule_Ins,
+	Wire_Capsule_Ins,
+	Circle_Ins,
+	Triangle_Ins,
+	Text_Ins,
+	Line_Ins,
 }
 
-Debug_Draw_Cube_Instruction :: distinct struct {
+Cube_Ins :: distinct struct {
 	location: spat.Vector,
 	size:     spat.Vector,
 	rot:      spat.Quaternion,
 	color:    col.Color,
 }
 
-Debug_Draw_Wire_Cube_Instruction :: distinct struct {
-	using draw_instruction: Debug_Draw_Cube_Instruction,
+Wire_Cube_Ins :: distinct struct {
+	using draw_instruction: Cube_Ins,
 }
 
 
-Debug_Draw_Sphere_Instruction :: distinct struct {
+Sphere_Ins :: distinct struct {
 	location: spat.Vector,
 	radius:   f32,
 	color:    col.Color,
 }
 
-Debug_Draw_Wire_Sphere_Instruction :: distinct struct {
-	using draw_instruction: Debug_Draw_Sphere_Instruction,
+Wire_Sphere_Ins :: distinct struct {
+	using draw_instruction: Sphere_Ins,
 }
 
-Debug_Draw_Cyllinder_Instruction :: distinct struct {
+Cyllinder_Ins :: distinct struct {
 	using sphere_trace: spat.Sphere_Trace,
 	color:              col.Color,
 }
 
-Debug_Draw_Wire_Cyllinder_Instruction :: distinct struct {
-	using instruction: Debug_Draw_Cyllinder_Instruction,
+Wire_Cyllinder_Ins :: distinct struct {
+	using instruction: Cyllinder_Ins,
 }
 
-Debug_Draw_Circle_Instruction :: distinct struct {
+Capsule_Ins :: distinct struct {
+	using instruction: Cyllinder_Ins
+}
+
+Wire_Capsule_Ins :: distinct struct {
+	using instruction: Cyllinder_Ins
+}
+
+Circle_Ins :: distinct struct {
 	location, up, forward: spat.Vector,
 	radius:                f32,
 	color:                 col.Color,
 }
 
-Debug_Draw_Triangle_Instruction :: distinct struct {
+Triangle_Ins :: distinct struct {
 	a, b, c: spat.Vector,
 	col:     col.Color,
 }
 
-Debug_Draw_Text_Instruction :: distinct struct {
+Text_Ins :: distinct struct {
 	message: string,
 }
 
-Debug_Draw_Line_Instruction :: distinct struct {
+Line_Ins :: distinct struct {
 	ray:   spat.Ray,
 	color: col.Color,
 }
@@ -96,34 +129,36 @@ draw_instruction :: proc(debug_draw_instruction: ^Instruction) {
 	defer rlgl.PopMatrix()
 
 	switch &v in debug_draw_instruction {
-	case Debug_Draw_Cube_Instruction:
+	case Cube_Ins:
 		// rlgl.Translatef(v.location.x, v.location.y, v.location.z)
 		mat := spat.calculate_matrix_from_loc_rot(&v.location, &v.rot)
 		matrix_data := rl.MatrixToFloatV(mat)
 		rlgl.MultMatrixf(auto_cast &matrix_data)
 		rl.DrawCube(spat.ZERO_VEC3, v.size.x, v.size.y, v.size.z, v.color)
-	case Debug_Draw_Wire_Cube_Instruction:
+	case Wire_Cube_Ins:
 		mat := spat.calculate_matrix_from_loc_rot(&v.location, &v.rot)
 		matrix_data := rl.MatrixToFloatV(mat)
 		rlgl.MultMatrixf(auto_cast &matrix_data)
 		rl.DrawCubeWires(spat.ZERO_VEC3, v.size.x, v.size.y, v.size.z, v.color)
-	case Debug_Draw_Sphere_Instruction:
+	case Sphere_Ins:
 		rlgl.Translatef(v.location.x, v.location.y, v.location.z)
 		rl.DrawSphere(spat.ZERO_VEC3, v.radius, v.color)
-	case Debug_Draw_Wire_Sphere_Instruction:
+	case Wire_Sphere_Ins:
 		rlgl.Translatef(v.location.x, v.location.y, v.location.z)
 		rl.DrawSphereWires(spat.ZERO_VEC3, v.radius, 8, 8, v.color)
-	case Debug_Draw_Cyllinder_Instruction:
-
-	case Debug_Draw_Wire_Cyllinder_Instruction:
+	case Cyllinder_Ins:
+	case Wire_Cyllinder_Ins:
 		draw_cyllinder(&v)
-	case Debug_Draw_Circle_Instruction:
+	case Capsule_Ins:
+	case Wire_Capsule_Ins:
+		draw_capsule_wires(&v)
+	case Circle_Ins:
 
-	case Debug_Draw_Triangle_Instruction:
+	case Triangle_Ins:
 		rl.DrawTriangle3D(v.a, v.b, v.c, v.col)
 		rl.DrawTriangle3D(v.b, v.a, v.c, v.col)
-	case Debug_Draw_Text_Instruction:
-	case Debug_Draw_Line_Instruction:
+	case Text_Ins:
+	case Line_Ins:
 		rl.DrawLine3D(v.ray.origin, v.ray.end, v.color)
 	// Drawn in the game ui package
 
@@ -131,61 +166,53 @@ draw_instruction :: proc(debug_draw_instruction: ^Instruction) {
 
 }
 
-draw_all :: proc() {
-	for &instruction in &debug_draw_instruction_array do draw_instruction(&instruction.instruction)
-}
-
 update_lifetime_and_clean :: proc(dt: f32) {
 
-	for &i in &ins_map.items {
+	to_remove: [dynamic]Id_Handle
+	for &i in &ins_handle_map.items {
 		if hms.skip(i) do continue
 
-		if i.duration >= 0{
+		if i.duration >= 0 {
 			i.duration -= dt
 			if i.duration < 0 {
-				hms.remove(&ins_map, i.handle)
+				append_elem(&to_remove, i.handle)
 			}
 		}
 	}
 
-	// for &data in &debug_draw_instruction_array {
-	// 	data.duration -= dt
-	// 	if data.duration <= 0.0 {
-	//
-	// 	}
-	// }
+	for &handle in &to_remove {
+		hms.remove(&ins_handle_map, handle)
+	}
 }
 
 draw_all_instructions_and_reset :: proc() {
-	// iter := hms.make_iter(&ins_map)
-	for &e in &ins_map.items{
-		if hms.skip(e) do continue 
+	for &e in &ins_handle_map.items {
+		if hms.skip(e) || !hms.valid(ins_handle_map, e.handle) do continue
 		draw_instruction(&e.instruction)
 	}
-	
-
-
-	// for &instruction in &debug_draw_instruction_array {
-	// 	draw_instruction(&instruction.instruction)
-	// }
-	clear_all_instructions()
 }
 
 clear_all_instructions :: proc() {
-	hms.clear(&ins_map)
-	// clear(&debug_draw_instruction_array)
+	when USE_HMS {
+		hms.clear(&ins_handle_map)
+	} else {
+		clear_map(&ins_map)
+
+	}
 }
 
-enqueue_draw_instruction :: proc(draw_ins: ^Instruction) {
-	dat := Data{draw_ins^, 0.0, Id_Handle{}}
-	append_elem(&debug_draw_instruction_array, dat)
 
-}
+enqueue_ins :: proc(draw_ins: $T, dur: f32 = 0.0) {
 
-enqueue_ins :: proc(draw_ins: $T, duration: f32 = 0.0) {
-	// ins: Instruction = draw_ins^
-	// append_elem(&debug_draw_instruction_array, Data{ins, duration})
-
-	data := Data{draw_ins^, duration, Id_Handle{}}
-	hms.add(&ins_map, data)
+	when USE_HMS {
+		data := Data {
+			instruction = draw_ins^,
+			duration    = dur,
+			handle      = Id_Handle{},
+		}
+		id, ok := hms.add(&ins_handle_map, data)
+		assert(ok, "ddu handle map full. Please increase the size")
+	} else {
+		
+	}
 }

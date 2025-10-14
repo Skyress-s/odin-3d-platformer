@@ -31,6 +31,7 @@ render :: proc(
 	// active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
 ) {
+	dt := rl.GetFrameTime()
 	rl.BeginDrawing()
 
 	rl.ClearBackground({40, 30, 50, 255})
@@ -57,6 +58,7 @@ render :: proc(
 	// Draw debug tooltips
 	if game_state.cheat_state.draw_debug_draw_utilities_instructions {
 		ddu.draw_all_instructions_and_reset()
+		ddu.update_lifetime_and_clean(dt)
 	} else {
 		ddu.clear_all_instructions()
 	}
