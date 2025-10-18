@@ -161,7 +161,7 @@ main :: proc() {
 	defer rl.CloseWindow()
 
 	// rl.SetTargetFPS(180)
-	rl.SetTargetFPS(5) // TODO CCD not working at low fps
+	rl.SetTargetFPS(180) // TODO CCD not working at low fps
 
 	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 	rl.DisableCursor()
@@ -216,6 +216,8 @@ main :: proc() {
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
+
+		if rl.GetTime() > 5 do rl.SetTargetFPS(180)
 	}
 }
 

@@ -200,6 +200,10 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			gc.players.game.verlet_component.position_last_update =
 				gc.players.game.verlet_component.position
 			verlet.velocity_verlet_frog(&gc.players.game.verlet_component, dt)
+
+
+			// Add gravity
+			gc.players.game.verlet_component.acceleration += {0, -30, 0}
 		}
 	case plrs.Player_Mode.Editor:
 	}

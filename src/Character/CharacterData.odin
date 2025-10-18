@@ -176,8 +176,10 @@ update_character_physics :: proc(
 	dt: f32,
 ) {
 	copy_comp : verlet.Velocity_Verlet_Component = character_data.verlet_component
-	verlet.velocity_verlet_leap(&copy_comp, dt)
 	verlet.velocity_verlet_frog(&copy_comp, dt)
+	copy_comp.acceleration += {0, -30, 0}
+	verlet.velocity_verlet_leap(&copy_comp, dt)
+
 	movement_sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
 			origin = character_data.verlet_component.position,
@@ -186,17 +188,23 @@ update_character_physics :: proc(
 		radius = character_data.radius,
 	}
 
-	ddu.enqueue_ins(
-		&ddu.Wire_Capsule_Ins {
-			sphere_trace = movement_sphere_trace,
-			color = col.GREEN,
-		},
-		30,
-	)
+	// ddu.enqueue_ins(&ddu.Sphere_Ins{location = character_data.verlet_component.position, radius = character_data.radius * 2, color = col.RED}, 45)
+	// ddu.enqueue_ins(&ddu.Cube_Ins{location = copy_comp.position, size = spat.Vector{1,1,10}, color = col.SKYBLUE}, 45)
+
+	// ddu.enqueue_ins(
+	// 	&ddu.Wire_Capsule_Ins {
+	// 		sphere_trace = movement_sphere_trace,
+	// 		color = col.GREEN,
+	// 	},
+	// 	45,
+	// )
 
 	collided_this_frame: bool = false
 
-	for hash_key in player_hash_cells {
+	movement_hash_cells := spat.calculate_hashes_by_sphere_trace(&movement_sphere_trace)
+	defer delete(movement_hash_cells)
+
+	for hash_key in movement_hash_cells {
 		object_ids := level.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
 
@@ -245,14 +253,16 @@ update_character_physics :: proc(
 						normal,
 						0.0,
 					)
-					spat.clamp_to_tri(
-						&tri,
-						&character_data.verlet_component.velocity,
-						&character_data.verlet_component.position,
-						character_data.radius,
-						dt,
-					)
-					collided_this_frame = true
+					// spat.clamp_to_tri(
+					// 	&tri,
+					// 	&character_data.verlet_component.velocity,
+					// 	&character_data.verlet_component.position,
+					// 	character_data.radius,
+					// 	dt,
+					// )
+
+					log.errorf("hit object!")
+					collided_this_frame = true // TODO we should in reality check against all triangles, find the one that would be hit first and calculate of that.
 					// break
 				}
 				spat.clamp_to_tri(
@@ -336,9 +346,6 @@ update_character_physics :: proc(
 
 	// TODO: When continually swinging without intup, we will very gradually gain total engergy.
 
-
-	// Add gravity
-	character_data.verlet_component.acceleration += {0, -30, 0}
 
 }
 
