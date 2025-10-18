@@ -177,6 +177,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		gc.players.game.verlet_component.position + spat.ONE_VEC3 * gc.players.game.radius,
 	}
 	player_overlapping_cells := spat.calculate_overlapping_cells2(player_bounds)
+	defer delete(player_overlapping_cells)
 
 	active_hash_key := spat.Hash_Location(gc.players.game.verlet_component.position)
 	active_cell := gc.current_level.spatial_hash_grid[active_hash_key]

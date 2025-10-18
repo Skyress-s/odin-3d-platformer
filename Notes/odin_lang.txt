@@ -1,0 +1,3 @@
+run tests for entire project
+
+odin test src/ -all-packages

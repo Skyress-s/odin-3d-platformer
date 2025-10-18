@@ -176,8 +176,8 @@ update_character_physics :: proc(
 	dt: f32,
 ) {
 	copy_comp : verlet.Velocity_Verlet_Component = character_data.verlet_component
-	verlet.velocity_verlet_frog(&copy_comp, dt)
 	verlet.velocity_verlet_leap(&copy_comp, dt)
+	verlet.velocity_verlet_frog(&copy_comp, dt)
 	movement_sphere_trace := spat.Sphere_Trace {
 		ray = spat.Ray {
 			origin = character_data.verlet_component.position,
@@ -186,13 +186,13 @@ update_character_physics :: proc(
 		radius = character_data.radius,
 	}
 
-	// ddu.enqueue_ins(
-	// 	&ddu.Wire_Capsule_Ins {
-	// 		sphere_trace = movement_sphere_trace,
-	// 		color = col.GREEN,
-	// 	},
-	// 	10,
-	// )
+	ddu.enqueue_ins(
+		&ddu.Wire_Capsule_Ins {
+			sphere_trace = movement_sphere_trace,
+			color = col.GREEN,
+		},
+		30,
+	)
 
 	collided_this_frame: bool = false
 
