@@ -63,6 +63,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			break
 		}
 	}
+	mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos) 
 
 	if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
 

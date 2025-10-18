@@ -155,11 +155,13 @@ main :: proc() {
 		&current_level.start_look_direction,
 	)
 
+
+
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
-
+ 
 	// rl.SetTargetFPS(180)
 	rl.SetTargetFPS(180) // TODO CCD not working at low fps
 
