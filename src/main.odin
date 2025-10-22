@@ -115,19 +115,6 @@ main :: proc() {
 	m_log.write_log("hello")
 	log.infof("test")
 	log.warn("This is a warning")
-	// log.warn("This is a warning")
-	// log.warn("This is a warning")
-	// log.warn("This is a warning")
-
-	// log.logf(log.Level.Error, "logging")
-	// log.errorf("Error!!!!")
-	//
-	// log.debug("test")
-	// log.warnf("this is a warning")
-
-
-	// fmt.println("tufntufnt")
-
 
 	game_state := gs.make_default_game_state()
 
@@ -213,8 +200,7 @@ main :: proc() {
 		cam           = &cam,
 	}
 
-	rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
-	// TODO make esc NOT close the 
+	// rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
