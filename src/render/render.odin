@@ -276,21 +276,22 @@ render :: proc(
 			switch &active_tool in tool.active_tool {
 			case e_tools.Position_Tool:
 				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
+					e_tools.generate_axis_planes(
 						found_object.transform.position,
 						players.editor.position,
 					),
 				)
+				e_tools.draw_scale_boxes(e_tools.generate_axis_bars(found_object.transform, players.editor.position))
 
 			case e_tools.Rotation_Tool:
 				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
+					e_tools.generate_axis_planes(
 						found_object.transform.position,
 						players.editor.position,
 					),
 				)
 			case e_tools.Scale_Tool:
-				scale_bars := e_tools.calculate_scale_bars(
+				scale_bars := e_tools.generate_axis_bars(
 					found_object.transform,
 					players.editor.position,
 				)

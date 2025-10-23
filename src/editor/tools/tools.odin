@@ -9,8 +9,14 @@ import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
+Plane_Vector_Union :: union #no_nil {
+	spat.Plane,
+	spat.Vector,
+}
+
 Position_Tool :: distinct struct {
-	position: spat.Vector,
+	position:       spat.Vector,
+	translate_mode: Plane_Vector_Union, // Move along plane or vector
 }
 
 Rotation_Tool :: distinct struct {
@@ -19,18 +25,12 @@ Rotation_Tool :: distinct struct {
 }
 
 Scale_Tool :: distinct struct {
-	scale, first_intersect_location: spat.Vector,
-	axis:                            spat.Axis,
-	plane:                           spat.Plane,
+	scale: spat.Vector,
+	// scale_mode: Plane_Vector_Union,
+	axis:  spat.Axis,
+	plane: spat.Plane,
 }
 
-
-// TODO: This can be removed probably.
-State :: enum {
-	Position,
-	Rotation,
-	Scale,
-}
 
 Transform_Tool_Active_Type :: union #no_nil {
 	Position_Tool,
@@ -39,137 +39,98 @@ Transform_Tool_Active_Type :: union #no_nil {
 }
 
 Transform_Tool_Data :: distinct struct {
-	start_transform:           spat.Transform,
-	state:                     State, // TODO: REMOVE
 	active_tool:               Transform_Tool_Active_Type,
-	plane:                     spat.Plane, // Plane we are dragging along
-	start_mouse_position:      spat.Vector2,
+	dragging:                  bool,
+	start_transform:           spat.Transform,
+	// start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
 	target_object_id:          spat.Collision_Object_Id,
-	dragging:                  bool,
 }
 
 
 init_transform_tool :: proc(
-	state: State,
 	plane: spat.Plane,
 	mouse_position: spat.Vector2,
 	cam: ^rl.Camera3D,
 ) -> (
 	data: Transform_Tool_Data,
 ) {
-	data.state = state
-	switch (state) {
-	case State.Position:
-		data.plane = plane
-		data.start_mouse_position = mouse_position
-
-		{
-			current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(mouse_position, cam^))
-			ok, intersect := spat.ray_plane_intersect(
-				&current_ray,
-				plane.normal,
-				plane.point_on_plane,
-			)
-
-			assert(ok, "todo handle this")
-			data.start_ray_plane_intersect = intersect
-		}
-	case State.Rotation:
-		panic("rotation not implemented")
-	case State.Scale:
-		panic("scale not implemented")
-	}
-
+	// Does nothing atm
 	return data
 }
 
 on_click :: proc(
-	position_transform_tool: ^Transform_Tool_Data,
+	transform_tool: ^Transform_Tool_Data,
 	cam: ^rl.Camera3D,
 	current_level: ^l.Level,
 ) {
 
+	// TODO use ray, not a line (even though its called ray atm, it really is a line, since its not infinite)
 	ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam^))
 	ray.end = ray.origin + (ray.end - ray.origin) * 100000 // augh
 
-
-	found_object := hms.get(
-		&current_level.collision_object_map,
-		position_transform_tool.target_object_id,
-	)
+	found_object := hms.get(&current_level.collision_object_map, transform_tool.target_object_id)
 
 	if found_object == nil {
-		ok, id, position := spat.ray_intersect_spatial_hash_grid(
+		hit_object, id, position := spat.ray_intersect_spatial_hash_grid(
 			&current_level.spatial_hash_grid,
 			&current_level.collision_object_map,
 			&ray,
 		)
 
-		if ok {
-			position_transform_tool.target_object_id = id
-			position_transform_tool.start_transform =
+		if hit_object {
+			transform_tool.target_object_id = id
+			transform_tool.start_transform =
 				hms.get(&current_level.collision_object_map, id).data.transform
 		}
 		return
 	}
 
-	switch &active_tool in position_transform_tool.active_tool {
+	// Have target from this point
+	switch &active_tool in transform_tool.active_tool {
 	case Position_Tool:
-		planes := calculate_drag_planes(found_object.transform.position, cam.position)
-		plane_hit, plane_intersect_location, plane_normal := ray_transform_tool_planes_intersect(
+		planes := generate_axis_planes(found_object.transform.position, cam.position)
+		bars := generate_axis_bars(found_object.transform, cam.position)
+		bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
+		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
 			&ray,
 			&planes,
 		)
-		if plane_hit != Interacted_Plane.None {
-			fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
 
-			rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-
-		}
 		if plane_hit != .None {
-
-			position_transform_tool.dragging = true
-			position_transform_tool.plane.point_on_plane = plane_intersect_location
-			position_transform_tool.plane.normal = plane_normal
-			position_transform_tool.start_transform = found_object.transform
-			position_transform_tool.start_ray_plane_intersect = plane_intersect_location
-
-			//continue
-		} else do position_transform_tool.target_object_id = spat.Collision_Object_Id{}
+			transform_tool.dragging = true
+			transform_tool.start_transform = found_object.transform
+			transform_tool.start_ray_plane_intersect = plane_intersect_location
+		} else if bars_hit != .None {
+			transform_tool.dragging = true
+			transform_tool.start_transform = found_object.transform
+			transform_tool.start_ray_plane_intersect = bars_hit_location
+		} else do transform_tool.target_object_id = spat.Collision_Object_Id{} // Hit nothing, stop tool
 
 	case Rotation_Tool:
-		planes := calculate_drag_planes(found_object.transform.position, cam.position)
-		plane_hit, plane_intersect_location, plane_normal := ray_transform_tool_planes_intersect(
+		planes := generate_axis_planes(found_object.transform.position, cam.position)
+		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
 			&ray,
 			&planes,
 		)
-		if plane_hit != Interacted_Plane.None {
-			fmt.printfln("{:5.f} {}", rl.GetTime(), plane_hit)
 
-			// rl.DrawCube(plane_intersect_location, 5, 5, 5, rl.WHITE)
-
-		}
 		if plane_hit != .None {
 
-			position_transform_tool.dragging = true
-			position_transform_tool.plane.point_on_plane = plane_intersect_location
-			position_transform_tool.plane.normal = plane_normal
-			position_transform_tool.start_transform = found_object.transform
-			position_transform_tool.start_ray_plane_intersect = plane_intersect_location
+			transform_tool.dragging = true
+			transform_tool.start_transform = found_object.transform
+			transform_tool.start_ray_plane_intersect = plane_intersect_location
 
 			//continue
-		} else do position_transform_tool.target_object_id = spat.Collision_Object_Id{}
+		} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
 
 	case Scale_Tool:
-		boxes := calculate_scale_bars(found_object.transform, cam.position)
-		interacter_bar, location := ray_scale_bars_collision(&ray, &boxes)
+		boxes := generate_axis_bars(found_object.transform, cam.position)
+		interacter_bar, location := ray_axis_bars_intersect(&ray, &boxes)
 		fmt.println(interacter_bar)
 
 		if interacter_bar != .None {
 
 			axis_vector := spat.axis_to_unit_vector(interacter_bar)
-			position_transform_tool.dragging = true
 			active_tool.axis = interacter_bar
 			active_tool.plane = spat.Plane {
 				point_on_plane = location,
@@ -183,13 +144,12 @@ on_click :: proc(
 				active_tool.plane.normal,
 				active_tool.plane.point_on_plane,
 			)
-			active_tool.first_intersect_location = hit_location
-			// position_transform_tool.plane.point_on_plane = plane_intersect_location
-			// position_transform_tool.plane.normal = plane_normal
-			position_transform_tool.start_transform = found_object.transform
+			transform_tool.dragging = true
+			transform_tool.start_transform = found_object.transform
+			transform_tool.start_ray_plane_intersect = hit_location
 
 			//continue
-		} else do position_transform_tool.target_object_id = spat.Collision_Object_Id{}
+		} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
 	}
 
 

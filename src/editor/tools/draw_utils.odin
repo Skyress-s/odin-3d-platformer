@@ -1,6 +1,7 @@
 package tools
 
 import spat "../../Spatial/"
+import col "../../color"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -27,14 +28,14 @@ calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: 
 
 // Planes are in order XZ, XY, ZY
 //@(private)
-calculate_drag_planes :: proc(
+generate_axis_planes :: proc(
 	tooltip_location, camera_location: spat.Vector,
 ) -> (
 	planes_bounded: [3]spat.Plane_Bounded,
 ) {
 
 	dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
-	dirs *= HALF_PLANE_SIZE * 1.2
+	dirs *= HALF_PLANE_SIZE * 1.5
 
 	planes_bounded.x.center = {
 		tooltip_location.x + dirs.x,
@@ -167,7 +168,7 @@ make_collision_tris_from_planes_bounded :: proc(
 
 }
 
-ray_transform_tool_planes_intersect :: proc(
+ray_axis_planes_intersect :: proc(
 	ray: ^spat.Ray,
 	planes_bounded: ^[3]spat.Plane_Bounded,
 ) -> (
@@ -279,7 +280,7 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 	return tris
 }
 
-ray_scale_bars_collision :: proc(
+ray_axis_bars_intersect :: proc(
 	ray: ^spat.Ray,
 	scale_bars: ^[3]spat.Box_Better,
 ) -> (
@@ -367,7 +368,7 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 calculate_rotation_planes :: proc(
 	tooltip_location, camera_location: spat.Vector,
 ) -> [3]spat.Plane_Bounded {
-	return calculate_drag_planes(tooltip_location, camera_location)
+	return generate_axis_planes(tooltip_location, camera_location)
 }
 
 
@@ -376,7 +377,7 @@ calculate_rotation_planes :: proc(
 // }
 
 
-calculate_scale_bars :: proc(
+generate_axis_bars :: proc(
 	target_transform: spat.Transform,
 	camera_location: spat.Vector,
 ) -> (
@@ -413,7 +414,7 @@ draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
 	box_y := boxes.y
 	box_z := boxes.z
 
-	draw_box :: proc(box: ^spat.Box_Better) {
+	draw_box :: proc(box: ^spat.Box_Better, color: col.Color) {
 		rlgl.PushMatrix()
 		rlgl.Translatef(box.position.x, box.position.y, box.position.z)
 		rl.DrawCube(
@@ -421,12 +422,12 @@ draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
 			box.size.x,
 			box.size.y,
 			box.size.z,
-			rl.ColorLerp(rl.RED, rl.BLUE, 0.5),
+			color
 		)
 		rlgl.PopMatrix()
 	}
 
-	draw_box(&box_x)
-	draw_box(&box_y)
-	draw_box(&box_z)
+	draw_box(&box_x, col.RED)
+	draw_box(&box_y, col.GREEN)
+	draw_box(&box_z, col.BLUE)
 }
