@@ -1,5 +1,8 @@
 package mphlog
 
+import "core:os"
+import "core:log"
+import "base:runtime"
 import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
@@ -45,3 +48,40 @@ reset_log :: proc() {
 	log_state.log_buf_len = 0
 }
 
+logger_proc :: proc(
+	data: rawptr,
+	level: runtime.Logger_Level,
+	text: string,
+	options: runtime.Logger_Options,
+	location := #caller_location,
+) {
+	// string_data := cast(^string)data
+	fmt.println(text)
+	write_log(fmt.aprintf("{}: {}", strings.to_upper(fmt.aprint(level)), text))
+
+	log.file_logger_proc(data, level, text, options, location)
+	// string_data := cast(^log.File_Console_Logger_Data)data
+
+	// fmt.printfln("{}: {}", level, text)
+}
+
+logger_init :: proc() -> (ok: bool, handle: os.Handle) {
+	hand, open_file_err := os.open("test_log4.log", os.O_CREATE | os.O_RDWR | os.O_TRUNC, 0o666)
+
+	if open_file_err != nil {
+		fmt.println(open_file_err)
+		return false, os.INVALID_HANDLE
+	}
+
+	logger := log.create_file_logger(hand)
+
+	context.logger = logger
+	context.logger.procedure = logger_proc
+
+	return true, hand
+}
+
+logger_deinit :: proc(handle: os.Handle) {
+	os.close(handle)
+	log.destroy_file_logger(context.logger)
+}

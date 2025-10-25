@@ -2,6 +2,8 @@ package players
 
 import character "../Character"
 import editor_player "../editor_player"
+import verlet "../Physics/verlet"
+import spat "../Spatial"
 
 
 Player_Mode :: enum {
@@ -15,4 +17,21 @@ Players :: struct {
 	mode:   Player_Mode,
 	game:   character.CharacternData,
 	editor: editor_player.Editor_Player_Data,
+}
+
+init_players :: proc() -> Players {
+	players := Players{}
+
+	players.mode = Player_Mode.Game
+	players.game = character.CharacternData {
+		radius = 1,
+		current_state = character.Airborne{},
+		verlet_component = verlet.Velocity_Verlet_Component{position = spat.Vector{0, 0, 0}},
+	}
+
+	players.editor = editor_player.Editor_Player_Data {
+		movement_speed = 30,
+	}
+
+	return players
 }
