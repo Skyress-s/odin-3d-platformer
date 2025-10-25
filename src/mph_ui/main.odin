@@ -400,8 +400,7 @@ details_panel :: proc(
 						current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
 					}
 					if .SUBMIT in mu.button(ctx, "Random Rotation"){
-						rand_vector :: proc() -> spat.Vector{ return spat.Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
-						current_coll_obj.transform.rotation = linalg.normalize(linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()))
+						current_coll_obj.transform.rotation = spat.rand_rot()
 					}
 				}
 

@@ -371,13 +371,11 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 		rlgl.PushMatrix()
 		trans := get_transform_from_plane(plane)
 		mat := spat.get_matrix_from_transform(trans)
-		// matrix_data := rl.MatrixToFloatV(mat)
-		// rlgl.MultMatrixf(auto_cast &matrix_data)
-
-		matTrans :=rl.MatrixToFloatV(rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z))
-		rlgl.MultMatrixf(auto_cast &matTrans)
-		matRot := rl.MatrixToFloatV(rl.QuaternionToMatrix(trans.rotation))
-		rlgl.MultMatrixf(auto_cast &matRot)
+		// mat = rl.MatrixTranspose(mat)
+		matrix_data := rl.MatrixToFloatV(mat)
+		mat_dat2:= transmute([16]f32)linalg.transpose(mat)
+		mat_dat3:=linalg.transpose(mat_dat2)
+		rlgl.MultMatrixf(auto_cast &mat_dat2)
 
 		rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
 		rlgl.PopMatrix()

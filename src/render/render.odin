@@ -37,6 +37,22 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
+	@(static)
+	static_rot: spat.Quaternion
+	@(static)
+	bbbb : f32 = 2
+	if bbbb < 0 {
+		static_rot = spat.rand_rot()
+		bbbb = 4
+	}
+		bbbb -= dt
+	
+
+	axis_planes := e_tools.generate_axis_planes(spat.ZERO_VEC3, spat.ZERO_VEC3)
+	e_tools.rotate_axis_planes(&axis_planes, spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3})
+
+	e_tools.draw_position_tooltip_new(axis_planes)
+
 	@(static) shader_editor_tool_depth: rl.Shader
 	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
 

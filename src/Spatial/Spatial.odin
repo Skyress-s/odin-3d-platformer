@@ -1,5 +1,6 @@
 package Spatial
 
+import "core:math/rand"
 import cc "../Physics/collision_channel"
 import hms "../handle_map/handle_map_static"
 import "core:fmt"
@@ -123,6 +124,9 @@ Hash_Key :: struct {
 
 Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
 
+rand_vector :: proc() -> Vector{ return Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
+
+rand_rot :: proc() -> Quaternion {return linalg.normalize(linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()))}
 
 key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
@@ -201,32 +205,12 @@ matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32{
 }
 
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
-	// matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
-
-	// Create 1rotation matrix from quaternion
-	// quat := quaternion128{}
-	// quat.x = trans.rotation.x
-	// quat.y = trans.rotation.y
-	// quat.z = trans.rotation.z
-	// quat.w = trans.rotation.w
-
-
 	matRotation := rl.QuaternionToMatrix(trans.rotation)
-	// matRotation := rl.QuaternionToMatrix(linalg.QUATERNIONF32_IDENTITY)
-
-	// Create translation matrix
 	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
 
-	// Combine them: Scale -> Rotate -> Translate
-	// Order matters: S * R * T
-	// transform := matScale * matRotation
-	// transform = transform * matTranslation
-	transform := matTranslation * matRotation
-	transform = transform * matScale
-	// transform := matScale * matRotation * matTranslation
-	// transform := matTranslation * matRotation * matScale
-	return matTranslation * matRotation * matScale 
+	return  matTranslation* matRotation * matScale 
+	// return  matTranslation * matScale 
 }
 
 // Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
@@ -239,7 +223,7 @@ calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Ma
 	// Order matters: S * R * T
 	transform := matTranslation * matRotation
 	// transform = transform * matScale
-	return matTranslation
+	return transform
 }
 
 
