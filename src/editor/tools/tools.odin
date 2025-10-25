@@ -88,13 +88,8 @@ on_click :: proc(
 	switch &active_tool in transform_tool.active_tool {
 	case Position_Tool:
 		transform_matrix := spat.matrix_from_transform(found_object.transform)
-		// planes := generate_axis_planes(found_object.transform.position, cam.position)
-		planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
-		for &p in planes{
-			p.normal = spat.mult(&transform_matrix, p.normal)
-			p.forward = spat.mult(&transform_matrix, p.forward)
-			p.center = spat.mult(&transform_matrix, p.center)
-		}
+		planes := generate_axis_planes(found_object.transform.position, cam.position)
+		// planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
 
 		bars := generate_axis_bars(found_object.transform, cam.position)
 		bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)

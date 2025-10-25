@@ -275,13 +275,19 @@ render :: proc(
 
 			switch &active_tool in tool.active_tool {
 			case e_tools.Position_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.generate_axis_planes(
-						found_object.transform.position,
+				axis_planes := e_tools.generate_axis_planes(
+						// found_object.transform.position,
+						spat.ZERO_VEC3,
 						players.editor.position,
-					),
+					)
+				e_tools.rotate_axis_planes(
+					&axis_planes,
+					found_object.transform,
 				)
-				e_tools.draw_scale_boxes(e_tools.generate_axis_bars(found_object.transform, players.editor.position))
+				e_tools.draw_position_tooltip_new(axis_planes)
+				e_tools.draw_scale_boxes(
+					e_tools.generate_axis_bars(found_object.transform, players.editor.position),
+				)
 
 			case e_tools.Rotation_Tool:
 				e_tools.draw_position_tooltip_new(
