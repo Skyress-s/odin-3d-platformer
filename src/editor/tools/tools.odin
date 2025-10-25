@@ -5,8 +5,10 @@ import hms "../../handle_map/handle_map_static"
 import l "../../level"
 import rlb "../../raylib_bridge"
 import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
+import "core:time"
 import rl "vendor:raylib"
 
 Plane_Vector_Union :: union #no_nil {
@@ -48,13 +50,7 @@ Transform_Tool_Data :: distinct struct {
 }
 
 
-init_transform_tool :: proc(
-	plane: spat.Plane,
-	mouse_position: spat.Vector2,
-	cam: ^rl.Camera3D,
-) -> (
-	data: Transform_Tool_Data,
-) {
+init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 	// Does nothing atm
 	return data
 }
@@ -101,11 +97,17 @@ on_click :: proc(
 			transform_tool.dragging = true
 			transform_tool.start_transform = found_object.transform
 			transform_tool.start_ray_plane_intersect = plane_intersect_location
+
+			active_tool.translate_mode = spat.Plane {
+				point_on_plane = transform_tool.start_ray_plane_intersect,
+				normal         = plane_normal
+			}
 		} else if bars_hit != .None {
 			transform_tool.dragging = true
 			transform_tool.start_transform = found_object.transform
 			transform_tool.start_ray_plane_intersect = bars_hit_location
-		} else do transform_tool.target_object_id = spat.Collision_Object_Id{} // Hit nothing, stop tool
+			active_tool.translate_mode = spat.axis_to_unit_vector(bars_hit)
+		} else {transform_tool.target_object_id = spat.Collision_Object_Id{}} 	// Hit nothing, stop tool
 
 	case Rotation_Tool:
 		planes := generate_axis_planes(found_object.transform.position, cam.position)
@@ -166,70 +168,87 @@ update_transform_tool :: proc(
 	current_mouse_position: spat.Vector2,
 ) {
 	if !data.dragging do return
-	// if !left_mouse_button_down do return
+	log.warnf("update {}", time.to_unix_seconds(time.now()))
+
+
 	current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
 	found_object := hms.get(object_map, data.target_object_id)
 	assert(found_object != nil)
 
 	switch &active_tool in data.active_tool {
 	case Position_Tool:
+		norm: spat.Vector
+		switch &trans_mode in active_tool.translate_mode {
+		case spat.Plane:
+			norm = trans_mode.normal
+		case spat.Vector:
+			norm = linalg.cross(linalg.cross(trans_mode, (cam.position - data.start_ray_plane_intersect)), trans_mode) 
+		}
 		did_intersect, intersection := spat.ray_plane_intersect(
 			&current_ray,
-			data.plane.normal,
-			data.plane.point_on_plane,
+			norm,
+			data.start_ray_plane_intersect,
 		)
+
 		found_object.data.transform.position =
-			data.start_transform.position + (intersection - data.plane.point_on_plane)
+			data.start_transform.position + (intersection - data.start_ray_plane_intersect)
 
-	case Rotation_Tool:
-		did_intersect, intersection := spat.ray_plane_intersect(
-			&current_ray,
-			data.plane.normal,
-			data.plane.point_on_plane,
-		)
+		switch &trans_mode in active_tool.translate_mode {
+		case spat.Plane:
+		case spat.Vector:
+			found_object.data.transform.position = data.start_transform.position + linalg.projection((intersection - data.start_ray_plane_intersect), trans_mode)
 
-		new_qua := linalg.quaternion_from_forward_and_up_f32(
-			data.start_ray_plane_intersect - data.start_transform.position,
-			data.plane.normal,
-		)
-		new_quat := linalg.quaternion_from_forward_and_up_f32(
-			intersection - data.start_transform.position,
-			data.plane.normal,
-		)
-		//found_object.data.transform.rotation = spat.QuaternionData{new_quat.x,new_quat.y, new_quat.z, new_quat.w}
-
-		//found_object.data.transform.rotation = linalg.QUATERNIONF32_IDENTITY * new_quat
-
-		found_object.data.transform.rotation =
-			new_quat * linalg.quaternion_inverse(new_qua) * data.start_transform.rotation
-
-	//panic("rotation not implemented")
-	case Scale_Tool:
-		hit, location := spat.ray_plane_intersect(
-			&current_ray,
-			active_tool.plane.normal,
-			active_tool.plane.point_on_plane,
-		)
-		if !hit do return
-		delta := location - active_tool.first_intersect_location
-
-		dirs := calculate_dirs(found_object.transform.position, cam.position)
-		axis_vector := spat.axis_to_unit_vector(active_tool.axis)
-
-		dot := linalg.dot(axis_vector, delta)
-
-		scale_scale: f32 = 0.2
-
-		#partial switch active_tool.axis {
-		case .X:
-			found_object.transform.scale.x = (data.start_transform.scale.x - dot * scale_scale)
-		case .Y:
-			found_object.transform.scale.y = (data.start_transform.scale.y - dot * scale_scale)
-		case .Z:
-			found_object.transform.scale.z = (data.start_transform.scale.z - dot * scale_scale)
 		}
 
-		fmt.printfln("updates scale!: {}", found_object.transform.scale)
+	case Rotation_Tool:
+	// 	did_intersect, intersection := spat.ray_plane_intersect(
+	// 		&current_ray,
+	// 		data.plane.normal,
+	// 		data.plane.point_on_plane,
+	// 	)
+	//
+	// 	new_qua := linalg.quaternion_from_forward_and_up_f32(
+	// 		data.start_ray_plane_intersect - data.start_transform.position,
+	// 		data.plane.normal,
+	// 	)
+	// 	new_quat := linalg.quaternion_from_forward_and_up_f32(
+	// 		intersection - data.start_transform.position,
+	// 		data.plane.normal,
+	// 	)
+	// 	//found_object.data.transform.rotation = spat.QuaternionData{new_quat.x,new_quat.y, new_quat.z, new_quat.w}
+	//
+	// 	//found_object.data.transform.rotation = linalg.QUATERNIONF32_IDENTITY * new_quat
+	//
+	// 	found_object.data.transform.rotation =
+	// 		new_quat * linalg.quaternion_inverse(new_qua) * data.start_transform.rotation
+	//
+	// //panic("rotation not implemented")
+	case Scale_Tool:
+	// hit, location := spat.ray_plane_intersect(
+	// 	&current_ray,
+	// 	active_tool.plane.normal,
+	// 	active_tool.plane.point_on_plane,
+	// )
+	// if !hit do return
+	// delta := location - active_tool.first_intersect_location
+	//
+	// dirs := calculate_dirs(found_object.transform.position, cam.position)
+	// axis_vector := spat.axis_to_unit_vector(active_tool.axis)
+	//
+	// dot := linalg.dot(axis_vector, delta)
+	//
+	// scale_scale: f32 = 0.2
+	//
+	// #partial switch active_tool.axis {
+	// case .X:
+	// 	found_object.transform.scale.x = (data.start_transform.scale.x - dot * scale_scale)
+	// case .Y:
+	// 	found_object.transform.scale.y = (data.start_transform.scale.y - dot * scale_scale)
+	// case .Z:
+	// 	found_object.transform.scale.z = (data.start_transform.scale.z - dot * scale_scale)
+	// }
+	//
+	// fmt.printfln("updates scale!: {}", found_object.transform.scale)
 
 	}
 	// TODO: Resume here

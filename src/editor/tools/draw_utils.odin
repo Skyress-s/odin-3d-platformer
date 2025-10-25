@@ -408,6 +408,9 @@ generate_axis_bars :: proc(
 	return boxes
 }
 
+determine_what_axis_bar_hit :: proc(index: u8){
+}
+
 draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
 
 	box_x := boxes.x

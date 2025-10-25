@@ -1,11 +1,6 @@
 package main
 
 
-import "core:strings"
-import "render"
-import "core:time"
-import "core:log"
-import "core:os"
 import character "Character"
 import p "Physics"
 import cc "Physics/collision_channel"
@@ -18,9 +13,13 @@ import col "color"
 import "core:debug/trace"
 import "core:fmt"
 import "core:io"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
+import "core:os"
+import "core:strings"
 import "core:testing"
+import "core:time"
 import ddu "debug_draw_utils"
 import e_tools "editor/tools"
 import "editor_player"
@@ -33,13 +32,14 @@ import gameui "micro-ui"
 import mph_ui "mph_ui"
 import "player_data"
 import rlb "raylib_bridge"
+import "render"
 
+import m_log "mph_log"
 import _players "players"
 import "serialization"
 import mu "vendor:microui"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
-import m_log "mph_log"
 
 
 // global_trace_ctx: trace.Context
@@ -81,8 +81,13 @@ game_static_shaders :: struct {
 }
 
 
-logger_proc :: proc(data: rawptr, level: runtime.Logger_Level, text: string, options: runtime.Logger_Options, location := #caller_location)
-{
+logger_proc :: proc(
+	data: rawptr,
+	level: runtime.Logger_Level,
+	text: string,
+	options: runtime.Logger_Options,
+	location := #caller_location,
+) {
 	// string_data := cast(^string)data
 	fmt.println(text)
 	m_log.write_log(fmt.aprintf("{}: {}", strings.to_upper(fmt.aprint(level)), text))
@@ -93,7 +98,7 @@ logger_proc :: proc(data: rawptr, level: runtime.Logger_Level, text: string, opt
 	// fmt.printfln("{}: {}", level, text)
 }
 
-some_val :int  
+some_val: int
 
 main :: proc() {
 
@@ -143,12 +148,11 @@ main :: proc() {
 	)
 
 
-
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
 	//rl.ToggleBorderlessWindowed()
 	defer rl.CloseWindow()
- 
+
 	// rl.SetTargetFPS(180)
 	rl.SetTargetFPS(180) // TODO CCD not working at low fps
 
@@ -167,12 +171,7 @@ main :: proc() {
 	}
 
 	// position_transform_tool
-	players.editor.transform_tool = e_tools.init_transform_tool(
-		e_tools.State.Position,
-		spat.Plane{spat.Vector{0, 10, 0}, spat.Vector{0, 1, 0}},
-		rl.GetMousePosition(),
-		&cam,
-	)
+	players.editor.transform_tool = e_tools.init_transform_tool()
 
 	position_transform_tool := &players.editor.transform_tool
 
@@ -200,7 +199,6 @@ main :: proc() {
 		cam           = &cam,
 	}
 
-	// rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)

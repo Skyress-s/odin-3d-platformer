@@ -86,6 +86,7 @@ all_windows :: proc(
 
 
 	case .Editor:
+		display_log(ctx, screen_dimensions, players, screen_rect)
 		details_panel(ctx, players, game_state, screen_rect, level)
 	}
 }
