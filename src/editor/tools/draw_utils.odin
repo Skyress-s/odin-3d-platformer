@@ -334,6 +334,11 @@ ray_axis_bars_intersect :: proc(
 
 
 draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
+	planes_bounded := planes_bounded
+	for &p in planes_bounded{
+		// p.normal = spat.mult()
+
+	}
 	planeXZ := planes_bounded.x
 	planeXY := planes_bounded.y
 	planeZY := planes_bounded.z

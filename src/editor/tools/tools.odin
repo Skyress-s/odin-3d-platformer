@@ -47,11 +47,13 @@ Transform_Tool_Data :: distinct struct {
 	// start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
 	target_object_id:          spat.Collision_Object_Id,
+	local_tranform:            bool,
 }
 
 
 init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 	// Does nothing atm
+	data.local_tranform = true
 	return data
 }
 
@@ -85,7 +87,15 @@ on_click :: proc(
 	// Have target from this point
 	switch &active_tool in transform_tool.active_tool {
 	case Position_Tool:
-		planes := generate_axis_planes(found_object.transform.position, cam.position)
+		transform_matrix := spat.matrix_from_transform(found_object.transform)
+		// planes := generate_axis_planes(found_object.transform.position, cam.position)
+		planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
+		for &p in planes{
+			p.normal = spat.mult(&transform_matrix, p.normal)
+			p.forward = spat.mult(&transform_matrix, p.forward)
+			p.center = spat.mult(&transform_matrix, p.center)
+		}
+
 		bars := generate_axis_bars(found_object.transform, cam.position)
 		bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
 		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
@@ -100,7 +110,7 @@ on_click :: proc(
 
 			active_tool.translate_mode = spat.Plane {
 				point_on_plane = transform_tool.start_ray_plane_intersect,
-				normal         = plane_normal
+				normal         = plane_normal,
 			}
 		} else if bars_hit != .None {
 			transform_tool.dragging = true
@@ -131,7 +141,6 @@ on_click :: proc(
 		fmt.println(interacter_bar)
 
 		if interacter_bar != .None {
-
 			axis_vector := spat.axis_to_unit_vector(interacter_bar)
 			active_tool.axis = interacter_bar
 			active_tool.plane = spat.Plane {
@@ -151,7 +160,10 @@ on_click :: proc(
 			transform_tool.start_ray_plane_intersect = hit_location
 
 			//continue
-		} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
+		} else {
+			transform_tool.target_object_id = spat.Collision_Object_Id{}
+		}
+
 	}
 
 
@@ -182,7 +194,10 @@ update_transform_tool :: proc(
 		case spat.Plane:
 			norm = trans_mode.normal
 		case spat.Vector:
-			norm = linalg.cross(linalg.cross(trans_mode, (cam.position - data.start_ray_plane_intersect)), trans_mode) 
+			norm = linalg.cross(
+				linalg.cross(trans_mode, (cam.position - data.start_ray_plane_intersect)),
+				trans_mode,
+			)
 		}
 		did_intersect, intersection := spat.ray_plane_intersect(
 			&current_ray,
@@ -196,7 +211,9 @@ update_transform_tool :: proc(
 		switch &trans_mode in active_tool.translate_mode {
 		case spat.Plane:
 		case spat.Vector:
-			found_object.data.transform.position = data.start_transform.position + linalg.projection((intersection - data.start_ray_plane_intersect), trans_mode)
+			found_object.data.transform.position =
+				data.start_transform.position +
+				linalg.projection((intersection - data.start_ray_plane_intersect), trans_mode)
 
 		}
 

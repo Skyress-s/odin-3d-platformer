@@ -196,6 +196,10 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
 	return location
 }
 
+matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32{
+	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
+}
+
 get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
 	// matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
