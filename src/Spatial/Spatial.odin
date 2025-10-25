@@ -226,7 +226,7 @@ get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO ho
 	transform = transform * matScale
 	// transform := matScale * matRotation * matTranslation
 	// transform := matTranslation * matRotation * matScale
-	return transform
+	return matTranslation * matRotation * matScale 
 }
 
 // Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)

@@ -1,5 +1,6 @@
 package tools
 
+import "core:log"
 import spat "../../Spatial/"
 import col "../../color"
 import "core:math"
@@ -26,11 +27,11 @@ calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: 
 	return dirs
 }
 
-rotate_axis_planes :: proc(planes : ^[3]spat.Plane_Bounded, transform: spat.Transform) {
+rotate_axis_planes :: proc(planes: ^[3]spat.Plane_Bounded, transform: spat.Transform) {
 	mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
 	rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
 
-	for &plane in planes{
+	for &plane in planes {
 		// plane.center += transform.position
 		// plane.center = spat.ONE_VEC3 * 10
 		spat.mult(mat, &plane.center)
@@ -65,13 +66,13 @@ generate_axis_planes :: proc(
 		tooltip_location.z,
 	}
 
-	planes_bounded.x.normal = {0, 1, 0}
-	planes_bounded.y.normal = {0, 0, 1}
-	planes_bounded.z.normal = {1, 0, 0}
+	planes_bounded.x.normal = {1, 0, 0}
+	planes_bounded.y.normal = {0, 1, 0}
+	planes_bounded.z.normal = {0, 0, 1}
 
-	planes_bounded.x.forward = {1, 0, 0}
-	planes_bounded.y.forward = {1, 0, 0}
-	planes_bounded.z.forward = {0, 0, 1}
+	planes_bounded.x.forward = {0, 1, 0}
+	planes_bounded.y.forward = {0, 0, 1}
+	planes_bounded.z.forward = {1, 0, 0}
 
 	planes_bounded.x.lenghts = spat.Vector2{PLANE_SIZE, PLANE_SIZE}
 	planes_bounded.y.lenghts = spat.Vector2{PLANE_SIZE, PLANE_SIZE}
@@ -82,9 +83,9 @@ generate_axis_planes :: proc(
 
 Interacted_Plane :: enum {
 	None,
-	XZ,
-	XY,
-	ZY,
+	X,
+	Y,
+	Z,
 }
 
 Interacted_Bar :: enum {
@@ -113,11 +114,11 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 	switch interacted_plane {
 	case .None:
 		return spat.ZERO_VEC3
-	case .XZ:
+	case .X:
 		return spat.Vector{0, 1, 0}
-	case .XY:
+	case .Y:
 		return spat.Vector{0, 0, 1}
-	case .ZY:
+	case .Z:
 		return spat.Vector{1, 0, 0}
 	}
 
@@ -191,29 +192,29 @@ ray_axis_planes_intersect :: proc(
 	{
 		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.x)
 		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.XZ, loc, planes_bounded.x.normal
+		if hit do return Interacted_Plane.X, loc, planes_bounded.x.normal
 
 		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.XZ, loc, planes_bounded.x.normal
+		if hit do return Interacted_Plane.X, loc, planes_bounded.x.normal
 
 	}
 	{
 		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.y)
 		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.XY, loc, planes_bounded.y.normal
+		if hit do return Interacted_Plane.Y, loc, planes_bounded.y.normal
 
 		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.XY, loc, planes_bounded.y.normal
+		if hit do return Interacted_Plane.Y, loc, planes_bounded.y.normal
 
 	}
 	{
 		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.z)
 		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.ZY, loc, planes_bounded.z.normal
+		if hit do return Interacted_Plane.Z, loc, planes_bounded.z.normal
 
 
 		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.ZY, loc, planes_bounded.z.normal
+		if hit do return Interacted_Plane.Z, loc, planes_bounded.z.normal
 
 	}
 
@@ -355,30 +356,71 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 	planeXY := planes_bounded.y
 	planeZY := planes_bounded.z
 
+	get_transform_from_plane :: proc(plane: spat.Plane_Bounded) -> spat.Transform {
+		pos := plane.center
+		rot := linalg.quaternion_from_forward_and_up(plane.forward, plane.normal)
+		// log.warnf("{}",linalg.dot(plane.forward, plane.normal))
+		rot = linalg.normalize(rot)
+		scale := spat.ONE_VEC3
+		return spat.Transform{pos, rot, scale}
+	}
+
+	draw_plane :: proc(plane: spat.Plane_Bounded, color: col.Color) {
+		plane := plane
+
+		rlgl.PushMatrix()
+		trans := get_transform_from_plane(plane)
+		mat := spat.get_matrix_from_transform(trans)
+		// matrix_data := rl.MatrixToFloatV(mat)
+		// rlgl.MultMatrixf(auto_cast &matrix_data)
+
+		matTrans :=rl.MatrixToFloatV(rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z))
+		rlgl.MultMatrixf(auto_cast &matTrans)
+		matRot := rl.MatrixToFloatV(rl.QuaternionToMatrix(trans.rotation))
+		rlgl.MultMatrixf(auto_cast &matRot)
+
+		rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		rlgl.PopMatrix()
+		//
+		// plane.normal = -plane.normal
+		// rlgl.PushMatrix()
+		// trans = get_transform_from_plane(plane)
+		// mat = spat.get_matrix_from_transform(trans)
+		// matrix_data = rl.MatrixToFloatV(mat)
+		// rlgl.MultMatrixf(auto_cast &matrix_data)
+		// rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		// rlgl.PopMatrix()
+
+		rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
+		rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
+	}
+
+	draw_plane(planeXZ, rl.ColorLerp(col.RED, col.BLUE, 0.5))
+	draw_plane(planeXY, rl.ColorLerp(col.RED, col.GREEN, 0.5))
+	draw_plane(planeZY, rl.ColorLerp(col.BLUE, col.BLUE, 0.5))
+
 	// rlgl.PushMatrix()
+	// rlgl.Translatef(planeXZ.center.x, planeXZ.center.y, planeXZ.center.z)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
+	// rlgl.Rotatef(180, 1, 0, 0)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
 	// rlgl.PopMatrix()
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeXZ.center.x, planeXZ.center.y, planeXZ.center.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	rlgl.Rotatef(180, 1, 0, 0)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	rlgl.PopMatrix()
-
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeXY.center.x, planeXY.center.y, planeXY.center.z)
-	rlgl.Rotatef(90, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	rlgl.Rotatef(180, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	rlgl.PopMatrix()
-
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeZY.center.x, planeZY.center.y, planeZY.center.z)
-	rlgl.Rotatef(90, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	rlgl.Rotatef(180, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	rlgl.PopMatrix()
+	//
+	// rlgl.PushMatrix()
+	// rlgl.Translatef(planeXY.center.x, planeXY.center.y, planeXY.center.z)
+	// rlgl.Rotatef(90, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
+	// rlgl.Rotatef(180, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
+	// rlgl.PopMatrix()
+	//
+	// rlgl.PushMatrix()
+	// rlgl.Translatef(planeZY.center.x, planeZY.center.y, planeZY.center.z)
+	// rlgl.Rotatef(90, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
+	// rlgl.Rotatef(180, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
+	// rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
+	// rlgl.PopMatrix()
 }
 
 

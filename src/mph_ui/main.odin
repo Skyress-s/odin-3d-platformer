@@ -1,5 +1,6 @@
 package mph_ui
 
+import "core:math/rand"
 import character "../Character"
 import cc "../Physics/collision_channel/"
 import spat "../Spatial"
@@ -391,6 +392,16 @@ details_panel :: proc(
 						current_coll_obj.collision_channels =
 							is_colliding ? cc.get_blocking() : cc.get_non_blocking()
 						// TODO we should also activate kill volumes when we get a normal collision.
+					}
+				}
+
+				{
+					if .SUBMIT in mu.button(ctx, "Reset Rotation"){
+						current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
+					}
+					if .SUBMIT in mu.button(ctx, "Random Rotation"){
+						rand_vector :: proc() -> spat.Vector{ return spat.Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
+						current_coll_obj.transform.rotation = linalg.normalize(linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()))
 					}
 				}
 

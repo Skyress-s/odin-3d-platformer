@@ -199,6 +199,8 @@ main :: proc() {
 		cam           = &cam,
 	}
 
+	rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
+
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
