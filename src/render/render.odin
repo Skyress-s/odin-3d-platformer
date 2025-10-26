@@ -1,6 +1,7 @@
 package render
 
 import spat "../Spatial"
+import col "../color"
 import gs "../game_state"
 import l "../level"
 import lightray "../lightray"
@@ -43,18 +44,20 @@ render :: proc(
 	bbbb : f32 = 2
 	if bbbb < 0 {
 		static_rot = spat.rand_rot()
-		bbbb = 4
+		// static_rot = linalg.quaternion_from_euler_angles_f32(20, 0, 0, linalg.Euler_Angle_Order.XYZ)
+		bbbb = 400
 	}
 		bbbb -= dt
+		static_rot *= linalg.quaternion_from_euler_angles_f32(1*dt, 0, 0, linalg.Euler_Angle_Order.XYZ)
 	
 
 	axis_planes := e_tools.generate_axis_planes(spat.ZERO_VEC3, spat.ZERO_VEC3)
-	e_tools.rotate_axis_planes(&axis_planes, spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3})
+	e_tools.transform_axis_planes(&axis_planes, spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3})
 
-	e_tools.draw_position_tooltip_new(axis_planes)
+
 
 	@(static) shader_editor_tool_depth: rl.Shader
-	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
+	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("content/shaders/editor_tool_depth/depth.vert", "content/shaders/editor_tool_depth/depth.frag")
 
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
@@ -68,6 +71,9 @@ render :: proc(
 	lightray.begin_lighting()
 	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
+	rl.DrawSphere(spat.Vector{0,100,0}, 1, col.YELLOW)
+
+	e_tools.draw_position_tooltip_new(axis_planes)
 
 	tool := &players.editor.transform_tool
 
@@ -296,7 +302,7 @@ render :: proc(
 						spat.ZERO_VEC3,
 						players.editor.position,
 					)
-				e_tools.rotate_axis_planes(
+				e_tools.transform_axis_planes(
 					&axis_planes,
 					found_object.transform,
 				)

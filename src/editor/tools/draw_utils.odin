@@ -1,8 +1,8 @@
 package tools
 
-import "core:log"
 import spat "../../Spatial/"
 import col "../../color"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -27,7 +27,7 @@ calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: 
 	return dirs
 }
 
-rotate_axis_planes :: proc(planes: ^[3]spat.Plane_Bounded, transform: spat.Transform) {
+transform_axis_planes :: proc(planes: ^[3]spat.Plane_Bounded, transform: spat.Transform) {
 	mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
 	rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
 
@@ -49,6 +49,7 @@ generate_axis_planes :: proc(
 	// dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
 	dirs: spat.Vector = spat.ONE_VEC3
 	dirs *= HALF_PLANE_SIZE * 1.5
+	// dirs *= 3
 
 	planes_bounded.x.center = {
 		tooltip_location.x,
@@ -358,8 +359,29 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 
 	get_transform_from_plane :: proc(plane: spat.Plane_Bounded) -> spat.Transform {
 		pos := plane.center
-		rot := linalg.quaternion_from_forward_and_up(plane.forward, plane.normal)
-		// log.warnf("{}",linalg.dot(plane.forward, plane.normal))
+
+
+		quat_from_forward_up :: proc(forward, up: linalg.Vector3f32) -> linalg.Quaternionf32 {
+			// Normalize input vectors
+			f := linalg.normalize(forward)
+			r := linalg.normalize(linalg.cross(up, f)) // right = up × forward
+			u := linalg.cross(f, r) // recompute up to ensure orthogonality
+
+			// Build rotation matrix (column-major)
+			m := linalg.Matrix3f32{r.x, u.x, f.x, r.y, u.y, f.y, r.z, u.z, f.z}
+
+			// Convert to quaternion
+			return linalg.quaternion_from_matrix3(m)
+		}
+
+		// rot := linalg.quaternion_from_forward_and_up(plane.forward, plane.normal)
+		rot := quat_from_forward_up(plane.forward, plane.normal)
+		// rot := linalg.quaternion_look_at(plane.center, plane.center + plane.forward, plane.center + plane.normal)
+		// log.warnf(
+		// 	"{}",
+		// 	linalg.dot(plane.forward, plane.normal) < 0.001 &&
+		// 	linalg.dot(plane.forward, plane.normal) > -0.001,
+		// )
 		rot = linalg.normalize(rot)
 		scale := spat.ONE_VEC3
 		return spat.Transform{pos, rot, scale}
@@ -368,18 +390,50 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 	draw_plane :: proc(plane: spat.Plane_Bounded, color: col.Color) {
 		plane := plane
 
-		rlgl.PushMatrix()
 		trans := get_transform_from_plane(plane)
-		mat := spat.get_matrix_from_transform(trans)
-		// mat = rl.MatrixTranspose(mat)
-		matrix_data := rl.MatrixToFloatV(mat)
-		mat_dat2:= transmute([16]f32)linalg.transpose(mat)
-		mat_dat3:=linalg.transpose(mat_dat2)
-		rlgl.MultMatrixf(auto_cast &mat_dat2)
+		{
+			rlgl.PushMatrix()
+			defer rlgl.PopMatrix()
+			mat := spat.matrix_from_transform(trans)
 
-		rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
-		rlgl.PopMatrix()
-		//
+			matrix_data := transmute([16]f32)mat
+			rlgl.MultMatrixf(auto_cast &matrix_data)
+
+			rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		}
+		plane.normal = -plane.normal
+		trans = get_transform_from_plane(plane)
+		{
+			rlgl.PushMatrix()
+			defer rlgl.PopMatrix()
+			mat := spat.matrix_from_transform(trans)
+
+			matrix_data := transmute([16]f32)mat
+			rlgl.MultMatrixf(auto_cast &matrix_data)
+
+			rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		}
+
+
+
+		// rl.DrawLine3D(
+		// 	plane.center,
+		// 	plane.center + linalg.mul(trans.rotation, spat.UP_VEC3) * 100,
+		// 	col.RED,
+		// )
+		// rl.DrawLine3D(
+		// 	plane.center,
+		// 	plane.center + linalg.mul(trans.rotation, -spat.RIGHT_VEC3) * 100,
+		// 	col.BLUE,
+		// )
+
+		// rl.DrawTriangle3D(
+		// 	plane.center + plane.forward * plane.lenghts.x,
+		// 	plane.center,
+		// 	plane.center + linalg.cross(plane.forward, plane.normal) * plane.lenghts.x,
+		// 	col.RED,
+		// )
+
 		// plane.normal = -plane.normal
 		// rlgl.PushMatrix()
 		// trans = get_transform_from_plane(plane)
@@ -389,13 +443,16 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 		// rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
 		// rlgl.PopMatrix()
 
-		rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
-		rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
+		// rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
+		// rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
 	}
 
-	draw_plane(planeXZ, rl.ColorLerp(col.RED, col.BLUE, 0.5))
-	draw_plane(planeXY, rl.ColorLerp(col.RED, col.GREEN, 0.5))
-	draw_plane(planeZY, rl.ColorLerp(col.BLUE, col.BLUE, 0.5))
+	// draw_plane(planeXZ, rl.ColorLerp(col.RED, col.BLUE, 0.5))
+	// draw_plane(planeXY, rl.ColorLerp(col.RED, col.GREEN, 0.5))
+	// draw_plane(planeZY, rl.ColorLerp(col.BLUE, col.BLUE, 0.5))
+	draw_plane(planeXZ, col.RED)
+	draw_plane(planeXY, col.GREEN)
+	draw_plane(planeZY, col.BLUE)
 
 	// rlgl.PushMatrix()
 	// rlgl.Translatef(planeXZ.center.x, planeXZ.center.y, planeXZ.center.z)

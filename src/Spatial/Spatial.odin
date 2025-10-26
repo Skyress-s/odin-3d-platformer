@@ -20,6 +20,7 @@ ZERO_VEC4 :: Vector4{0, 0, 0, 0}
 ONE_VEC3 :: Vector{1, 1, 1}
 
 FORWARD_VEC3 :: Vector{1, 0, 0}
+RIGHT_VEC3 :: Vector{0,0,1}
 UP_VEC3 :: Vector{0, 1, 0}
 
 // Transform :: rl.Transform
@@ -202,9 +203,16 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
 
 matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32{
 	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
+
+	// translation := linalg.matrix4_translate(trans.position)
+	// rotation := linalg.matrix4_from_quaternion(trans.rotation)
+	// scale := linalg.matrix4_scale(trans.scale)
+	// return linalg.mul(translation, linalg.mul(rotation, scale))
+	// return linalg.mul(scale, linalg.mul(rotation, translation))
 }
 
-get_matrix_from_transform :: proc(trans: Transform) -> rlgl.Matrix { 	// TODO how to pass by ptr here?
+get_matrix_from_transform :: proc(trans: Transform) -> rl.Matrix { 	// TODO how to pass by ptr here?
+	// return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 	matRotation := rl.QuaternionToMatrix(trans.rotation)
 	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
@@ -222,7 +230,7 @@ calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Ma
 	// Combine them: Scale -> Rotate -> Translate
 	// Order matters: S * R * T
 	transform := matTranslation * matRotation
-	// transform = transform * matScale
+	// transform :=  matRotation * matTranslation
 	return transform
 }
 
