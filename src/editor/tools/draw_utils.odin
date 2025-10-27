@@ -374,14 +374,8 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 			return linalg.quaternion_from_matrix3(m)
 		}
 
-		// rot := linalg.quaternion_from_forward_and_up(plane.forward, plane.normal)
 		rot := quat_from_forward_up(plane.forward, plane.normal)
-		// rot := linalg.quaternion_look_at(plane.center, plane.center + plane.forward, plane.center + plane.normal)
-		// log.warnf(
-		// 	"{}",
-		// 	linalg.dot(plane.forward, plane.normal) < 0.001 &&
-		// 	linalg.dot(plane.forward, plane.normal) > -0.001,
-		// )
+
 		rot = linalg.normalize(rot)
 		scale := spat.ONE_VEC3
 		return spat.Transform{pos, rot, scale}
@@ -401,6 +395,7 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 
 			rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
 		}
+
 		plane.normal = -plane.normal
 		trans = get_transform_from_plane(plane)
 		{
@@ -415,67 +410,14 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 		}
 
 
-
-		// rl.DrawLine3D(
-		// 	plane.center,
-		// 	plane.center + linalg.mul(trans.rotation, spat.UP_VEC3) * 100,
-		// 	col.RED,
-		// )
-		// rl.DrawLine3D(
-		// 	plane.center,
-		// 	plane.center + linalg.mul(trans.rotation, -spat.RIGHT_VEC3) * 100,
-		// 	col.BLUE,
-		// )
-
-		// rl.DrawTriangle3D(
-		// 	plane.center + plane.forward * plane.lenghts.x,
-		// 	plane.center,
-		// 	plane.center + linalg.cross(plane.forward, plane.normal) * plane.lenghts.x,
-		// 	col.RED,
-		// )
-
-		// plane.normal = -plane.normal
-		// rlgl.PushMatrix()
-		// trans = get_transform_from_plane(plane)
-		// mat = spat.get_matrix_from_transform(trans)
-		// matrix_data = rl.MatrixToFloatV(mat)
-		// rlgl.MultMatrixf(auto_cast &matrix_data)
-		// rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
-		// rlgl.PopMatrix()
-
-		// rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
-		// rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
+		rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
+		rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
 	}
 
-	// draw_plane(planeXZ, rl.ColorLerp(col.RED, col.BLUE, 0.5))
-	// draw_plane(planeXY, rl.ColorLerp(col.RED, col.GREEN, 0.5))
-	// draw_plane(planeZY, rl.ColorLerp(col.BLUE, col.BLUE, 0.5))
 	draw_plane(planeXZ, col.RED)
 	draw_plane(planeXY, col.GREEN)
 	draw_plane(planeZY, col.BLUE)
 
-	// rlgl.PushMatrix()
-	// rlgl.Translatef(planeXZ.center.x, planeXZ.center.y, planeXZ.center.z)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	// rlgl.Rotatef(180, 1, 0, 0)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	// rlgl.PopMatrix()
-	//
-	// rlgl.PushMatrix()
-	// rlgl.Translatef(planeXY.center.x, planeXY.center.y, planeXY.center.z)
-	// rlgl.Rotatef(90, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	// rlgl.Rotatef(180, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	// rlgl.PopMatrix()
-	//
-	// rlgl.PushMatrix()
-	// rlgl.Translatef(planeZY.center.x, planeZY.center.y, planeZY.center.z)
-	// rlgl.Rotatef(90, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	// rlgl.Rotatef(180, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	// rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	// rlgl.PopMatrix()
 }
 
 
@@ -491,9 +433,16 @@ calculate_rotation_planes :: proc(
 //
 // }
 
+transform_axis_bars :: proc(boxes: ^[3]spat.Box_Better, transform: spat.Transform) {
+	for &box in boxes {
+		box.rotation = transform.rotation
+		box.position = transform.position
+		box.size = transform.scale
+	}
+}
 
 generate_axis_bars :: proc(
-	target_transform: spat.Transform,
+	// target_transform: spat.Transform,
 	camera_location: spat.Vector,
 ) -> (
 	boxes: [3]spat.Box_Better,
@@ -502,7 +451,8 @@ generate_axis_bars :: proc(
 	dirs := spat.ONE_VEC3
 	dirs *= HALF_PLANE_SIZE * 1.2
 
-	target_location := target_transform.position
+	// target_location := target_transform.position
+	target_location := spat.Vector{0,0,0}
 
 	boxes.x.position = {target_location.x + dirs.x, target_location.y, target_location.z}
 	boxes.y.position = {target_location.x, target_location.y + dirs.y, target_location.z}
@@ -535,9 +485,14 @@ draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
 
 	draw_box :: proc(box: ^spat.Box_Better, color: col.Color) {
 		rlgl.PushMatrix()
-		rlgl.Translatef(box.position.x, box.position.y, box.position.z)
-		rl.DrawCube(spat.ZERO_VEC3, box.size.x, box.size.y, box.size.z, color)
-		rlgl.PopMatrix()
+		defer rlgl.PopMatrix()
+
+		mat := spat.matrix_from_transform(spat.Transform{box.position, box.rotation, box.size})
+
+		matrix_data := transmute([16]f32)mat
+		rlgl.MultMatrixf(auto_cast &matrix_data)
+		// rlgl.Translatef(box.position.x, box.position.y, box.position.z)
+		rl.DrawCube(spat.ZERO_VEC3, 10,10,10, color)
 	}
 
 	draw_box(&box_x, col.RED)

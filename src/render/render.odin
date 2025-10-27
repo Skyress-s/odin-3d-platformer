@@ -38,22 +38,27 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	@(static)
-	static_rot: spat.Quaternion
-	@(static)
-	bbbb : f32 = 2
+	@(static) static_rot: spat.Quaternion
+	@(static) bbbb: f32 = 2
 	if bbbb < 0 {
 		static_rot = spat.rand_rot()
 		// static_rot = linalg.quaternion_from_euler_angles_f32(20, 0, 0, linalg.Euler_Angle_Order.XYZ)
 		bbbb = 400
 	}
-		bbbb -= dt
-		static_rot *= linalg.quaternion_from_euler_angles_f32(1*dt, 0, 0, linalg.Euler_Angle_Order.XYZ)
-	
+	bbbb -= dt
+	static_rot *= linalg.quaternion_from_euler_angles_f32(
+		1 * dt,
+		0,
+		0,
+		linalg.Euler_Angle_Order.XYZ,
+	)
+
 
 	axis_planes := e_tools.generate_axis_planes(spat.ZERO_VEC3, spat.ZERO_VEC3)
-	e_tools.transform_axis_planes(&axis_planes, spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3})
-
+	e_tools.transform_axis_planes(
+		&axis_planes,
+		spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3},
+	)
 
 
 	@(static) shader_editor_tool_depth: rl.Shader
@@ -71,7 +76,7 @@ render :: proc(
 	lightray.begin_lighting()
 	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
-	rl.DrawSphere(spat.Vector{0,100,0}, 1, col.YELLOW)
+	rl.DrawSphere(spat.Vector{0, 100, 0}, 1, col.YELLOW)
 
 	e_tools.draw_position_tooltip_new(axis_planes)
 
@@ -298,18 +303,15 @@ render :: proc(
 			switch &active_tool in tool.active_tool {
 			case e_tools.Position_Tool:
 				axis_planes := e_tools.generate_axis_planes(
-						// found_object.transform.position,
-						spat.ZERO_VEC3,
-						players.editor.position,
-					)
-				e_tools.transform_axis_planes(
-					&axis_planes,
-					found_object.transform,
+					spat.ZERO_VEC3,// found_object.transform.position,
+					players.editor.position,
 				)
+				e_tools.transform_axis_planes(&axis_planes, found_object.transform)
 				e_tools.draw_position_tooltip_new(axis_planes)
-				e_tools.draw_scale_boxes(
-					e_tools.generate_axis_bars(found_object.transform, players.editor.position),
-				)
+
+				axis_boxes := e_tools.generate_axis_bars(players.editor.position)
+				e_tools.transform_axis_bars(&axis_boxes, found_object.transform)
+				e_tools.draw_scale_boxes(axis_boxes)
 
 			case e_tools.Rotation_Tool:
 				e_tools.draw_position_tooltip_new(
@@ -320,7 +322,6 @@ render :: proc(
 				)
 			case e_tools.Scale_Tool:
 				scale_bars := e_tools.generate_axis_bars(
-					found_object.transform,
 					players.editor.position,
 				)
 				//e_tools.draw_scale_boxes(scale_bars)

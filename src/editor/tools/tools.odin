@@ -88,10 +88,12 @@ on_click :: proc(
 	switch &active_tool in transform_tool.active_tool {
 	case Position_Tool:
 		transform_matrix := spat.matrix_from_transform(found_object.transform)
-		planes := generate_axis_planes(found_object.transform.position, cam.position)
-		// planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
+		planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
 
-		bars := generate_axis_bars(found_object.transform, cam.position)
+		transform_axis_planes(&planes, found_object.transform)
+
+		bars := generate_axis_bars(cam.position)
+		transform_axis_bars(&bars, found_object.transform)
 		bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
 		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
 			&ray,
@@ -99,6 +101,7 @@ on_click :: proc(
 		)
 
 		if plane_hit != .None {
+			log.warnf("Hit!")
 			transform_tool.dragging = true
 			transform_tool.start_transform = found_object.transform
 			transform_tool.start_ray_plane_intersect = plane_intersect_location
@@ -131,7 +134,8 @@ on_click :: proc(
 		} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
 
 	case Scale_Tool:
-		boxes := generate_axis_bars(found_object.transform, cam.position)
+		boxes := generate_axis_bars(cam.position)
+		transform_axis_bars(&boxes, found_object.transform)
 		interacter_bar, location := ray_axis_bars_intersect(&ray, &boxes)
 		fmt.println(interacter_bar)
 
