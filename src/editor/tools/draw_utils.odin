@@ -9,13 +9,13 @@ import rl "vendor:raylib"
 import "vendor:raylib/rlgl"
 
 @(private)
-PLANE_SIZE :: 34
+PLANE_SIZE :: 24
 
 @(private)
 HALF_PLANE_SIZE :: PLANE_SIZE / 2
 
 @(private)
-BAR_SHORT_SIDE_SIZE :: 12
+BAR_SHORT_SIDE_SIZE :: 6
 
 
 @(private)
@@ -433,26 +433,29 @@ calculate_rotation_planes :: proc(
 //
 // }
 
-transform_axis_bars :: proc(boxes: ^[3]spat.Box_Better, transform: spat.Transform) {
-	for &box in boxes {
-		box.rotation = transform.rotation
-		box.position = transform.position
-		box.size = transform.scale
+transform_axis_bars :: proc(boxes: ^[3]spat.Box_Better, transform: spat.Transform, local: bool) {
+
+	if local {
+		mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
+		for &box in boxes {
+			spat.mult(mat, &box.position)
+			box.rotation = transform.rotation
+			// box.size *= transform.scale
+		}
+	} else {
+		for &box in boxes {
+			box.position += transform.position
+		}
 	}
 }
 
-generate_axis_bars :: proc(
-	// target_transform: spat.Transform,
-	camera_location: spat.Vector,
-) -> (
-	boxes: [3]spat.Box_Better,
-) { 	// Dima would like this name
+generate_axis_bars :: proc() -> (boxes: [3]spat.Box_Better) { 	// Dima would like this name
 	// dirs := calculate_dirs(target_transform.position, camera_location)
 	dirs := spat.ONE_VEC3
 	dirs *= HALF_PLANE_SIZE * 1.2
 
 	// target_location := target_transform.position
-	target_location := spat.Vector{0,0,0}
+	target_location := spat.Vector{0, 0, 0}
 
 	boxes.x.position = {target_location.x + dirs.x, target_location.y, target_location.z}
 	boxes.y.position = {target_location.x, target_location.y + dirs.y, target_location.z}
@@ -478,7 +481,7 @@ determine_what_axis_bar_hit :: proc(index: u8) {
 }
 
 draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
-
+	boxes := boxes
 	box_x := boxes.x
 	box_y := boxes.y
 	box_z := boxes.z
@@ -492,10 +495,10 @@ draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
 		matrix_data := transmute([16]f32)mat
 		rlgl.MultMatrixf(auto_cast &matrix_data)
 		// rlgl.Translatef(box.position.x, box.position.y, box.position.z)
-		rl.DrawCube(spat.ZERO_VEC3, 10,10,10, color)
+		rl.DrawCube(spat.ZERO_VEC3, 1, 1, 1, color)
 	}
 
-	draw_box(&box_x, col.RED)
-	draw_box(&box_y, col.GREEN)
-	draw_box(&box_z, col.BLUE)
+	draw_box(&boxes.x, col.RED)
+	draw_box(&boxes.y, col.GREEN)
+	draw_box(&boxes.z, col.BLUE)
 }

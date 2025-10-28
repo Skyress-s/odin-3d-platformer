@@ -24,11 +24,6 @@ RIGHT_VEC3 :: Vector{0,0,1}
 UP_VEC3 :: Vector{0, 1, 0}
 
 // Transform :: rl.Transform
-Transform :: distinct struct {
-	position: Vector,
-	rotation: Quaternion,
-	scale:    Vector,
-}
 
 QUATERNION_IDENTITY :: linalg.QUATERNIONF32_IDENTITY
 
@@ -199,6 +194,10 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
 	location.y = Unhash_Coordinate(hash_key.y)
 	location.z = Unhash_Coordinate(hash_key.z)
 	return location
+}
+
+matrix_from_transform_tr :: proc(trans: Transform) -> linalg.Matrix4f32 {
+	return linalg.matrix4_from_trs(trans.position, trans.rotation, ONE_VEC3)
 }
 
 matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32{

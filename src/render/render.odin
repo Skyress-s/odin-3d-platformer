@@ -18,6 +18,8 @@ import "../player_data/"
 
 import gameui "../micro-ui/"
 
+
+
 Debug_Draw_Data :: distinct struct {
 	active_cell:      map[spat.Hash_Key]bool,
 	active_cell_hash: spat.Hash_Key,
@@ -303,14 +305,14 @@ render :: proc(
 			switch &active_tool in tool.active_tool {
 			case e_tools.Position_Tool:
 				axis_planes := e_tools.generate_axis_planes(
-					spat.ZERO_VEC3,// found_object.transform.position,
+					spat.ZERO_VEC3, // found_object.transform.position,
 					players.editor.position,
 				)
 				e_tools.transform_axis_planes(&axis_planes, found_object.transform)
 				e_tools.draw_position_tooltip_new(axis_planes)
 
-				axis_boxes := e_tools.generate_axis_bars(players.editor.position)
-				e_tools.transform_axis_bars(&axis_boxes, found_object.transform)
+				axis_boxes := e_tools.generate_axis_bars()
+				e_tools.transform_axis_bars(&axis_boxes, found_object.transform, e_tools.tooltip_local)
 				e_tools.draw_scale_boxes(axis_boxes)
 
 			case e_tools.Rotation_Tool:
@@ -321,10 +323,7 @@ render :: proc(
 					),
 				)
 			case e_tools.Scale_Tool:
-				scale_bars := e_tools.generate_axis_bars(
-					players.editor.position,
-				)
-				//e_tools.draw_scale_boxes(scale_bars)
+				scale_bars := e_tools.generate_axis_bars()
 				tris := e_tools.scale_bars_to_tris(&scale_bars)
 
 				for &scale_bars_triangles, i in tris {
