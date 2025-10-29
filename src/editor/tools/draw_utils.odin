@@ -1,5 +1,6 @@
 package tools
 
+import hms "../../handle_map/handle_map_static"
 import spat "../../Spatial/"
 import col "../../color"
 import "core:log"
@@ -348,6 +349,59 @@ ray_axis_bars_intersect :: proc(
 	}
 
 	return spat.Axis.None, spat.ZERO_VEC3
+}
+
+draw_tooltip :: proc(collision_object_map: ^spat.Collision_Object_Handle_Map, tool: ^Transform_Tool_Data, player_pos: spat.Vector) {
+	found_object := hms.get(collision_object_map, tool.target_object_id)
+	if found_object != nil {
+
+		switch &active_tool in tool.active_tool {
+		case Position_Tool:
+			axis_planes := generate_axis_planes(
+				spat.ZERO_VEC3, // found_object.transform.position,
+				player_pos,
+			)
+			transform_axis_planes(&axis_planes, found_object.transform)
+			draw_position_tooltip_new(axis_planes)
+
+			axis_boxes := generate_axis_bars()
+			transform_axis_bars(&axis_boxes, found_object.transform, tooltip_local)
+			draw_scale_boxes(axis_boxes)
+
+		case Rotation_Tool:
+			draw_position_tooltip_new(
+				generate_axis_planes(
+					found_object.transform.position,
+					player_pos,
+				),
+			)
+		case Scale_Tool:
+			scale_bars := generate_axis_bars()
+			tris := scale_bars_to_tris(&scale_bars)
+
+			for &scale_bars_triangles, i in tris {
+				color: rl.Color = rl.MAGENTA
+				switch i {
+				case 0:
+					color = rl.RED
+				case 1:
+					color = rl.GREEN
+				case 2:
+					color = rl.BLUE
+				}
+
+				for &tri in scale_bars_triangles {
+					rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
+				}
+			}
+
+		// draw_scale_boxes(
+		// 	calculate_scale_bars(found_object.transform, players.editor.position),
+		// )
+
+		}
+	}
+
 }
 
 

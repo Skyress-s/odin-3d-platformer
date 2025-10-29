@@ -299,56 +299,7 @@ render :: proc(
 	rl.BeginShaderMode(shader_editor_tool_depth)
 
 	if players.mode == plrs.Player_Mode.Editor {
-		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
-		if found_object != nil {
-
-			switch &active_tool in tool.active_tool {
-			case e_tools.Position_Tool:
-				axis_planes := e_tools.generate_axis_planes(
-					spat.ZERO_VEC3, // found_object.transform.position,
-					players.editor.position,
-				)
-				e_tools.transform_axis_planes(&axis_planes, found_object.transform)
-				e_tools.draw_position_tooltip_new(axis_planes)
-
-				axis_boxes := e_tools.generate_axis_bars()
-				e_tools.transform_axis_bars(&axis_boxes, found_object.transform, e_tools.tooltip_local)
-				e_tools.draw_scale_boxes(axis_boxes)
-
-			case e_tools.Rotation_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.generate_axis_planes(
-						found_object.transform.position,
-						players.editor.position,
-					),
-				)
-			case e_tools.Scale_Tool:
-				scale_bars := e_tools.generate_axis_bars()
-				tris := e_tools.scale_bars_to_tris(&scale_bars)
-
-				for &scale_bars_triangles, i in tris {
-					color: rl.Color = rl.MAGENTA
-					switch i {
-					case 0:
-						color = rl.RED
-					case 1:
-						color = rl.GREEN
-					case 2:
-						color = rl.BLUE
-					}
-
-					for &tri in scale_bars_triangles {
-						rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
-					}
-				}
-
-			// e_tools.draw_scale_boxes(
-			// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-			// )
-
-			}
-		}
-
+		e_tools.draw_tooltip(&level.collision_object_map, tool, players.editor.position)
 	}
 	rl.EndShaderMode()
 
