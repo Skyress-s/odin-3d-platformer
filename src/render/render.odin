@@ -40,28 +40,6 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
-	@(static) static_rot: spat.Quaternion
-	@(static) bbbb: f32 = 2
-	if bbbb < 0 {
-		static_rot = spat.rand_rot()
-		// static_rot = linalg.quaternion_from_euler_angles_f32(20, 0, 0, linalg.Euler_Angle_Order.XYZ)
-		bbbb = 400
-	}
-	bbbb -= dt
-	static_rot *= linalg.quaternion_from_euler_angles_f32(
-		1 * dt,
-		0,
-		0,
-		linalg.Euler_Angle_Order.XYZ,
-	)
-
-
-	axis_planes := e_tools.generate_axis_planes(spat.ZERO_VEC3, spat.ZERO_VEC3)
-	e_tools.transform_axis_planes(
-		&axis_planes,
-		spat.Transform{spat.Vector{0, 100, 0}, static_rot, spat.ONE_VEC3},
-	)
-
 
 	@(static) shader_editor_tool_depth: rl.Shader
 	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("content/shaders/editor_tool_depth/depth.vert", "content/shaders/editor_tool_depth/depth.frag")
@@ -79,8 +57,6 @@ render :: proc(
 	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
 	rl.DrawSphere(spat.Vector{0, 100, 0}, 1, col.YELLOW)
-
-	e_tools.draw_position_tooltip_new(axis_planes)
 
 	tool := &players.editor.transform_tool
 

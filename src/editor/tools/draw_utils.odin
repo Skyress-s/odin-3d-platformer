@@ -1,8 +1,9 @@
 package tools
 
-import hms "../../handle_map/handle_map_static"
+import "core:sort"
 import spat "../../Spatial/"
 import col "../../color"
+import hms "../../handle_map/handle_map_static"
 import "core:log"
 import "core:math"
 import "core:math/linalg"
@@ -28,25 +29,38 @@ calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: 
 	return dirs
 }
 
-transform_axis_planes :: proc(planes: ^[3]spat.Plane_Bounded, transform: spat.Transform) {
-	mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
-	rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
+transform_axis_planes :: proc(
+	planes: ^[3]spat.Plane_Bounded,
+	transform: spat.Transform,
+	local: bool,
+) {
 
-	for &plane in planes {
-		// plane.center += transform.position
-		// plane.center = spat.ONE_VEC3 * 10
-		spat.mult(mat, &plane.center)
-		spat.mult(rot_mat, &plane.forward)
-		spat.mult(rot_mat, &plane.normal)
+
+	if local {
+		mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
+		rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
+
+		for &plane in planes {
+			// plane.center += transform.position
+			// plane.center = spat.ONE_VEC3 * 10
+			spat.mult(mat, &plane.center)
+			spat.mult(rot_mat, &plane.forward)
+			spat.mult(rot_mat, &plane.normal)
+		}
+	} else {
+		for &plane in planes {
+			plane.center += transform.position
+		}
 	}
 }
 
 generate_axis_planes :: proc(
-	tooltip_location, camera_location: spat.Vector,
+	camera_location: spat.Vector,
 ) -> (
 	planes_bounded: [3]spat.Plane_Bounded,
 ) {
 
+	tooltip_location := spat.ZERO_VEC3
 	// dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
 	dirs: spat.Vector = spat.ONE_VEC3
 	dirs *= HALF_PLANE_SIZE * 1.5
@@ -333,6 +347,13 @@ ray_axis_bars_intersect :: proc(
 
 		return true, loc
 	}
+
+	Hit_Data :: struct{
+		interacted_bar: spat.Axis, 
+	}
+
+	// hits := [3]Hit_Data
+
 	hit, location := ray_intersect_6(ray, &tris.x)
 	if hit {
 		return spat.Axis.X, location
@@ -351,54 +372,31 @@ ray_axis_bars_intersect :: proc(
 	return spat.Axis.None, spat.ZERO_VEC3
 }
 
-draw_tooltip :: proc(collision_object_map: ^spat.Collision_Object_Handle_Map, tool: ^Transform_Tool_Data, player_pos: spat.Vector) {
+draw_tooltip :: proc(
+	collision_object_map: ^spat.Collision_Object_Handle_Map,
+	tool: ^Transform_Tool_Data,
+	player_pos: spat.Vector,
+) {
 	found_object := hms.get(collision_object_map, tool.target_object_id)
 	if found_object != nil {
 
 		switch &active_tool in tool.active_tool {
 		case Position_Tool:
-			axis_planes := generate_axis_planes(
-				spat.ZERO_VEC3, // found_object.transform.position,
-				player_pos,
-			)
-			transform_axis_planes(&axis_planes, found_object.transform)
+			axis_planes := generate_axis_planes(player_pos)
+			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
 			draw_position_tooltip_new(axis_planes)
 
 			axis_boxes := generate_axis_bars()
 			transform_axis_bars(&axis_boxes, found_object.transform, tooltip_local)
 			draw_scale_boxes(axis_boxes)
-
 		case Rotation_Tool:
-			draw_position_tooltip_new(
-				generate_axis_planes(
-					found_object.transform.position,
-					player_pos,
-				),
-			)
+			axis_planes := generate_axis_planes(player_pos)
+			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
+			draw_position_tooltip_new(axis_planes)
 		case Scale_Tool:
 			scale_bars := generate_axis_bars()
-			tris := scale_bars_to_tris(&scale_bars)
-
-			for &scale_bars_triangles, i in tris {
-				color: rl.Color = rl.MAGENTA
-				switch i {
-				case 0:
-					color = rl.RED
-				case 1:
-					color = rl.GREEN
-				case 2:
-					color = rl.BLUE
-				}
-
-				for &tri in scale_bars_triangles {
-					rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
-				}
-			}
-
-		// draw_scale_boxes(
-		// 	calculate_scale_bars(found_object.transform, players.editor.position),
-		// )
-
+			transform_axis_bars(&scale_bars, found_object.transform, true) // Only makes sense to use local with scaling bars.
+			draw_scale_boxes(scale_bars)
 		}
 	}
 
@@ -479,7 +477,7 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 calculate_rotation_planes :: proc(
 	tooltip_location, camera_location: spat.Vector,
 ) -> [3]spat.Plane_Bounded {
-	return generate_axis_planes(tooltip_location, camera_location)
+	return generate_axis_planes(camera_location)
 }
 
 

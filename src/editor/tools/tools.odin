@@ -27,10 +27,11 @@ Rotation_Tool :: distinct struct {
 }
 
 Scale_Tool :: distinct struct {
-	scale: spat.Vector,
+	scale:        spat.Vector,
 	// scale_mode: Plane_Vector_Union,
-	axis:  spat.Axis,
-	plane: spat.Plane,
+	axis:         spat.Axis, // todo could probably be a spat.Axis instead
+	scale_normal: spat.Vector,
+	// plane: spat.Plane,
 }
 
 
@@ -51,7 +52,7 @@ Transform_Tool_Data :: distinct struct {
 }
 
 
-tooltip_local: bool : true 
+tooltip_local: bool : false
 
 init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 	// Does nothing atm
@@ -89,93 +90,114 @@ on_click :: proc(
 	// Have target from this point
 	switch &active_tool in transform_tool.active_tool {
 	case Position_Tool:
-		planes := generate_axis_planes(spat.ZERO_VEC3, cam.position)
-
-		transform_axis_planes(&planes, found_object.transform)
-
-		bars := generate_axis_bars()
-		transform_axis_bars(&bars, found_object.transform, tooltip_local)
-		bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
-		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
-			&ray,
-			&planes,
-		)
-
-		if plane_hit != .None {
-			transform_tool.dragging = true
-			transform_tool.start_transform = found_object.transform
-			transform_tool.start_ray_plane_intersect = plane_intersect_location
-
-			active_tool.translate_mode = spat.Plane {
-				point_on_plane = transform_tool.start_ray_plane_intersect,
-				normal         = plane_normal,
-			}
-		} else if bars_hit != .None {
-			transform_tool.dragging = true
-			transform_tool.start_transform = found_object.transform
-			transform_tool.start_ray_plane_intersect = bars_hit_location
-			if tooltip_local {
-				active_tool.translate_mode = spat.transform_vector_tr(
-					found_object.transform,
-					spat.axis_to_unit_vector(bars_hit),
-				)
-			} else {
-				active_tool.translate_mode = spat.axis_to_unit_vector(bars_hit)
-
-			}
-		} else {transform_tool.target_object_id = spat.Collision_Object_Id{}} 	// Hit nothing, stop tool
-
+		on_click_position_tool(transform_tool, &active_tool, cam.position, found_object, ray)
 	case Rotation_Tool:
-		planes := generate_axis_planes(found_object.transform.position, cam.position)
-		plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(
-			&ray,
-			&planes,
-		)
-
-		if plane_hit != .None {
-
-			transform_tool.dragging = true
-			transform_tool.start_transform = found_object.transform
-			transform_tool.start_ray_plane_intersect = plane_intersect_location
-
-			//continue
-		} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
-
+		on_click_rotation_tool(transform_tool, &active_tool, cam.position, found_object, ray)
 	case Scale_Tool:
-		boxes := generate_axis_bars()
-		transform_axis_bars(&boxes, found_object.transform, tooltip_local)
-		interacter_bar, location := ray_axis_bars_intersect(&ray, &boxes)
-		fmt.println(interacter_bar)
-
-		if interacter_bar != .None {
-			axis_vector := spat.axis_to_unit_vector(interacter_bar)
-			active_tool.axis = interacter_bar
-			active_tool.plane = spat.Plane {
-				point_on_plane = location,
-				normal         = linalg.cross(
-					axis_vector,
-					linalg.cross(axis_vector, cam.position - location),
-				),
-			}
-			hit_plane, hit_location := spat.ray_plane_intersect(
-				&ray,
-				active_tool.plane.normal,
-				active_tool.plane.point_on_plane,
-			)
-			transform_tool.dragging = true
-			transform_tool.start_transform = found_object.transform
-			transform_tool.start_ray_plane_intersect = hit_location
-
-			//continue
-		} else {
-			transform_tool.target_object_id = spat.Collision_Object_Id{}
-		}
-
+		on_click_scale_tool(transform_tool, &active_tool, cam.position, found_object, ray)
 	}
 
 
 }
 
+on_click_position_tool :: proc(
+	transform_tool: ^Transform_Tool_Data,
+	active_tool: ^Position_Tool,
+	cam_position: spat.Vector,
+	found_object: ^spat.Collision_Object_Data_Runtime,
+	ray: spat.Ray,
+) {
+	ray := ray
+	planes := generate_axis_planes(cam_position)
+
+	transform_axis_planes(&planes, found_object.transform, tooltip_local)
+
+	bars := generate_axis_bars()
+	transform_axis_bars(&bars, found_object.transform, tooltip_local)
+	bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
+	plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(&ray, &planes)
+
+	if plane_hit != .None {
+		transform_tool.dragging = true
+		transform_tool.start_transform = found_object.transform
+		transform_tool.start_ray_plane_intersect = plane_intersect_location
+
+		active_tool.translate_mode = spat.Plane {
+			point_on_plane = transform_tool.start_ray_plane_intersect,
+			normal         = plane_normal,
+		}
+	} else if bars_hit != .None {
+		transform_tool.dragging = true
+		transform_tool.start_transform = found_object.transform
+		transform_tool.start_ray_plane_intersect = bars_hit_location
+		if tooltip_local {
+			active_tool.translate_mode = spat.transform_vector_tr(
+				found_object.transform,
+				spat.axis_to_unit_vector(bars_hit),
+			)
+		} else {
+			active_tool.translate_mode = spat.axis_to_unit_vector(bars_hit)
+
+		}
+	} else { 	// Hit nothing, stop tool
+		transform_tool.target_object_id = spat.Collision_Object_Id{}
+	}
+}
+
+on_click_rotation_tool :: proc(
+	transform_tool: ^Transform_Tool_Data,
+	active_tool: ^Rotation_Tool,
+	cam_position: spat.Vector,
+	found_object: ^spat.Collision_Object_Data_Runtime,
+	ray: spat.Ray,
+) {
+	ray := ray
+	planes := generate_axis_planes(found_object.transform.position)
+	transform_axis_planes(&planes, found_object.transform, tooltip_local)
+
+	plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(&ray, &planes)
+
+	if plane_hit != .None {
+
+		transform_tool.dragging = true
+		transform_tool.start_transform = found_object.transform
+		transform_tool.start_ray_plane_intersect = plane_intersect_location
+		active_tool.axis = plane_normal
+
+		//continue
+	} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
+
+}
+
+on_click_scale_tool :: proc(
+	transform_tool: ^Transform_Tool_Data,
+	active_tool: ^Scale_Tool,
+	cam_position: spat.Vector,
+	found_object: ^spat.Collision_Object_Data_Runtime,
+	ray: spat.Ray,
+) {
+	ray := ray
+	scale_bars := generate_axis_bars()
+	transform_axis_bars(&scale_bars, found_object.transform, true)
+
+	axis_hit, intersect_location := ray_axis_bars_intersect(&ray, &scale_bars)
+
+	if axis_hit != .None {
+
+		transform_tool.dragging = true
+		transform_tool.start_transform = found_object.transform
+		transform_tool.start_ray_plane_intersect = intersect_location
+		active_tool.axis = axis_hit 
+		active_tool.scale_normal = 
+			spat.transform_vector_tr(
+				found_object.transform,
+				spat.axis_to_unit_vector(axis_hit),
+			)
+
+		//continue
+	} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
+
+}
 update_transform_tool :: proc(
 	data: ^Transform_Tool_Data,
 	cam: ^rl.Camera3D,
@@ -225,54 +247,60 @@ update_transform_tool :: proc(
 		}
 
 	case Rotation_Tool:
-	// 	did_intersect, intersection := spat.ray_plane_intersect(
-	// 		&current_ray,
-	// 		data.plane.normal,
-	// 		data.plane.point_on_plane,
-	// 	)
-	//
-	// 	new_qua := linalg.quaternion_from_forward_and_up_f32(
-	// 		data.start_ray_plane_intersect - data.start_transform.position,
-	// 		data.plane.normal,
-	// 	)
-	// 	new_quat := linalg.quaternion_from_forward_and_up_f32(
-	// 		intersection - data.start_transform.position,
-	// 		data.plane.normal,
-	// 	)
-	// 	//found_object.data.transform.rotation = spat.QuaternionData{new_quat.x,new_quat.y, new_quat.z, new_quat.w}
-	//
-	// 	//found_object.data.transform.rotation = linalg.QUATERNIONF32_IDENTITY * new_quat
-	//
-	// 	found_object.data.transform.rotation =
-	// 		new_quat * linalg.quaternion_inverse(new_qua) * data.start_transform.rotation
-	//
+		did_intersect, intersection := spat.ray_plane_intersect(
+			&current_ray,
+			active_tool.axis,
+			data.start_ray_plane_intersect,
+		)
+
+		new_qua := linalg.quaternion_from_forward_and_up_f32(
+			data.start_ray_plane_intersect - data.start_transform.position,
+			active_tool.axis,
+		)
+		new_quat := linalg.quaternion_from_forward_and_up_f32(
+			intersection - data.start_transform.position,
+			active_tool.axis,
+		)
+		//found_object.data.transform.rotation = spat.QuaternionData{new_quat.x,new_quat.y, new_quat.z, new_quat.w}
+
+		//found_object.data.transform.rotation = linalg.QUATERNIONF32_IDENTITY * new_quat
+
+		found_object.data.transform.rotation =
+			new_quat * linalg.quaternion_inverse(new_qua) * data.start_transform.rotation
+
 	// //panic("rotation not implemented")
 	case Scale_Tool:
-	// hit, location := spat.ray_plane_intersect(
-	// 	&current_ray,
-	// 	active_tool.plane.normal,
-	// 	active_tool.plane.point_on_plane,
-	// )
-	// if !hit do return
-	// delta := location - active_tool.first_intersect_location
-	//
-	// dirs := calculate_dirs(found_object.transform.position, cam.position)
-	// axis_vector := spat.axis_to_unit_vector(active_tool.axis)
-	//
-	// dot := linalg.dot(axis_vector, delta)
-	//
-	// scale_scale: f32 = 0.2
-	//
-	// #partial switch active_tool.axis {
-	// case .X:
-	// 	found_object.transform.scale.x = (data.start_transform.scale.x - dot * scale_scale)
-	// case .Y:
-	// 	found_object.transform.scale.y = (data.start_transform.scale.y - dot * scale_scale)
-	// case .Z:
-	// 	found_object.transform.scale.z = (data.start_transform.scale.z - dot * scale_scale)
-	// }
-	//
-	// fmt.printfln("updates scale!: {}", found_object.transform.scale)
+		norm := linalg.cross(
+				linalg.cross(active_tool.scale_normal, (cam.position - data.start_ray_plane_intersect)),
+				active_tool.scale_normal,
+			)
+		hit, location := spat.ray_plane_intersect(
+			&current_ray,
+			norm,
+			data.start_ray_plane_intersect,
+		)
+
+		if !hit do return // todo panic?
+
+		delta := location - data.start_ray_plane_intersect
+
+		dirs := calculate_dirs(found_object.transform.position, cam.position)
+
+		dot := linalg.dot(active_tool.scale_normal, delta)
+
+		scale_scale: f32 = 0.2
+
+
+		#partial switch active_tool.axis {
+		case .X:
+			found_object.transform.scale.x = (data.start_transform.scale.x + dot * scale_scale)
+		case .Y:
+			found_object.transform.scale.y = (data.start_transform.scale.y + dot * scale_scale)
+		case .Z:
+			found_object.transform.scale.z = (data.start_transform.scale.z + dot * scale_scale)
+		}
+
+		fmt.printfln("updates scale!: {}", found_object.transform.scale)
 
 	}
 	// TODO: Resume here
