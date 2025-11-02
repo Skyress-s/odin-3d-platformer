@@ -17,10 +17,10 @@ import rl "vendor:raylib"
 
 generate_camera :: proc() -> rl.Camera {
 	return {
-		position   = {5, 1, 5},
-		target     = {0, 0, 3},
-		up         = {0, 3, 0},
-		fovy       = 110,
+		position = {5, 1, 5},
+		target = {0, 0, 3},
+		up = {0, 3, 0},
+		fovy = 110,
 		projection = .PERSPECTIVE,
 	}
 }
@@ -43,8 +43,7 @@ main :: proc() {
 
 	cam := generate_camera()
 
-	players.editor.transform_tool = e_tools.init_transform_tool(
-	)
+	players.editor.transform_tool = e_tools.init_transform_tool()
 
 	character.start_speedrun(&players.game)
 
