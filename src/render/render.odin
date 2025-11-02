@@ -1,6 +1,7 @@
 package render
 
 import spat "../Spatial"
+import col "../color"
 import gs "../game_state"
 import l "../level"
 import lightray "../lightray"
@@ -16,6 +17,8 @@ import hms "../handle_map/handle_map_static/"
 import "../player_data/"
 
 import gameui "../micro-ui/"
+
+
 
 Debug_Draw_Data :: distinct struct {
 	active_cell:      map[spat.Hash_Key]bool,
@@ -37,8 +40,9 @@ render :: proc(
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
 
+
 	@(static) shader_editor_tool_depth: rl.Shader
-	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("", "content/shaders/editor_tool_depth/depth.frag")
+	if shader_editor_tool_depth.id == 0 do shader_editor_tool_depth = rl.LoadShader("content/shaders/editor_tool_depth/depth.vert", "content/shaders/editor_tool_depth/depth.frag")
 
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
@@ -52,6 +56,7 @@ render :: proc(
 	lightray.begin_lighting()
 	lightray.set_ambient_light(rl.Color{255, 255, 255, 255}, 0.3)
 
+	rl.DrawSphere(spat.Vector{0, 100, 0}, 1, col.YELLOW)
 
 	tool := &players.editor.transform_tool
 
@@ -270,57 +275,9 @@ render :: proc(
 	rl.BeginShaderMode(shader_editor_tool_depth)
 
 	if players.mode == plrs.Player_Mode.Editor {
-		found_object := hms.get(&level.collision_object_map, tool.target_object_id)
-		if found_object != nil {
-
-			switch &active_tool in tool.active_tool {
-			case e_tools.Position_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
-						found_object.transform.position,
-						players.editor.position,
-					),
-				)
-
-			case e_tools.Rotation_Tool:
-				e_tools.draw_position_tooltip_new(
-					e_tools.calculate_drag_planes(
-						found_object.transform.position,
-						players.editor.position,
-					),
-				)
-			case e_tools.Scale_Tool:
-				scale_bars := e_tools.calculate_scale_bars(
-					found_object.transform,
-					players.editor.position,
-				)
-				//e_tools.draw_scale_boxes(scale_bars)
-				tris := e_tools.scale_bars_to_tris(&scale_bars)
-
-				for &scale_bars_triangles, i in tris {
-					color: rl.Color = rl.MAGENTA
-					switch i {
-					case 0:
-						color = rl.RED
-					case 1:
-						color = rl.GREEN
-					case 2:
-						color = rl.BLUE
-					}
-
-					for &tri in scale_bars_triangles {
-						rl.DrawTriangle3D(tri.points.x, tri.points.y, tri.points.z, color)
-					}
-				}
-
-			// e_tools.draw_scale_boxes(
-			// 	e_tools.calculate_scale_bars(found_object.transform, players.editor.position),
-			// )
-
-			}
-		}
-
+		e_tools.draw_tooltip(&level.collision_object_map, tool, players.editor.position)
 	}
+
 	rl.EndShaderMode()
 
 	rl.EndMode3D()

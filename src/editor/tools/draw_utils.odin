@@ -1,19 +1,23 @@
 package tools
 
 import spat "../../Spatial/"
+import col "../../color"
+import hms "../../handle_map/handle_map_static"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
+import "core:sort"
 import rl "vendor:raylib"
 import "vendor:raylib/rlgl"
 
 @(private)
-PLANE_SIZE :: 34
+PLANE_SIZE :: 24
 
 @(private)
 HALF_PLANE_SIZE :: PLANE_SIZE / 2
 
 @(private)
-BAR_SHORT_SIDE_SIZE :: 12
+BAR_SHORT_SIDE_SIZE :: 6
 
 
 @(private)
@@ -25,40 +29,66 @@ calculate_dirs :: proc(target_location, camera_location: spat.Vector) -> (dirs: 
 	return dirs
 }
 
-// Planes are in order XZ, XY, ZY
-//@(private)
-calculate_drag_planes :: proc(
-	tooltip_location, camera_location: spat.Vector,
+transform_axis_planes :: proc(
+	planes: ^[3]spat.Plane_Bounded,
+	transform: spat.Transform,
+	local: bool,
+) {
+
+
+	if local {
+		mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
+		rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
+
+		for &plane in planes {
+			// plane.center += transform.position
+			// plane.center = spat.ONE_VEC3 * 10
+			spat.mult(mat, &plane.center)
+			spat.mult(rot_mat, &plane.forward)
+			spat.mult(rot_mat, &plane.normal)
+		}
+	} else {
+		for &plane in planes {
+			plane.center += transform.position
+		}
+	}
+}
+
+generate_axis_planes :: proc(
+	camera_location: spat.Vector,
 ) -> (
 	planes_bounded: [3]spat.Plane_Bounded,
 ) {
 
-	dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
-	dirs *= HALF_PLANE_SIZE * 1.2
+	tooltip_location := spat.ZERO_VEC3
+	// dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
+	dirs: spat.Vector = spat.ONE_VEC3
+	dirs *= HALF_PLANE_SIZE * 1.5
+	// dirs *= 3
 
 	planes_bounded.x.center = {
-		tooltip_location.x + dirs.x,
-		tooltip_location.y,
-		tooltip_location.z + dirs.z,
-	}
-	planes_bounded.y.center = {
-		tooltip_location.x + dirs.x,
-		tooltip_location.y + dirs.y,
-		tooltip_location.z,
-	}
-	planes_bounded.z.center = {
 		tooltip_location.x,
 		tooltip_location.y + dirs.y,
 		tooltip_location.z + dirs.z,
 	}
+	planes_bounded.y.center = {
+		tooltip_location.x + dirs.x,
+		tooltip_location.y,
+		tooltip_location.z + dirs.z,
+	}
+	planes_bounded.z.center = {
+		tooltip_location.x + dirs.x,
+		tooltip_location.y + dirs.y,
+		tooltip_location.z,
+	}
 
-	planes_bounded.x.normal = {0, 1, 0}
-	planes_bounded.y.normal = {0, 0, 1}
-	planes_bounded.z.normal = {1, 0, 0}
+	planes_bounded.x.normal = {1, 0, 0}
+	planes_bounded.y.normal = {0, 1, 0}
+	planes_bounded.z.normal = {0, 0, 1}
 
-	planes_bounded.x.forward = {1, 0, 0}
-	planes_bounded.y.forward = {1, 0, 0}
-	planes_bounded.z.forward = {0, 0, 1}
+	planes_bounded.x.forward = {0, 1, 0}
+	planes_bounded.y.forward = {0, 0, 1}
+	planes_bounded.z.forward = {1, 0, 0}
 
 	planes_bounded.x.lenghts = spat.Vector2{PLANE_SIZE, PLANE_SIZE}
 	planes_bounded.y.lenghts = spat.Vector2{PLANE_SIZE, PLANE_SIZE}
@@ -69,9 +99,9 @@ calculate_drag_planes :: proc(
 
 Interacted_Plane :: enum {
 	None,
-	XZ,
-	XY,
-	ZY,
+	X,
+	Y,
+	Z,
 }
 
 Interacted_Bar :: enum {
@@ -81,14 +111,14 @@ Interacted_Bar :: enum {
 	Z,
 }
 
-interacted_bar_to_axis_vector :: proc(interacted_bar: Interacted_Bar) -> spat.Vector{
-	switch interacted_bar{
+interacted_bar_to_axis_vector :: proc(interacted_bar: Interacted_Bar) -> spat.Vector {
+	switch interacted_bar {
 	case .X:
-		return {1,0,0}
+		return {1, 0, 0}
 	case .Y:
-		return {0,1,0}
+		return {0, 1, 0}
 	case .Z:
-		return {0,0,1}
+		return {0, 0, 1}
 	case .None:
 	}
 
@@ -100,11 +130,11 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 	switch interacted_plane {
 	case .None:
 		return spat.ZERO_VEC3
-	case .XZ:
+	case .X:
 		return spat.Vector{0, 1, 0}
-	case .XY:
+	case .Y:
 		return spat.Vector{0, 0, 1}
-	case .ZY:
+	case .Z:
 		return spat.Vector{1, 0, 0}
 	}
 
@@ -112,62 +142,8 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 }
 
 
-make_collision_tris_from_plane_bounded :: proc(
-	plane: ^spat.Plane_Bounded,
-) -> (
-	tris: [2]spat.Collision_Triangle,
-) {
-	x := linalg.normalize(plane.forward)
-	y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
 
-	tri1: spat.Collision_Triangle
-	tri1.points.x = +x * plane.lenghts.x/ 2 + y * plane.lenghts.y/ 2
-	tri1.points.y = +x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
-	tri1.points.z = -x* plane.lenghts.x/ 2 + y* plane.lenghts.y/ 2
-
-	tri2: spat.Collision_Triangle
-	tri2.points.z = -x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
-	tri2.points.y = +x* plane.lenghts.x/ 2 - y* plane.lenghts.y/ 2
-	tri2.points.x = -x* plane.lenghts.x / 2 + y* plane.lenghts.y/ 2
-
-	for &p in &tri1.points {
-		// p = p + x * plane.lenghts.x / 2
-		// p = p + y * plane.lenghts.y / 2
-		//p *= plane.lenghts.x / 2
-		p += plane.center
-	}
-
-	for &p in &tri2.points {
-		// p = p + x * plane.lenghts.x / 2
-		// p = p + y * plane.lenghts.y / 2
-		//p *= plane.lenghts.x / 2
-		p += plane.center
-	}
-
-	tris.x = tri1
-	tris.y = tri2
-	return tris
-}
-
-make_collision_tris_from_planes_bounded :: proc(
-	planes: ^[6]spat.Plane_Bounded,
-) -> (
-	tris: [12]spat.Collision_Triangle,
-) {
-	i := 0
-	for &plane in planes {
-		new_tris := make_collision_tris_from_plane_bounded(&plane)
-		tris[i]=  new_tris[0]
-		i += 1
-		tris[i]=  new_tris[1]
-		i += 1
-	}
-
-	return tris
-
-}
-
-ray_transform_tool_planes_intersect :: proc(
+ray_axis_planes_intersect :: proc(
 	ray: ^spat.Ray,
 	planes_bounded: ^[3]spat.Plane_Bounded,
 ) -> (
@@ -175,40 +151,64 @@ ray_transform_tool_planes_intersect :: proc(
 	hit_location, plane_normal: spat.Vector,
 ) {
 
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.x)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.XZ, loc, planes_bounded.x.normal
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.XZ, loc, planes_bounded.x.normal
-
-	}
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.y)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.XY, loc, planes_bounded.y.normal
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.XY, loc, planes_bounded.y.normal
-
-	}
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.z)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.ZY, loc, planes_bounded.z.normal
-
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.ZY, loc, planes_bounded.z.normal
-
+	Hit_Data :: struct {
+		interacted_plane: Interacted_Plane,
+		location:         spat.Vector,
+		hit:              bool,
 	}
 
+	shortest_dist: f32 = max(f32)
+	int_plane: Interacted_Plane
+	s_norm : spat.Vector
+	s_loc : spat.Vector
+	
 
-	return Interacted_Plane.None, spat.ZERO_VEC3, spat.ZERO_VEC3
+
+	
+	hit, loc, norm := spat.intersect_plane_bounded(ray, &planes_bounded.x)
+	// if hit != .None do return .X, loc, norm
+	if hit {
+		shortest_dist = linalg.distance(ray.origin, loc)
+		int_plane = .X
+		s_norm = norm
+		s_loc = loc
+	}
+
+	hit, loc, norm = spat.intersect_plane_bounded(ray, &planes_bounded.y)
+
+	if hit {
+		new_dist := linalg.distance(ray.origin, loc)
+
+		if new_dist < shortest_dist {
+			shortest_dist = new_dist
+			int_plane = .Y
+		s_norm = norm
+		s_loc = loc
+		}
+	}
+
+	hit, loc, norm = spat.intersect_plane_bounded(ray, &planes_bounded.z)
+
+	if hit {
+		new_dist := linalg.distance(ray.origin, loc)
+
+		if new_dist < shortest_dist {
+			shortest_dist = new_dist
+			int_plane = .Z
+		s_norm = norm
+		s_loc = loc
+		}
+	}
+
+
+	return int_plane, s_loc, s_norm
 }
 
-scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spat.Collision_Triangle){
+scale_bars_to_tris :: proc(
+	scale_bars: ^[3]spat.Box_Better,
+) -> (
+	tris: [3][12]spat.Collision_Triangle,
+) {
 
 	make_planes_local :: proc(box: spat.Box_Better) -> (planes: [6]spat.Plane_Bounded) {
 		//planes[0].center = box.position + box.size.z / 2
@@ -218,7 +218,7 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 		planes[0].forward = {1, 0, 0}
 		planes[0].lenghts = {box.size.x, box.size.z}
 
-		// BOTTOM 
+		// BOTTOM
 		planes[1].center.y = -box.size.y / 2
 		planes[1].normal = {0, -1, 0}
 		planes[1].forward = {1, 0, 0}
@@ -255,7 +255,7 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 	local_planes_y := make_planes_local(scale_bars.y)
 	local_planes_z := make_planes_local(scale_bars.z)
 
-	translate_planes :: proc(planes: ^[6]spat.Plane_Bounded, offset: spat.Vector){
+	translate_planes :: proc(planes: ^[6]spat.Plane_Bounded, offset: spat.Vector) {
 		for &plane in planes {
 			plane.center += offset
 		}
@@ -267,9 +267,9 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 
 	//rl.DrawPlane(local_planes_x[0].center, local_planes_x[0].lenghts, rl.MAGENTA)
 
-	tris_x := make_collision_tris_from_planes_bounded(&local_planes_x)
-	tris_y := make_collision_tris_from_planes_bounded(&local_planes_y)
-	tris_z := make_collision_tris_from_planes_bounded(&local_planes_z)
+	tris_x := spat.make_collision_tris_from_planes_bounded(&local_planes_x)
+	tris_y := spat.make_collision_tris_from_planes_bounded(&local_planes_y)
+	tris_z := spat.make_collision_tris_from_planes_bounded(&local_planes_z)
 
 
 	tris[0] = tris_x
@@ -279,7 +279,7 @@ scale_bars_to_tris :: proc(scale_bars: ^[3]spat.Box_Better) -> (tris: [3][12]spa
 	return tris
 }
 
-ray_scale_bars_collision :: proc(
+ray_axis_bars_intersect :: proc(
 	ray: ^spat.Ray,
 	scale_bars: ^[3]spat.Box_Better,
 ) -> (
@@ -313,53 +313,160 @@ ray_scale_bars_collision :: proc(
 
 		return true, loc
 	}
+
+	Hit_Data :: struct {
+		interacted_bar: spat.Axis,
+		location:       spat.Vector,
+		distance:       f32,
+		hit:            bool,
+	}
+
+	hits: [3]Hit_Data
+
 	hit, location := ray_intersect_6(ray, &tris.x)
 	if hit {
-		return spat.Axis.X, location, 
+		hits[0].interacted_bar = spat.Axis.X
+		hits[0].location = location
+		hits[0].distance = linalg.length(location - ray.origin)
+		hits[0].hit = true
+		// return spat.Axis.X, location
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.y)
 	if hit {
-		return spat.Axis.Y, location, 
+		hits[1].interacted_bar = spat.Axis.Y
+		hits[1].location = location
+		hits[1].distance = linalg.length(location - ray.origin)
+		hits[1].hit = true
+		// return spat.Axis.Y, location
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.z)
 	if hit {
-		return spat.Axis.Z, location, 
+		hits[2].interacted_bar = spat.Axis.Z
+		hits[2].location = location
+		hits[2].distance = linalg.length(location - ray.origin)
+		hits[2].hit = true
+		// return spat.Axis.Z, location
 	}
+
+
+	// trying to solve this by sorting.
+	lam := proc(lhs, rhs: Hit_Data) -> int {
+		if lhs.hit != rhs.hit do return int(rhs.hit) - int(lhs.hit)
+
+		if lhs.distance > rhs.distance do return 1
+		if lhs.distance < rhs.distance do return -1
+		return 0
+
+	}
+
+	slice := hits[:]
+	sort.quick_sort_proc(slice, lam)
+
+	if hits[0].hit do return hits[0].interacted_bar, hits[0].location
 
 	return spat.Axis.None, spat.ZERO_VEC3
 }
 
+draw_tooltip :: proc(
+	collision_object_map: ^spat.Collision_Object_Handle_Map,
+	tool: ^Transform_Tool_Data,
+	player_pos: spat.Vector,
+) {
+	found_object := hms.get(collision_object_map, tool.target_object_id)
+	if found_object != nil {
+
+		switch &active_tool in tool.active_tool {
+		case Position_Tool:
+			axis_planes := generate_axis_planes(player_pos)
+			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
+			draw_position_tooltip_new(axis_planes)
+
+			axis_boxes := generate_axis_bars()
+			transform_axis_bars(&axis_boxes, found_object.transform, tooltip_local)
+			draw_scale_boxes(axis_boxes)
+		case Rotation_Tool:
+			axis_planes := generate_axis_planes(player_pos)
+			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
+			draw_position_tooltip_new(axis_planes)
+		case Scale_Tool:
+			scale_bars := generate_axis_bars()
+			transform_axis_bars(&scale_bars, found_object.transform, true) // Only makes sense to use local with scaling bars.
+			draw_scale_boxes(scale_bars)
+		}
+	}
+
+}
+
 
 draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
+	planes_bounded := planes_bounded
 	planeXZ := planes_bounded.x
 	planeXY := planes_bounded.y
 	planeZY := planes_bounded.z
 
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeXZ.center.x, planeXZ.center.y, planeXZ.center.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	rlgl.Rotatef(180, 1, 0, 0)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXZ.lenghts, rl.ColorLerp(rl.RED, rl.BLUE, 0.5))
-	rlgl.PopMatrix()
-
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeXY.center.x, planeXY.center.y, planeXY.center.z)
-	rlgl.Rotatef(90, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	rlgl.Rotatef(180, planeXY.forward.x, planeXY.forward.y, planeXY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeXY.lenghts, rl.ColorLerp(rl.RED, rl.GREEN, 0.5))
-	rlgl.PopMatrix()
+	get_transform_from_plane :: proc(plane: spat.Plane_Bounded) -> spat.Transform {
+		pos := plane.center
 
 
-	rlgl.PushMatrix()
-	rlgl.Translatef(planeZY.center.x, planeZY.center.y, planeZY.center.z)
-	rlgl.Rotatef(90, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	rlgl.Rotatef(180, planeZY.forward.x, planeZY.forward.y, planeZY.forward.z)
-	rl.DrawPlane(spat.ZERO_VEC3, planeZY.lenghts, rl.ColorLerp(rl.BLUE, rl.GREEN, 0.5))
-	rlgl.PopMatrix()
+		quat_from_forward_up :: proc(forward, up: linalg.Vector3f32) -> linalg.Quaternionf32 {
+			// Normalize input vectors
+			f := linalg.normalize(forward)
+			r := linalg.normalize(linalg.cross(up, f)) // right = up × forward
+			u := linalg.cross(f, r) // recompute up to ensure orthogonality
+
+			// Build rotation matrix (column-major)
+			m := linalg.Matrix3f32{r.x, u.x, f.x, r.y, u.y, f.y, r.z, u.z, f.z}
+
+			// Convert to quaternion
+			return linalg.quaternion_from_matrix3(m)
+		}
+
+		rot := quat_from_forward_up(plane.forward, plane.normal)
+
+		rot = linalg.normalize(rot)
+		scale := spat.ONE_VEC3
+		return spat.Transform{pos, rot, scale}
+	}
+
+	draw_plane :: proc(plane: spat.Plane_Bounded, color: col.Color) {
+		plane := plane
+
+		trans := get_transform_from_plane(plane)
+		{
+			rlgl.PushMatrix()
+			defer rlgl.PopMatrix()
+			mat := spat.matrix_from_transform(trans)
+
+			matrix_data := transmute([16]f32)mat
+			rlgl.MultMatrixf(auto_cast &matrix_data)
+
+			rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		}
+
+		plane.normal = -plane.normal
+		trans = get_transform_from_plane(plane)
+		{
+			rlgl.PushMatrix()
+			defer rlgl.PopMatrix()
+			mat := spat.matrix_from_transform(trans)
+
+			matrix_data := transmute([16]f32)mat
+			rlgl.MultMatrixf(auto_cast &matrix_data)
+
+			rl.DrawPlane(spat.ZERO_VEC3, plane.lenghts, color)
+		}
+
+
+		// rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
+		// rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
+	}
+
+	draw_plane(planeXZ, col.RED)
+	draw_plane(planeXY, col.GREEN)
+	draw_plane(planeZY, col.BLUE)
+
 }
 
 
@@ -367,7 +474,7 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 calculate_rotation_planes :: proc(
 	tooltip_location, camera_location: spat.Vector,
 ) -> [3]spat.Plane_Bounded {
-	return calculate_drag_planes(tooltip_location, camera_location)
+	return generate_axis_planes(camera_location)
 }
 
 
@@ -375,17 +482,29 @@ calculate_rotation_planes :: proc(
 //
 // }
 
+transform_axis_bars :: proc(boxes: ^[3]spat.Box_Better, transform: spat.Transform, local: bool) {
 
-calculate_scale_bars :: proc(
-	target_transform: spat.Transform,
-	camera_location: spat.Vector,
-) -> (
-	boxes: [3]spat.Box_Better,
-) { 	// Dima would like this name
-	dirs := calculate_dirs(target_transform.position, camera_location)
+	if local {
+		mat := linalg.matrix4_from_trs(transform.position, transform.rotation, spat.ONE_VEC3)
+		for &box in boxes {
+			spat.mult(mat, &box.position)
+			box.rotation = transform.rotation
+			// box.size *= transform.scale
+		}
+	} else {
+		for &box in boxes {
+			box.position += transform.position
+		}
+	}
+}
+
+generate_axis_bars :: proc() -> (boxes: [3]spat.Box_Better) { 	// Dima would like this name
+	// dirs := calculate_dirs(target_transform.position, camera_location)
+	dirs := spat.ONE_VEC3
 	dirs *= HALF_PLANE_SIZE * 1.2
 
-	target_location := target_transform.position
+	// target_location := target_transform.position
+	target_location := spat.Vector{0, 0, 0}
 
 	boxes.x.position = {target_location.x + dirs.x, target_location.y, target_location.z}
 	boxes.y.position = {target_location.x, target_location.y + dirs.y, target_location.z}
@@ -407,26 +526,28 @@ calculate_scale_bars :: proc(
 	return boxes
 }
 
-draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
+determine_what_axis_bar_hit :: proc(index: u8) {
+}
 
+draw_scale_boxes :: proc(boxes: [3]spat.Box_Better) {
+	boxes := boxes
 	box_x := boxes.x
 	box_y := boxes.y
 	box_z := boxes.z
 
-	draw_box :: proc(box: ^spat.Box_Better) {
+	draw_box :: proc(box: ^spat.Box_Better, color: col.Color) {
 		rlgl.PushMatrix()
-		rlgl.Translatef(box.position.x, box.position.y, box.position.z)
-		rl.DrawCube(
-			spat.ZERO_VEC3,
-			box.size.x,
-			box.size.y,
-			box.size.z,
-			rl.ColorLerp(rl.RED, rl.BLUE, 0.5),
-		)
-		rlgl.PopMatrix()
+		defer rlgl.PopMatrix()
+
+		mat := spat.matrix_from_transform(spat.Transform{box.position, box.rotation, box.size})
+
+		matrix_data := transmute([16]f32)mat
+		rlgl.MultMatrixf(auto_cast &matrix_data)
+		// rlgl.Translatef(box.position.x, box.position.y, box.position.z)
+		rl.DrawCube(spat.ZERO_VEC3, 1, 1, 1, color)
 	}
 
-	draw_box(&box_x)
-	draw_box(&box_y)
-	draw_box(&box_z)
+	draw_box(&boxes.x, col.RED)
+	draw_box(&boxes.y, col.GREEN)
+	draw_box(&boxes.z, col.BLUE)
 }

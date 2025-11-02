@@ -39,6 +39,70 @@ Plane_Bounded :: distinct struct {
 	center, normal, forward: Vector,
 	lenghts:                 Vector2,
 }
+intersect_plane_bounded :: proc(ray: ^Ray, plane: ^Plane_Bounded) -> (hit_plane: bool, hit_loc, hit_norm: Vector) {
+	coll_tris := make_collision_tris_from_plane_bounded(plane)
+	hit, loc := ray_triangle_intersect(ray, &coll_tris.x)
+	if hit do return true, loc, plane.normal
+
+	hit, loc = ray_triangle_intersect(ray, &coll_tris.y)
+	if hit do return true, loc, plane.normal
+	return false, ZERO_VEC3, ZERO_VEC3
+}
+
+make_collision_tris_from_plane_bounded :: proc(
+	plane: ^Plane_Bounded,
+) -> (
+	tris: [2]Collision_Triangle,
+) {
+	x := linalg.normalize(plane.forward)
+	y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
+
+	tri1: Collision_Triangle
+	tri1.points.x = +x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
+	tri1.points.y = +x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
+	tri1.points.z = -x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
+
+	tri2: Collision_Triangle
+	tri2.points.z = -x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
+	tri2.points.y = +x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
+	tri2.points.x = -x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
+
+	for &p in &tri1.points {
+		// p = p + x * plane.lenghts.x / 2
+		// p = p + y * plane.lenghts.y / 2
+		//p *= plane.lenghts.x / 2
+		p += plane.center
+	}
+
+	for &p in &tri2.points {
+		// p = p + x * plane.lenghts.x / 2
+		// p = p + y * plane.lenghts.y / 2
+		//p *= plane.lenghts.x / 2
+		p += plane.center
+	}
+
+	tris.x = tri1
+	tris.y = tri2
+	return tris
+}
+
+make_collision_tris_from_planes_bounded :: proc(
+	planes: ^[6]Plane_Bounded,
+) -> (
+	tris: [12]Collision_Triangle,
+) {
+	i := 0
+	for &plane in planes {
+		new_tris := make_collision_tris_from_plane_bounded(&plane)
+		tris[i] = new_tris[0]
+		i += 1
+		tris[i] = new_tris[1]
+		i += 1
+	}
+
+	return tris
+
+}
 
 
 distance_point_to_plane :: proc(plane: ^Plane, point: ^Vector) -> f32 {

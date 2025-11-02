@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 
+// TODO this is a line, a ray is boundless
 Ray :: struct {
 	origin: Vector,
 	end:    Vector,

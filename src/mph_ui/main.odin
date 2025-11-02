@@ -1,6 +1,7 @@
 package mph_ui
 
 import character "../Character"
+import et "../editor/tools"
 import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import e_plr "../editor_player"
@@ -13,6 +14,7 @@ import plrs "../players"
 import serialization "../serialization"
 import "core:fmt"
 import "core:math/linalg"
+import "core:math/rand"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
@@ -86,7 +88,9 @@ all_windows :: proc(
 
 
 	case .Editor:
+		display_log(ctx, screen_dimensions, players, screen_rect)
 		details_panel(ctx, players, game_state, screen_rect, level)
+		display_editor_options(ctx, screen_dimensions)
 	}
 }
 
@@ -205,8 +209,8 @@ display_log :: proc(
 		h = height,
 	}
 
-	if mu.window(ctx, "Log", target_rect, {.CLOSED}) { // TODO right now we have to press alt twice to open it.
-	 	mu.layout_row(ctx, {-1})
+	if mu.window(ctx, "Log", target_rect, {.CLOSED}) { 	// TODO right now we have to press alt twice to open it.
+		mu.layout_row(ctx, {-1})
 		mu.text(ctx, "test")
 
 
@@ -393,6 +397,15 @@ details_panel :: proc(
 					}
 				}
 
+				{
+					if .SUBMIT in mu.button(ctx, "Reset Rotation") {
+						current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
+					}
+					if .SUBMIT in mu.button(ctx, "Random Rotation") {
+						current_coll_obj.transform.rotation = spat.rand_rot()
+					}
+				}
+
 			}}
 
 
@@ -463,6 +476,21 @@ details_panel :: proc(
 
 		}
 	}
+}
+
+display_editor_options :: proc(ctx: ^mu.Context, screen_dimentions: [2]i32) {
+	width, height: i32 = 250, 50
+	target_rect := mu.Rect{screen_dimentions.x / 2 - width / 2, 0, width, height}
+
+	if mu.window(
+		ctx,
+		"editor_options",
+		target_rect,
+		{.NO_FRAME, .NO_TITLE, .NO_RESIZE, .NO_SCROLL},
+	) {
+		mu.checkbox(ctx, "local", &et.tooltip_local)
+	}
+
 }
 
 stats :: proc(
