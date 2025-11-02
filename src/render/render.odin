@@ -277,6 +277,7 @@ render :: proc(
 	if players.mode == plrs.Player_Mode.Editor {
 		e_tools.draw_tooltip(&level.collision_object_map, tool, players.editor.position)
 	}
+
 	rl.EndShaderMode()
 
 	rl.EndMode3D()

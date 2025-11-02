@@ -1,12 +1,12 @@
 package tools
 
-import "core:sort"
 import spat "../../Spatial/"
 import col "../../color"
 import hms "../../handle_map/handle_map_static"
 import "core:log"
 import "core:math"
 import "core:math/linalg"
+import "core:sort"
 import rl "vendor:raylib"
 import "vendor:raylib/rlgl"
 
@@ -142,60 +142,6 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 }
 
 
-make_collision_tris_from_plane_bounded :: proc(
-	plane: ^spat.Plane_Bounded,
-) -> (
-	tris: [2]spat.Collision_Triangle,
-) {
-	x := linalg.normalize(plane.forward)
-	y := linalg.normalize(linalg.cross(plane.forward, plane.normal))
-
-	tri1: spat.Collision_Triangle
-	tri1.points.x = +x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
-	tri1.points.y = +x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
-	tri1.points.z = -x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
-
-	tri2: spat.Collision_Triangle
-	tri2.points.z = -x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
-	tri2.points.y = +x * plane.lenghts.x / 2 - y * plane.lenghts.y / 2
-	tri2.points.x = -x * plane.lenghts.x / 2 + y * plane.lenghts.y / 2
-
-	for &p in &tri1.points {
-		// p = p + x * plane.lenghts.x / 2
-		// p = p + y * plane.lenghts.y / 2
-		//p *= plane.lenghts.x / 2
-		p += plane.center
-	}
-
-	for &p in &tri2.points {
-		// p = p + x * plane.lenghts.x / 2
-		// p = p + y * plane.lenghts.y / 2
-		//p *= plane.lenghts.x / 2
-		p += plane.center
-	}
-
-	tris.x = tri1
-	tris.y = tri2
-	return tris
-}
-
-make_collision_tris_from_planes_bounded :: proc(
-	planes: ^[6]spat.Plane_Bounded,
-) -> (
-	tris: [12]spat.Collision_Triangle,
-) {
-	i := 0
-	for &plane in planes {
-		new_tris := make_collision_tris_from_plane_bounded(&plane)
-		tris[i] = new_tris[0]
-		i += 1
-		tris[i] = new_tris[1]
-		i += 1
-	}
-
-	return tris
-
-}
 
 ray_axis_planes_intersect :: proc(
 	ray: ^spat.Ray,
@@ -205,37 +151,57 @@ ray_axis_planes_intersect :: proc(
 	hit_location, plane_normal: spat.Vector,
 ) {
 
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.x)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.X, loc, planes_bounded.x.normal
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.X, loc, planes_bounded.x.normal
-
-	}
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.y)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.Y, loc, planes_bounded.y.normal
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.Y, loc, planes_bounded.y.normal
-
-	}
-	{
-		coll_tris := make_collision_tris_from_plane_bounded(&planes_bounded.z)
-		hit, loc := spat.ray_triangle_intersect(ray, &coll_tris.x)
-		if hit do return Interacted_Plane.Z, loc, planes_bounded.z.normal
-
-
-		hit, loc = spat.ray_triangle_intersect(ray, &coll_tris.y)
-		if hit do return Interacted_Plane.Z, loc, planes_bounded.z.normal
-
+	Hit_Data :: struct {
+		interacted_plane: Interacted_Plane,
+		location:         spat.Vector,
+		hit:              bool,
 	}
 
+	shortest_dist: f32 = max(f32)
+	int_plane: Interacted_Plane
+	s_norm : spat.Vector
+	s_loc : spat.Vector
+	
 
-	return Interacted_Plane.None, spat.ZERO_VEC3, spat.ZERO_VEC3
+
+	
+	hit, loc, norm := spat.intersect_plane_bounded(ray, &planes_bounded.x)
+	// if hit != .None do return .X, loc, norm
+	if hit {
+		shortest_dist = linalg.distance(ray.origin, loc)
+		int_plane = .X
+		s_norm = norm
+		s_loc = loc
+	}
+
+	hit, loc, norm = spat.intersect_plane_bounded(ray, &planes_bounded.y)
+
+	if hit {
+		new_dist := linalg.distance(ray.origin, loc)
+
+		if new_dist < shortest_dist {
+			shortest_dist = new_dist
+			int_plane = .Y
+		s_norm = norm
+		s_loc = loc
+		}
+	}
+
+	hit, loc, norm = spat.intersect_plane_bounded(ray, &planes_bounded.z)
+
+	if hit {
+		new_dist := linalg.distance(ray.origin, loc)
+
+		if new_dist < shortest_dist {
+			shortest_dist = new_dist
+			int_plane = .Z
+		s_norm = norm
+		s_loc = loc
+		}
+	}
+
+
+	return int_plane, s_loc, s_norm
 }
 
 scale_bars_to_tris :: proc(
@@ -301,9 +267,9 @@ scale_bars_to_tris :: proc(
 
 	//rl.DrawPlane(local_planes_x[0].center, local_planes_x[0].lenghts, rl.MAGENTA)
 
-	tris_x := make_collision_tris_from_planes_bounded(&local_planes_x)
-	tris_y := make_collision_tris_from_planes_bounded(&local_planes_y)
-	tris_z := make_collision_tris_from_planes_bounded(&local_planes_z)
+	tris_x := spat.make_collision_tris_from_planes_bounded(&local_planes_x)
+	tris_y := spat.make_collision_tris_from_planes_bounded(&local_planes_y)
+	tris_z := spat.make_collision_tris_from_planes_bounded(&local_planes_z)
 
 
 	tris[0] = tris_x
@@ -348,26 +314,57 @@ ray_axis_bars_intersect :: proc(
 		return true, loc
 	}
 
-	Hit_Data :: struct{
-		interacted_bar: spat.Axis, 
+	Hit_Data :: struct {
+		interacted_bar: spat.Axis,
+		location:       spat.Vector,
+		distance:       f32,
+		hit:            bool,
 	}
 
-	// hits := [3]Hit_Data
+	hits: [3]Hit_Data
 
 	hit, location := ray_intersect_6(ray, &tris.x)
 	if hit {
-		return spat.Axis.X, location
+		hits[0].interacted_bar = spat.Axis.X
+		hits[0].location = location
+		hits[0].distance = linalg.length(location - ray.origin)
+		hits[0].hit = true
+		// return spat.Axis.X, location
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.y)
 	if hit {
-		return spat.Axis.Y, location
+		hits[1].interacted_bar = spat.Axis.Y
+		hits[1].location = location
+		hits[1].distance = linalg.length(location - ray.origin)
+		hits[1].hit = true
+		// return spat.Axis.Y, location
 	}
 
 	hit, location = ray_intersect_6(ray, &tris.z)
 	if hit {
-		return spat.Axis.Z, location
+		hits[2].interacted_bar = spat.Axis.Z
+		hits[2].location = location
+		hits[2].distance = linalg.length(location - ray.origin)
+		hits[2].hit = true
+		// return spat.Axis.Z, location
 	}
+
+
+	// trying to solve this by sorting.
+	lam := proc(lhs, rhs: Hit_Data) -> int {
+		if lhs.hit != rhs.hit do return int(rhs.hit) - int(lhs.hit)
+
+		if lhs.distance > rhs.distance do return 1
+		if lhs.distance < rhs.distance do return -1
+		return 0
+
+	}
+
+	slice := hits[:]
+	sort.quick_sort_proc(slice, lam)
+
+	if hits[0].hit do return hits[0].interacted_bar, hits[0].location
 
 	return spat.Axis.None, spat.ZERO_VEC3
 }
@@ -462,8 +459,8 @@ draw_position_tooltip_new :: proc(planes_bounded: [3]spat.Plane_Bounded) {
 		}
 
 
-		rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
-		rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
+		// rl.DrawLine3D(plane.center, plane.center + plane.forward * 100, col.RED)
+		// rl.DrawLine3D(plane.center, plane.center + plane.normal * 100, col.SKYBLUE)
 	}
 
 	draw_plane(planeXZ, col.RED)

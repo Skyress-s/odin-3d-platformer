@@ -52,7 +52,7 @@ Transform_Tool_Data :: distinct struct {
 }
 
 
-tooltip_local: bool : false
+tooltip_local: bool = true 
 
 init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 	// Does nothing atm
@@ -115,12 +115,16 @@ on_click_position_tool :: proc(
 	bars := generate_axis_bars()
 	transform_axis_bars(&bars, found_object.transform, tooltip_local)
 	bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
-	plane_hit, plane_intersect_location, plane_normal := ray_axis_planes_intersect(&ray, &planes)
+	plane_hit, plane_hit_location, plane_normal := ray_axis_planes_intersect(&ray, &planes)
 
-	if plane_hit != .None {
+	bars_dist :f32= linalg.distance(cam_position, bars_hit_location)
+	planes_dist :f32= linalg.distance(cam_position, plane_hit_location)
+
+	plane_hit_closer_than_bars := bars_hit == .None || (bars_hit != .None && planes_dist < bars_dist)
+	if plane_hit != .None && plane_hit_closer_than_bars {
 		transform_tool.dragging = true
 		transform_tool.start_transform = found_object.transform
-		transform_tool.start_ray_plane_intersect = plane_intersect_location
+		transform_tool.start_ray_plane_intersect = plane_hit_location
 
 		active_tool.translate_mode = spat.Plane {
 			point_on_plane = transform_tool.start_ray_plane_intersect,
