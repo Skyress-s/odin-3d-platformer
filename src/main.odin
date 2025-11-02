@@ -44,10 +44,6 @@ main :: proc() {
 	cam := generate_camera()
 
 	players.editor.transform_tool = e_tools.init_transform_tool(
-		e_tools.State.Position,
-		spat.Plane{spat.Vector{0, 10, 0}, spat.Vector{0, 1, 0}},
-		rl.GetMousePosition(),
-		&cam,
 	)
 
 	character.start_speedrun(&players.game)
