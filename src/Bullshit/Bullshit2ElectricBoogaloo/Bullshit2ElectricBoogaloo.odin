@@ -4,7 +4,7 @@ package Bullshit
 import "core:c"
 import v "vendor:vulkan"
 import "vendor:glfw"
-import s "Shapes"
+import s "../Shapes"
 // import runtime "base:runtime"
 
 MAX_FRAMES_IN_FLIGHT :: 2
@@ -51,7 +51,7 @@ QueueFamily :: enum {
 }
 
 Swapchain :: struct {
-  handle : v.SwapchainKHR
+  handle : v.SwapchainKHR,
   images : []v.Image,
   image_views : []v.ImageView,
   format : v.SurfaceFormatKHR,
@@ -75,11 +75,53 @@ Vertex :: struct {
 
 // investigate if it's necessary to format like this
 DEVICE_EXTENSIONS := [?]cstring {
-  "VK_KHR_Swapchain",
+  "V_KHR_Swapchain",
 };
 
-VALIDATION_LAYERS := [?]cstring {"VK_LAYER_KHRONOS_validation"};
+VALIDATION_LAYERS := [?]cstring {"V_LAYER_KHRONOS_validation"};
 
 main :: proc() {
-  
+  using ctx : Context;
+  init_window(&ctx);
+  for q in &queue_indices do q = -1;
+
+  vertices := [?]Vertex{
+    {{-0.5, -0.5}, {0.0, 0.0, 1.0}},
+    {{ 0.5, -0.5}, {1.0, 0.0, 0.0}},
+    {{ 0.5,  0.5}, {0.0, 1.0, 0.0}},
+    {{-0.5,  0.5}, {1.0, 0.0, 0.0}},
+  };
+
+  indices := [?]u16{
+    0, 1, 2,
+    2, 3, 0,
+  };
+ 
+  init_vulkan(&ctx, vertices[:], indices[:]);
+
+  for !glfw.WindowShouldClose(window) 
+  { 
+    glfw.PollEvents(); 
+    draw_frame(&ctx, vertices[:], indices[:]);
+  }
+
+  v.DeviceWaitIdle(device);
+
+  deinit_vulkan(&ctx);
+  glfw.DestroyWindow(window);
+  glfw.Terminate();
 }
+
+VERTEX_BINDING := v.VertexInputBindingDescription{
+  binding = 0,
+  stride = size_of(Vertex),
+  inputRate = .VERTEX,
+}
+
+VERTEX_ATTRIBUTES := [?]vk.VertexInputAttributeDescription{
+  {
+    binding = 0,
+    location = 0,
+  }
+};
+

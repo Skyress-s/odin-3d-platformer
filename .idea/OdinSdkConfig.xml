@@ -6,8 +6,9 @@
     <option name="odinCheckerEnabled" value="true" />
     <option name="debuggerId" value="odin-lldb-dap" />
     <option name="debuggerPath" value="/usr/bin/lldb-dap" />
-    <option name="highlightUnknownReferencesEnabled" value="false" />
+    <option name="highlightUnknownReferencesEnabled" value="true" />
     <option name="conditionalSymbolResolutionEnabled" value="true" />
     <option name="cacheEnabled" value="false" />
+    <option name="useBuiltinFormatter" value="false" />
   </component>
 </project>
