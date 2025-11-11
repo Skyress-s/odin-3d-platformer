@@ -60,6 +60,7 @@ main :: proc() {
 	gameui.init_game_ui(&gameui.state.mu_ctx)
 	defer gameui.deinit_game_ui()
 
+	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 		debug_draw_data := game.update(&gc)
