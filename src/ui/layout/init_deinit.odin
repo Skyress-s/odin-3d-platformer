@@ -60,7 +60,9 @@ errorHandler :: proc "c" (errorData: clay.ErrorData) {
 }
 
 // TODO should find a way to move the raylib specific stuff out
-init :: proc (){
+// measure_text_proc could be rr.measureText
+init :: proc (measure_text_proc: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig, userData: rawptr) -> clay.Dimensions){
+
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
 	arena: clay.Arena = clay.CreateArenaWithCapacityAndMemory(minMemorySize, memory)
@@ -69,7 +71,7 @@ init :: proc (){
 		{cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()},
 		{handler = errorHandler},
 	)
-	clay.SetMeasureTextFunction(rr.measure_text, nil)
+	clay.SetMeasureTextFunction(measure_text_proc, nil)
 
 	PATH_TO_RESOURCES :string: "content/"
 
