@@ -1,9 +1,9 @@
 package layout
-import raylib "vendor:raylib"
 import clay "../clay-odin"
 import "core:c"
 import "core:strings"
 import rr "raylib"
+import raylib "vendor:raylib"
 
 windowWidth: i32 = 1024
 windowHeight: i32 = 768
@@ -26,7 +26,6 @@ border2pxRed := clay.BorderElementConfig {
 	width = {2, 2, 2, 2, 0},
 	color = COLOR_RED,
 }
-
 
 
 LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
@@ -61,7 +60,13 @@ errorHandler :: proc "c" (errorData: clay.ErrorData) {
 
 // TODO should find a way to move the raylib specific stuff out
 // measure_text_proc could be rr.measureText
-init :: proc (measure_text_proc: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig, userData: rawptr) -> clay.Dimensions){
+init :: proc(
+	measure_text_proc: proc "c" (
+		text: clay.StringSlice,
+		config: ^clay.TextElementConfig,
+		userData: rawptr,
+	) -> clay.Dimensions,
+) {
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
@@ -73,28 +78,112 @@ init :: proc (measure_text_proc: proc "c" (text: clay.StringSlice, config: ^clay
 	)
 	clay.SetMeasureTextFunction(measure_text_proc, nil)
 
-	PATH_TO_RESOURCES :string: "content/"
+	PATH_TO_RESOURCES: string : "content/"
 
 	raylib.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
 	raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
-	loadFont(FONT_ID_TITLE_56, 56, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/")))
-	loadFont(FONT_ID_TITLE_52, 52, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/")))
-	loadFont(FONT_ID_TITLE_48, 48, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/")))
-	loadFont(FONT_ID_TITLE_36, 36, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/")))
-	loadFont(FONT_ID_TITLE_32, 32, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/")))
-	loadFont(FONT_ID_BODY_36, 36, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/")))
-	loadFont(FONT_ID_BODY_30, 30, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/")))
-	loadFont(FONT_ID_BODY_28, 28, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/")))
-	loadFont(FONT_ID_BODY_24, 24, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/")))
-	loadFont(FONT_ID_BODY_16, 16, strings.clone_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/")))
+	loadFont(
+		FONT_ID_TITLE_56,
+		56,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_TITLE_52,
+		52,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_TITLE_48,
+		48,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_TITLE_36,
+		36,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_TITLE_32,
+		32,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_BODY_36,
+		36,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_BODY_30,
+		30,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_BODY_28,
+		28,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_BODY_24,
+		24,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
+		),
+	)
+	loadFont(
+		FONT_ID_BODY_16,
+		16,
+		strings.clone_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
+		),
+	)
 
-	syntaxImage = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES,"resources/declarative.png"}, "/")))
-	checkImage1 = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/check_1.png"}, "/")))
-	checkImage2 = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/check_2.png"}, "/")))
-	checkImage3 = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/check_3.png"}, "/")))
-	checkImage4 = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/check_4.png"}, "/")))
-	checkImage5 = raylib.LoadTexture(strings.unsafe_string_to_cstring(strings.join({PATH_TO_RESOURCES, "resources/check_5.png"}, "/")))
+	syntaxImage = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/declarative.png"}, "/"),
+		),
+	)
+	checkImage1 = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/check_1.png"}, "/"),
+		),
+	)
+	checkImage2 = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/check_2.png"}, "/"),
+		),
+	)
+	checkImage3 = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/check_3.png"}, "/"),
+		),
+	)
+	checkImage4 = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/check_4.png"}, "/"),
+		),
+	)
+	checkImage5 = raylib.LoadTexture(
+		strings.unsafe_string_to_cstring(
+			strings.join({PATH_TO_RESOURCES, "resources/check_5.png"}, "/"),
+		),
+	)
 
 	debugModeEnabled: bool = false
 
@@ -136,29 +225,41 @@ init :: proc (measure_text_proc: proc "c" (text: clay.StringSlice, config: ^clay
 	}
 }
 
-deinit :: proc (){
+
+deinit :: proc() {
+
 }
 
-update :: proc(){
-		windowWidth = raylib.GetScreenWidth()
-		windowHeight = raylib.GetScreenHeight()
-		if (raylib.IsKeyPressed(.D)) {
-			@(static) 
-			debugModeEnabled : bool
-			debugModeEnabled = !debugModeEnabled
-			clay.SetDebugModeEnabled(debugModeEnabled)
-		}
-		clay.SetPointerState(
-			transmute(clay.Vector2)raylib.GetMousePosition(),
-			raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
-		)
-		clay.UpdateScrollContainers(
-			false,
-			transmute(clay.Vector2)raylib.GetMouseWheelMoveV() * 5,
-			raylib.GetFrameTime(),
-		)
-		clay.SetLayoutDimensions(
-			{cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()},
-		)
+update :: proc() {
+	windowWidth = raylib.GetScreenWidth()
+	windowHeight = raylib.GetScreenHeight()
+	if (raylib.IsKeyPressed(.D)) {
+		@(static) debugModeEnabled: bool
+		debugModeEnabled = !debugModeEnabled
+		clay.SetDebugModeEnabled(debugModeEnabled)
+	}
+	clay.SetPointerState(
+		transmute(clay.Vector2)raylib.GetMousePosition(),
+		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
+	)
+	clay.UpdateScrollContainers(
+		false,
+		transmute(clay.Vector2)raylib.GetMouseWheelMoveV() * 5,
+		raylib.GetFrameTime(),
+	)
+	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
 
+}
+
+layout :: proc() {
+	renderCommands: clay.ClayArray(clay.RenderCommand) = create_layout_tiling(
+		animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue),
+		&root,
+	)
+}
+
+render :: proc() {
+	raylib.BeginDrawing()
+	rr.clay_raylib_render(&renderCommands)
+	raylib.EndDrawing()
 }

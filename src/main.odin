@@ -15,6 +15,10 @@ import "render"
 import "serialization"
 import rl "vendor:raylib"
 
+import ui "ui/layout"
+import ui_rr "ui/layout/raylib"
+
+
 generate_camera :: proc() -> rl.Camera {
 	return {
 		position = {5, 1, 5},
@@ -54,6 +58,10 @@ main :: proc() {
 		cam           = &cam,
 	}
 
+	ui.init(ui_rr.measure_text)
+	defer ui.deinit()
+
+
 	rlb.raylib_init()
 	defer rlb.raylib_deinit()
 
@@ -63,6 +71,7 @@ main :: proc() {
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
+		ui.update()
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
 
