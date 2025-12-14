@@ -21,6 +21,7 @@ Tiling_Node :: distinct struct {
 	clay_id:      string,
 	layout_dir:   clay.LayoutDirection,
 	size_percent: [2]f32,
+	has_content : bool,
 	draw_content: proc(parent_node: ^Tiling_Node),
 }
 
@@ -59,6 +60,8 @@ node_leaf_distance :: proc(node: Tiling_Node, current_dist: u32 = 0) -> u32 {
 }
 
 draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
+	if node.has_content do return hoovered_node
+
 	if clay.UI(clay.ID(node.clay_id))(
 	{
 		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},

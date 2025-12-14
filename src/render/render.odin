@@ -34,8 +34,13 @@ render :: proc(
 	// active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
 ) {
+
+	rt := rl.LoadRenderTexture(500, 500)
+	defer rl.UnloadRenderTexture(rt)
+
 	dt := rl.GetFrameTime()
-	rl.BeginDrawing()
+	// rl.BeginDrawing()
+	rl.BeginTextureMode(rt)
 
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
@@ -286,6 +291,12 @@ render :: proc(
 
 	gameui.draw_ui()
 
+	// rl.EndDrawing()
+	rl.EndTextureMode()
+
+
+	rl.BeginDrawing()
+	rl.DrawTexturePro(rt.texture, rl.Rectangle{0,0, f32(rt.texture.width), f32(-rt.texture.height)}, rl.Rectangle{0,0, 700, 700}, {}, 0, rl.WHITE)
 	rl.EndDrawing()
 
 }

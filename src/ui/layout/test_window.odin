@@ -156,9 +156,9 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 
 }
 
-create_root_node :: proc() -> Tiling_Node {
-	
-}
+// create_root_node :: proc() -> Tiling_Node {
+//
+// }
 
 create_tiling_nodes_2X :: proc() -> (root_node: Tiling_Node) {
 	root_node = generate_default_leaf()

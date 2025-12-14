@@ -69,13 +69,18 @@ main :: proc() {
 	defer gameui.deinit_game_ui()
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
+
+	root_node := ui.create_tiling_nodes_2X()
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
-		ui.update()
+		
+		// ui.update()
+		// ui_render_commands := ui.layout(&root_node)
+		// ui.render(&ui_render_commands)
+
 		debug_draw_data := game.update(&gc)
 		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
 
-		if rl.GetTime() > 5 do rl.SetTargetFPS(180)
 	}
 }
 

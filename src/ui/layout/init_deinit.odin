@@ -40,6 +40,7 @@ create_layout_tiling :: proc(
 	tiling_window_test(root_node)
 	return clay.EndLayout()
 }
+
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
 	assign_at(
 		&rr.raylib_fonts,
@@ -187,42 +188,42 @@ init :: proc(
 
 	debugModeEnabled: bool = false
 
-	root := create_tiling_nodes_2X()
+	// root := create_tiling_nodes_2X()
 
-	for !raylib.WindowShouldClose() {
-		defer free_all(context.temp_allocator)
-
-		animationLerpValue += raylib.GetFrameTime()
-		if animationLerpValue > 1 {
-			animationLerpValue = animationLerpValue - 2
-		}
-		windowWidth = raylib.GetScreenWidth()
-		windowHeight = raylib.GetScreenHeight()
-		if (raylib.IsKeyPressed(.D)) {
-			debugModeEnabled = !debugModeEnabled
-			clay.SetDebugModeEnabled(debugModeEnabled)
-		}
-		clay.SetPointerState(
-			transmute(clay.Vector2)raylib.GetMousePosition(),
-			raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
-		)
-		clay.UpdateScrollContainers(
-			false,
-			transmute(clay.Vector2)raylib.GetMouseWheelMoveV() * 5,
-			raylib.GetFrameTime(),
-		)
-		clay.SetLayoutDimensions(
-			{cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()},
-		)
-		// renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout(animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue))
-		renderCommands: clay.ClayArray(clay.RenderCommand) = create_layout_tiling(
-			animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue),
-			&root,
-		)
-		raylib.BeginDrawing()
-		rr.clay_raylib_render(&renderCommands)
-		raylib.EndDrawing()
-	}
+	// for !raylib.WindowShouldClose() {
+	// 	defer free_all(context.temp_allocator)
+	//
+	// 	animationLerpValue += raylib.GetFrameTime()
+	// 	if animationLerpValue > 1 {
+	// 		animationLerpValue = animationLerpValue - 2
+	// 	}
+	// 	windowWidth = raylib.GetScreenWidth()
+	// 	windowHeight = raylib.GetScreenHeight()
+	// 	if (raylib.IsKeyPressed(.D)) {
+	// 		debugModeEnabled = !debugModeEnabled
+	// 		clay.SetDebugModeEnabled(debugModeEnabled)
+	// 	}
+	// 	clay.SetPointerState(
+	// 		transmute(clay.Vector2)raylib.GetMousePosition(),
+	// 		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
+	// 	)
+	// 	clay.UpdateScrollContainers(
+	// 		false,
+	// 		transmute(clay.Vector2)raylib.GetMouseWheelMoveV() * 5,
+	// 		raylib.GetFrameTime(),
+	// 	)
+	// 	clay.SetLayoutDimensions(
+	// 		{cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()},
+	// 	)
+	// 	// renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout(animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue))
+	// 	renderCommands: clay.ClayArray(clay.RenderCommand) = create_layout_tiling(
+	// 		animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue),
+	// 		&root,
+	// 	)
+	// 	raylib.BeginDrawing()
+	// 	rr.clay_raylib_render(&renderCommands)
+	// 	raylib.EndDrawing()
+	// }
 }
 
 
@@ -230,6 +231,7 @@ deinit :: proc() {
 
 }
 
+// Updated cursor / pointer states and such
 update :: proc() {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
@@ -251,15 +253,15 @@ update :: proc() {
 
 }
 
-layout :: proc() {
-	renderCommands: clay.ClayArray(clay.RenderCommand) = create_layout_tiling(
+layout :: proc(root: ^Tiling_Node) -> clay.ClayArray(clay.RenderCommand){
+	return create_layout_tiling(
 		animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue),
-		&root,
+		root,
 	)
 }
 
-render :: proc() {
+render :: proc(render_commands: ^clay.ClayArray(clay.RenderCommand)) {
 	raylib.BeginDrawing()
-	rr.clay_raylib_render(&renderCommands)
+	rr.clay_raylib_render(render_commands)
 	raylib.EndDrawing()
 }
