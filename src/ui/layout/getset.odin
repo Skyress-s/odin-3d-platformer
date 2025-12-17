@@ -4,11 +4,15 @@ import clay "../clay-odin"
 
 
 // todo deciding layout can be chosen later. For now just place it where its convenient
-register_node :: proc(name: string){
+register_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node: Tiling_Node) {
+	new_node := generate_default_leaf()
+	add_node(root_node, new_node)
+	
 }
 
-unregister_node :: proc(name: string){
+unregister_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool){
 }
 
-get_node :: proc(name: string){
+get_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node: Tiling_Node) {
+
 }
