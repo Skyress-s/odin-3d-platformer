@@ -11,18 +11,12 @@ register_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node:
 	return true, inserted_node
 }
 
-// unregister_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool) {
-// 	hovered_parent_node, index_in_parent := find_node_parent(root_node, node)
-// 	if index_in_parent != -1 {
-// 		fmt.printfln(
-// 			"hovered_node {}, parent {}, {}",
-// 			hovered_node.clay_id,
-// 			hovered_parent_node.clay_id,
-// 			index_in_parent,
-// 		)
-// 		delete_node(root_node, hovered_parent_node, index_in_parent)
-// 	}
-// }
+unregister_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool) {
+	node := find_node(root_node, name)
+	assert(node != nil)
+
+	return delete_node2(root_node, node)
+}
 
 // get_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node: Tiling_Node) {
 //

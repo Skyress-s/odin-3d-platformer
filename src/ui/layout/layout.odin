@@ -348,10 +348,27 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 
 }
 
-// delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool)
-// {
-//
-// } 
+delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool)
+{
+	delete_all_child_nodes(node_to_delete, true)
+	
+	parent_node, node_index_parent := find_node_parent(root, node_to_delete)
+	unordered_remove(&parent_node.sub_nodes, node_index_parent)
+
+	if len(parent_node.sub_nodes) == 1 {
+		if parent_node.clay_id == root.clay_id {
+			// fmt.println("hit root")
+			return
+		}
+
+		grandparent_node, grandparent_index := find_node_parent(root, parent_node)
+		assert(grandparent_index != -1)
+		if grandparent_index == -1 do return
+		grandparent_node.sub_nodes[grandparent_index] = parent_node.sub_nodes[0]
+	}
+
+	return true
+} 
 
 delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 	delete_all_child_nodes(&parent_node.sub_nodes[index], true)
