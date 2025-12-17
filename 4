@@ -1,0 +1,19 @@
+package layout
+
+import clay "../clay-odin"
+
+
+// todo deciding layout can be chosen later. For now just place it where its convenient
+register_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node: Tiling_Node) {
+	new_node := generate_default_leaf()
+	add_node2(root_node, new_node, 0)
+
+	return get_node(root_node, name)
+}
+
+unregister_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool){
+}
+
+get_node :: proc(root_node: ^Tiling_Node, name: string) -> (ok: bool, node: Tiling_Node) {
+
+}

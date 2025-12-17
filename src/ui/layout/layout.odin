@@ -96,6 +96,18 @@ draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 	return hoovered_node
 }
 
+find_node :: proc{find_node_by_name}
+
+find_node_by_name :: proc(root: ^Tiling_Node, name: string) -> ^Tiling_Node{
+
+	for &node in root.sub_nodes {
+		if node.clay_id == name do return &node
+		if found_node := find_node_by_name(&node, name); found_node != nil do return found_node
+	}
+	
+	return nil
+}
+
 // todo this is not very efficient atm, it searches the entire tree. Can probably use a better structure later
 find_node_parent :: proc(root, node: ^Tiling_Node) -> (^Tiling_Node, i32) {
 	for &n, index in root.sub_nodes {
@@ -336,6 +348,11 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 
 }
 
+// delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool)
+// {
+//
+// } 
+
 delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 	delete_all_child_nodes(&parent_node.sub_nodes[index], true)
 
@@ -358,6 +375,13 @@ delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 add_node :: proc(node: ^Tiling_Node, index: i32, new_node: Tiling_Node) {
 	inject_at(&node.sub_nodes, index, new_node)
 	// append_elem(&node.sub_nodes, new_node)
+}
+
+add_node2 :: proc(node: ^Tiling_Node, node_to_insert: Tiling_Node, index: u32) -> (ok: bool, new_node: ^Tiling_Node) {
+	inject_ok, inject_err := inject_at(&node.sub_nodes, index, node_to_insert)
+	assert(inject_ok)
+
+	return inject_ok, &node.sub_nodes[index]
 }
 
 @(test)

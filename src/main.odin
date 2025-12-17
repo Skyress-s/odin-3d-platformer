@@ -70,7 +70,7 @@ main :: proc() {
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
-	root_node := ui.create_tiling_nodes_2X()
+	// root_node := ui.create_tiling_nodes_2X()
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 		
