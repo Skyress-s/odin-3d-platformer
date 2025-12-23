@@ -13,11 +13,14 @@ import plrs "players"
 import rlb "raylib_bridge"
 import "render"
 import "serialization"
+import clay "ui/clay-odin"
 import rl "vendor:raylib"
 
 import ui "ui/layout"
 import ui_rr "ui/layout/raylib"
 
+
+GAME_WINDOW_NAME :: "game_window"
 
 generate_camera :: proc() -> rl.Camera {
 	return {
@@ -58,8 +61,6 @@ main :: proc() {
 		cam           = &cam,
 	}
 
-	ui.init(ui_rr.measure_text)
-	defer ui.deinit()
 
 
 	rlb.raylib_init()
@@ -70,18 +71,51 @@ main :: proc() {
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
-	// root_node := ui.create_tiling_nodes_2X()
+	ui.init(ui_rr.measure_text)
+	defer ui.deinit()
+
+	root_node := ui.create_root_node()
+	defer ui.delete_all_child_nodes(&root_node)
+
+	ui.register_node(&root_node, ui.make_new_node(GAME_WINDOW_NAME))
+	ui.register_node(&root_node, ui.make_new_node("Debug"))
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
-		
-		// ui.update()
-		// ui_render_commands := ui.layout(&root_node)
-		// ui.render(&ui_render_commands)
+
+		ui.update()
+		ui_render_commands := ui.layout(&root_node)
+		ui.render(&ui_render_commands)
 
 		debug_draw_data := game.update(&gc)
-		render.render(gc.current_level, gc.players, gc.cam, &debug_draw_data, gc.game_state)
+
+		// Render phase
+
+		// Render game window
+		// game_rect, game_rect_ok := ui.get_node(&root_node, GAME_WINDOW_NAME)
+		// assert(game_rect_ok)
+		game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
+		game_rect := rl.Rectangle {
+			x      = game_window_bounds.x,
+			y      = game_window_bounds.y,
+			width  = game_window_bounds.width,
+			height = game_window_bounds.height,
+		}
+
+		// game_rect.width = 1000
+		// game_rect.height = 1000
+
+		render.render(
+			gc.current_level,
+			gc.players,
+			gc.cam,
+			&debug_draw_data,
+			gc.game_state,
+			game_rect,
+		)
 
 	}
+
+
 }
 
 

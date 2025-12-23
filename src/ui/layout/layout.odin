@@ -21,20 +21,24 @@ Tiling_Node :: distinct struct {
 	clay_id:      string,
 	layout_dir:   clay.LayoutDirection,
 	size_percent: [2]f32,
-	has_content : bool,
-	draw_content: proc(parent_node: ^Tiling_Node),
+	has_content:  bool,
+	// draw_content: proc(parent_node: ^Tiling_Node),
+}
+
+generate_root_node :: proc() -> Tiling_Node {
+
+	return make_new_node("root")
+}
+
+make_new_node :: proc(name: string) -> Tiling_Node {
+	return Tiling_Node{layout_dir = .TopToBottom, clay_id = name, size_percent = {0.5, 0.5}}
 }
 
 generate_default_leaf :: proc() -> Tiling_Node {
 	@(static) id_counter: i32 = -1
 	id_counter += 1
 
-	return Tiling_Node {
-		layout_dir = .TopToBottom,
-		clay_id = fmt.aprintf("gen_{}", id_counter),
-		size_percent = {0.5, 0.5},
-		draw_content = draw_node_name,
-	}
+	return make_new_node(fmt.aprint("gen_{}", id_counter)) 
 }
 
 draw_node_name :: proc(parent_node: ^Tiling_Node) {
@@ -84,27 +88,29 @@ draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 		if node_leaf_distance(node^) == 0 {
 			leaf_distance := node_leaf_distance(node^)
 
-			node.draw_content(node)
-			// clay.TextDynamic(node.clay_id,
-			// 	clay.TextConfig(
-			// 		{fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
-			// 	),
-			// )
+			// node.draw_content(node)
+			clay.TextDynamic(node.clay_id,
+				clay.TextConfig(
+					{fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
+				),
+			)
 			if clay.Hovered() do hoovered_node = node
 		}
 	}
 	return hoovered_node
 }
 
-find_node :: proc{find_node_by_name}
+find_node :: proc {
+	find_node_by_name,
+}
 
-find_node_by_name :: proc(root: ^Tiling_Node, name: string) -> ^Tiling_Node{
+find_node_by_name :: proc(root: ^Tiling_Node, name: string) -> ^Tiling_Node {
 
 	for &node in root.sub_nodes {
 		if node.clay_id == name do return &node
 		if found_node := find_node_by_name(&node, name); found_node != nil do return found_node
 	}
-	
+
 	return nil
 }
 
@@ -348,10 +354,9 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 
 }
 
-delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool)
-{
+delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool) {
 	delete_all_child_nodes(node_to_delete, true)
-	
+
 	parent_node, node_index_parent := find_node_parent(root, node_to_delete)
 	unordered_remove(&parent_node.sub_nodes, node_index_parent)
 
@@ -368,7 +373,7 @@ delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool)
 	}
 
 	return true
-} 
+}
 
 delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 	delete_all_child_nodes(&parent_node.sub_nodes[index], true)
@@ -394,7 +399,14 @@ add_node :: proc(node: ^Tiling_Node, index: i32, new_node: Tiling_Node) {
 	// append_elem(&node.sub_nodes, new_node)
 }
 
-add_node2 :: proc(node: ^Tiling_Node, node_to_insert: Tiling_Node, index: u32) -> (ok: bool, new_node: ^Tiling_Node) {
+add_node2 :: proc(
+	node: ^Tiling_Node,
+	node_to_insert: Tiling_Node,
+	index: u32,
+) -> (
+	ok: bool,
+	new_node: ^Tiling_Node,
+) {
 	inject_ok, inject_err := inject_at(&node.sub_nodes, index, node_to_insert)
 	assert(inject_ok)
 

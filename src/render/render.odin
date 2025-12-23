@@ -6,6 +6,7 @@ import gs "../game_state"
 import l "../level"
 import lightray "../lightray"
 import plrs "../players/"
+import "core:c"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -19,7 +20,6 @@ import "../player_data/"
 import gameui "../micro-ui/"
 
 
-
 Debug_Draw_Data :: distinct struct {
 	active_cell:      map[spat.Hash_Key]bool,
 	active_cell_hash: spat.Hash_Key,
@@ -30,18 +30,17 @@ render :: proc(
 	players: ^plrs.Players,
 	cam: ^rl.Camera3D,
 	debug_draw_data: ^Debug_Draw_Data,
-	// active_cell: ^map[spat.Hash_Key]bool,
-	// active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
+	game_rect: rl.Rectangle,
 ) {
 
 	// todo lets not do this in tick
-	// rt := rl.LoadRenderTexture(rl.(), rl.GetRenderWidth())
-	// defer rl.UnloadRenderTexture(rt)
+	rt := rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
+	defer rl.UnloadRenderTexture(rt)
 
 	dt := rl.GetFrameTime()
-	rl.BeginDrawing()
-	// rl.BeginTextureMode(rt)
+	// rl.BeginDrawing()
+	rl.BeginTextureMode(rt)
 
 	rl.ClearBackground({40, 30, 50, 255})
 	rl.BeginMode3D(cam^)
@@ -292,13 +291,20 @@ render :: proc(
 
 	gameui.draw_ui()
 
-	rl.EndDrawing()
-	// rl.EndTextureMode()
-
-
-	// rl.BeginDrawing()
-	// rl.DrawTexturePro(rt.texture, rl.Rectangle{0,0, f32(rt.texture.width), f32(-rt.texture.height)}, rl.Rectangle{0,0, f32(rl.GetScreenHeight()), f32(rl.GetScreenWidth())}, {}, 0, rl.WHITE)
 	// rl.EndDrawing()
+	rl.EndTextureMode()
+
+
+	rl.BeginDrawing()
+	rl.DrawTexturePro(
+		rt.texture,
+		rl.Rectangle{0, 0, f32(rt.texture.width), f32(-rt.texture.height)},
+		game_rect,
+		{},
+		0,
+		rl.WHITE,
+	)
+	rl.EndDrawing()
 
 }
 

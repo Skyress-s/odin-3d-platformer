@@ -1,5 +1,6 @@
 package layout
 import clay "../clay-odin"
+import "core:fmt"
 import "core:c"
 import "core:strings"
 import rr "raylib"
@@ -81,9 +82,10 @@ init :: proc(
 
 	PATH_TO_RESOURCES: string : "content/"
 
-	raylib.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
-	raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
+	// raylib.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
+	// raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
+	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
+
 	loadFont(
 		FONT_ID_TITLE_56,
 		56,
@@ -147,13 +149,13 @@ init :: proc(
 			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
 		),
 	)
+
 	loadFont(
 		FONT_ID_BODY_16,
 		16,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
-		),
+			"resources/Quicksand-Semibold.ttf",
 	)
+
 
 	syntaxImage = raylib.LoadTexture(
 		strings.unsafe_string_to_cstring(
