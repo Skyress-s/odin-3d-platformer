@@ -56,7 +56,10 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 						add_node(hovered_parent_node, index_in_parent + i32(direction_clicked == .Right), generate_default_leaf())
 					} else {
 						hovered_node.layout_dir = .TopToBottom
-						add_node(hovered_node, 0, generate_default_leaf())
+
+						copy_old_leaf := hovered_node
+						hovered_node.clay_id = make_new_id() // memory leak? Overriding old one
+						add_node(hovered_node, 0, copy_old_leaf^)
 						add_node(hovered_node, 0, generate_default_leaf())
 					}
 				} else {
@@ -64,7 +67,10 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 						add_node(hovered_parent_node, index_in_parent + i32(direction_clicked == .Down), generate_default_leaf())
 					} else {
 						hovered_node.layout_dir = .LeftToRight
-						add_node(hovered_node, 0, generate_default_leaf())
+
+						copy_old_leaf := hovered_node
+						hovered_node.clay_id = make_new_id() // memory leak? Overriding old one
+						add_node(hovered_node, 0, copy_old_leaf^)
 						add_node(hovered_node, 0, generate_default_leaf())
 					}
 				}

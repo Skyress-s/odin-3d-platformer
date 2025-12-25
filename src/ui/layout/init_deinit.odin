@@ -34,7 +34,6 @@ LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, se
 animationLerpValue: f32 = -1.0
 
 create_layout_tiling :: proc(
-	lerpValue: f32,
 	root_node: ^Tiling_Node,
 ) -> clay.ClayArray(clay.RenderCommand) {
 	clay.BeginLayout()
@@ -257,7 +256,6 @@ update :: proc() {
 
 layout :: proc(root: ^Tiling_Node) -> clay.ClayArray(clay.RenderCommand){
 	return create_layout_tiling(
-		animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue),
 		root,
 	)
 }

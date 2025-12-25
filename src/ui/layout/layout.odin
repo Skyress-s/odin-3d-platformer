@@ -34,11 +34,16 @@ make_new_node :: proc(name: string) -> Tiling_Node {
 	return Tiling_Node{layout_dir = .TopToBottom, clay_id = name, size_percent = {0.5, 0.5}}
 }
 
-generate_default_leaf :: proc() -> Tiling_Node {
+make_new_id :: proc(allocator := context.allocator) -> string {
 	@(static) id_counter: i32 = -1
 	id_counter += 1
 
-	return make_new_node(fmt.aprint("gen_{}", id_counter)) 
+	return fmt.aprint("gen_{}", id_counter)
+}
+
+generate_default_leaf :: proc(allocator := context.allocator) -> Tiling_Node {
+
+	return make_new_node(make_new_id())
 }
 
 draw_node_name :: proc(parent_node: ^Tiling_Node) {
@@ -89,7 +94,8 @@ draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 			leaf_distance := node_leaf_distance(node^)
 
 			// node.draw_content(node)
-			clay.TextDynamic(node.clay_id,
+			clay.TextDynamic(
+				node.clay_id,
 				clay.TextConfig(
 					{fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
 				),
