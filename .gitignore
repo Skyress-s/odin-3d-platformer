@@ -8,3 +8,4 @@ src.o
 /package_project/Release*/
 /package_project/build/
 
+src.bin
