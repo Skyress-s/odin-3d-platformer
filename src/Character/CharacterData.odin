@@ -261,7 +261,6 @@ update_character_physics :: proc(
 					// 	dt,
 					// )
 
-					log.errorf("hit object!")
 					collided_this_frame = true // TODO we should in reality check against all triangles, find the one that would be hit first and calculate of that.
 					// break
 				}

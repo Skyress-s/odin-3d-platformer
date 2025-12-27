@@ -1,8 +1,13 @@
 package main
 
-import "core:log"
+import "core:strings"
+import "core:fmt"
+import "core:mem"
 import "base:runtime"
+import "core:c"
 import "core:debug/trace"
+import "core:log"
+import "core:time"
 
 import character "Character"
 import spat "Spatial"
@@ -25,7 +30,7 @@ import ui_rr "ui/layout/raylib"
 
 GAME_WINDOW_NAME :: "game_window"
 
-USE_TRACESTACK :: #config(USE_TRACESTACK, true)
+USE_TRACESTACK :: #config(USE_TRACESTACK, false)
 
 generate_camera :: proc() -> rl.Camera {
 	return {
@@ -81,6 +86,57 @@ main :: proc() {
 		context.assertion_failure_proc = debug_trace_assertion_failure_proc
 	}
 
+	// when ODIN_DEBUG {
+	//
+	// 	// create the allocator
+	// 	tracker: mem.Tracking_Allocator
+	//
+	// 	// initialize the allocator to wrap around the default allocator in context
+	// 	mem.tracking_allocator_init(&tracker, context.allocator)
+	//
+	// 	// convert the tracking allocator to the allocator interface and make it the
+	// 	// default allocator
+	// 	context.allocator = mem.tracking_allocator(&tracker)
+	//
+	// 	defer {
+	// 		fmt.eprintf("Tracking allocator results:\n")
+	// 		if len(tracker.allocation_map) > 0 {
+	// 			for _, leak in tracker.allocation_map {
+	// 				fmt.eprintf("%v leaked %m\n", leak.location, leak.size)
+	// 			}
+	// 		} else {
+	// 			fmt.eprintf("No leaks!\n")
+	// 		}
+	//
+	// 		fmt.eprintf("Tracking allocator bad frees:\n")
+	// 		if len(tracker.bad_free_array) > 0 {
+	// 			for b in tracker.bad_free_array {
+	// 				fmt.eprintf("Bad free at: %v\n", b.location)
+	// 			}
+	// 		} else {
+	// 			fmt.eprintf("No bad frees!\n")
+	// 		}
+	//
+	// 		mem.tracking_allocator_destroy(&tracker)
+	// 	}
+	// }
+	when ODIN_DEBUG {
+		track: mem.Tracking_Allocator
+		mem.tracking_allocator_init(&track, context.allocator)
+		context.allocator = mem.tracking_allocator(&track)
+
+		defer {
+			if len(track.allocation_map) > 0 {
+				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+
+				for _, entry in track.allocation_map {
+					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+				}
+			}
+			mem.tracking_allocator_destroy(&track)
+		}
+	}
+
 	main_console_logger := log.create_console_logger()
 	context.logger = main_console_logger
 	defer log.destroy_console_logger(main_console_logger)
@@ -127,22 +183,41 @@ main :: proc() {
 	root_node := ui.create_root_node()
 	defer ui.delete_all_child_nodes(&root_node)
 
-	ui.register_node(&root_node, ui.make_new_node(GAME_WINDOW_NAME))
-	ui.register_node(&root_node, ui.make_new_node("Debug"))
+	ui.register_node(&root_node, ui.make_new_node(strings.clone(GAME_WINDOW_NAME))) // todo how to safe free string
+	// ui.register_node(&root_node, ui.make_new_node(strings.clone()"Debug"))
+
+	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
+	defer render.render_targets_deinit(render_targets)
+
+
+	game_rt_needs_update := true
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 
 		ui.update_state()
-		ui_render_commands := ui.layout(&root_node)
-		ui.render(&ui_render_commands)
+		ui_render_commands, layout_updated := ui.create_layout_tiling(&root_node, true)
+		game_rt_needs_update |= layout_updated
+
+		// resize render targets
+
+
+		// log.infof("num rendering commands {}", ui_render_commands.length)
+		// sw : time.Stopwatch
+		// time.stopwatch_start(&sw)
+		// time.stopwatch_stop(&sw)
+
+		// rl.BeginDrawing()
+		// rl.DrawRectangleV({100,100}, {100,100}, rl.RED)
+		// rl.EndDrawing()
+		// time.sleep(100 * time.Millisecond)
+
+		// log.infof("render duration {}", time.duration_milliseconds(time.stopwatch_duration(sw)))
 
 		debug_draw_data := game.update(&gc)
 
 		// Render phase
 
 		// Render game window
-		// game_rect, game_rect_ok := ui.get_node(&root_node, GAME_WINDOW_NAME)
-		// assert(game_rect_ok)
 		if ui.find_node(&root_node, GAME_WINDOW_NAME) != nil {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
 			game_rect := rl.Rectangle {
@@ -152,8 +227,10 @@ main :: proc() {
 				height = game_window_bounds.height,
 			}
 
-			// game_rect.width = 1000
-			// game_rect.height = 1000
+			if game_rt_needs_update {
+				render.resize_render_targets(&render_targets, game_rect)
+			}
+
 
 			render.render(
 				gc.current_level,
@@ -162,8 +239,37 @@ main :: proc() {
 				&debug_draw_data,
 				gc.game_state,
 				game_rect,
+				&render_targets,
 			)
+
+
+			rl.BeginDrawing()
+			rl.ClearBackground({14, 35, 45, 255})
+			ui.render(&ui_render_commands)
+
+			rl.DrawTexturePro(
+				render_targets.game.texture,
+				rl.Rectangle {
+					0,
+					0,
+					f32(render_targets.game.texture.width),
+					f32(-render_targets.game.texture.height),
+				},
+				game_rect,
+				{},
+				0,
+				rl.WHITE,
+			)
+			rl.EndDrawing()
 		}
+
+		// render.render(
+		// 	gc.current_level,
+		// 	gc.players,
+		// 	gc.cam,
+		// 	&debug_draw_data,
+		// 	gc.game_state,
+		// 	rl.Rectangle{0,0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())})
 
 	}
 
@@ -173,6 +279,6 @@ main :: proc() {
 
 @(test)
 test_main :: proc(t: ^testing.T) {
-	testing.expect(t, true)
+	main()
 
 }

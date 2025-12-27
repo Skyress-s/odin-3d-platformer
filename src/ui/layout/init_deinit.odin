@@ -34,11 +34,11 @@ LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, se
 animationLerpValue: f32 = -1.0
 
 create_layout_tiling :: proc(
-	root_node: ^Tiling_Node,
-) -> clay.ClayArray(clay.RenderCommand) {
+	root_node: ^Tiling_Node, allow_layout_edit: bool,
+) -> (render_commands: clay.ClayArray(clay.RenderCommand), layout_updated: bool) {
 	clay.BeginLayout()
-	tiling_window_test(root_node)
-	return clay.EndLayout()
+	layout_updated = tiling_window_test(root_node, allow_layout_edit)
+	return clay.EndLayout(), layout_updated
 }
 
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
@@ -236,11 +236,11 @@ deinit :: proc() {
 update_state :: proc() {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
-	if (raylib.IsKeyPressed(.D)) {
-		@(static) debugModeEnabled: bool
-		debugModeEnabled = !debugModeEnabled
-		clay.SetDebugModeEnabled(debugModeEnabled)
-	}
+	// if (raylib.IsKeyPressed(.D)) {
+	// 	@(static) debugModeEnabled: bool
+	// 	debugModeEnabled = !debugModeEnabled
+	// 	clay.SetDebugModeEnabled(debugModeEnabled)
+	// }
 	clay.SetPointerState(
 		transmute(clay.Vector2)raylib.GetMousePosition(),
 		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
@@ -254,14 +254,9 @@ update_state :: proc() {
 
 }
 
-layout :: proc(root: ^Tiling_Node) -> clay.ClayArray(clay.RenderCommand){
-	return create_layout_tiling(
-		root,
-	)
-}
 
 render :: proc(render_commands: ^clay.ClayArray(clay.RenderCommand)) {
-	raylib.BeginDrawing()
+	// raylib.BeginDrawing()
 	rr.clay_raylib_render(render_commands)
-	raylib.EndDrawing()
+	// raylib.EndDrawing()
 }

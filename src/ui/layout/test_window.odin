@@ -6,13 +6,15 @@ import fmt "core:fmt"
 import "core:log"
 import raylib "vendor:raylib"
 
-tiling_window_test :: proc(root_node: ^Tiling_Node) {
+tiling_window_test :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
 	mouse_position := [2]c.float{raylib.GetMousePosition().x, raylib.GetMousePosition().y}
 	root_node := root_node
 	// root := create_tiling_nodes_2X()
 
 	normalize_entire_tile_tree(root_node)
 	hovered_node := draw_nodes(root_node)
+
+	if !allow_edit_layout do return
 
 	@(static) scaling_node: ^Tiling_Node
 	@(static) start_pos: [2]c.float
@@ -21,6 +23,7 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 	@(static) vertical_node: ^Tiling_Node
 	if hovered_node != nil {
 		if raylib.IsMouseButtonPressed(raylib.MouseButton.LEFT) {
+			layout_updated = true
 
 			hovered_parent_node, index_in_parent := find_node_parent(root_node, hovered_node)
 			if index_in_parent != -1 {
@@ -36,6 +39,7 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 			// Remove a random element
 		}
 		if raylib.IsMouseButtonPressed(raylib.MouseButton.RIGHT) {
+			layout_updated = true
 			tile_bounds := clay.GetElementData(clay.ID(hovered_node.clay_id)).boundingBox
 			x := tile_bounds.x
 			y := tile_bounds.y
@@ -100,6 +104,7 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 		}
 		{
 			if raylib.IsMouseButtonPressed(raylib.MouseButton.MIDDLE) {
+			layout_updated = true
 				scaling_node = hovered_node
 				start_pos = raylib.GetMousePosition()
 				log.info("hej before")
@@ -123,6 +128,7 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 		// TODO clean tree? Pop elements that only have a single child!
 	}
 	if raylib.IsMouseButtonDown(raylib.MouseButton.MIDDLE) {
+		layout_updated = true
 
 		// log.infof("middle down: hovered_node == nil -> {}", hovered_node == nil)
 		// log.infof("horizontal_node {}", horizontal_node == nil)
@@ -188,6 +194,7 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 		scaling_node = nil
 	}
 
+	return layout_updated
 }
 
 // create_root_node :: proc() -> Tiling_Node {
@@ -226,3 +233,5 @@ create_tiling_nodes_2X :: proc() -> (root_node: Tiling_Node) {
 	// todo memory
 	return root_node
 }
+
+

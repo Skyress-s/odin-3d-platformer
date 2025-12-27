@@ -25,6 +25,19 @@ Debug_Draw_Data :: distinct struct {
 	active_cell_hash: spat.Hash_Key,
 }
 
+Render_Targets :: struct {
+	game: rl.RenderTexture2D,
+}
+
+render_targets_init :: proc(game_dims: [2]c.int) -> Render_Targets {
+	render_targets: Render_Targets
+	render_targets.game = rl.LoadRenderTexture(game_dims[0], game_dims[1])
+	return render_targets
+}
+render_targets_deinit :: proc(render_targets: Render_Targets) {
+	rl.UnloadRenderTexture(render_targets.game)
+}
+
 render :: proc(
 	level: ^l.Level,
 	players: ^plrs.Players,
@@ -32,15 +45,13 @@ render :: proc(
 	debug_draw_data: ^Debug_Draw_Data,
 	game_state: ^gs.Game_State,
 	game_rect: rl.Rectangle,
+	render_targets: ^Render_Targets,
 ) {
 
-	// todo lets not do this in tick
-	rt := rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
-	defer rl.UnloadRenderTexture(rt)
 
 	dt := rl.GetFrameTime()
 	// rl.BeginDrawing()
-	rl.BeginTextureMode(rt)
+	rl.BeginTextureMode(render_targets.game)
 	rl.ClearBackground({40, 30, 50, 255})
 
 	rl.BeginMode3D(cam^)
@@ -295,18 +306,6 @@ render :: proc(
 	rl.EndTextureMode()
 
 
-	rl.BeginDrawing()
-	rl.ClearBackground({14, 35, 45, 255})
-	rl.DrawTexturePro(
-		rt.texture,
-		rl.Rectangle{0, 0, f32(rt.texture.width), f32(-rt.texture.height)},
-		game_rect,
-		{},
-		0,
-		rl.WHITE,
-	)
-	rl.EndDrawing()
-
 }
 
 draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
@@ -325,4 +324,11 @@ draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
 	rlgl.Vertex3f(a.x, a.y, a.z)
 	rlgl.Vertex3f(b.x, b.y, b.z)
 	rlgl.Vertex3f(c.x, c.y, c.z)
+}
+
+resize_render_targets :: proc(render_targets: ^Render_Targets, game_rect: rl.Rectangle) {
+
+	rl.UnloadRenderTexture(render_targets.game)
+	render_targets.game = rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
+
 }
