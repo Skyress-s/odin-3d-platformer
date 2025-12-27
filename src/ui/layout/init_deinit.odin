@@ -233,7 +233,7 @@ deinit :: proc() {
 }
 
 // Updated cursor / pointer states and such
-update :: proc() {
+update_state :: proc() {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
 	if (raylib.IsKeyPressed(.D)) {

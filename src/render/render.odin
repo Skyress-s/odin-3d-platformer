@@ -41,8 +41,8 @@ render :: proc(
 	dt := rl.GetFrameTime()
 	// rl.BeginDrawing()
 	rl.BeginTextureMode(rt)
-
 	rl.ClearBackground({40, 30, 50, 255})
+
 	rl.BeginMode3D(cam^)
 
 
@@ -296,6 +296,7 @@ render :: proc(
 
 
 	rl.BeginDrawing()
+	rl.ClearBackground({14, 35, 45, 255})
 	rl.DrawTexturePro(
 		rt.texture,
 		rl.Rectangle{0, 0, f32(rt.texture.width), f32(-rt.texture.height)},

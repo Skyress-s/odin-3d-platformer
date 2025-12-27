@@ -38,7 +38,7 @@ make_new_id :: proc(allocator := context.allocator) -> string {
 	@(static) id_counter: i32 = -1
 	id_counter += 1
 
-	return fmt.aprint("gen_{}", id_counter)
+	return fmt.aprintf("gen_{}", id_counter)
 }
 
 generate_default_leaf :: proc(allocator := context.allocator) -> Tiling_Node {
@@ -83,7 +83,7 @@ draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 			padding = clay.PaddingAll(8),
 			childGap = 8,
 		},
-		backgroundColor = node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+		backgroundColor = {0,0,0,0} // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
 	},
 	) {
 		for &n in node.sub_nodes {

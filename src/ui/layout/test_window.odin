@@ -1,9 +1,10 @@
 package layout
 
-import "core:c"
-import raylib "vendor:raylib"
-import fmt "core:fmt"
 import clay "../clay-odin"
+import "core:c"
+import fmt "core:fmt"
+import "core:log"
+import raylib "vendor:raylib"
 
 tiling_window_test :: proc(root_node: ^Tiling_Node) {
 	mouse_position := [2]c.float{raylib.GetMousePosition().x, raylib.GetMousePosition().y}
@@ -40,38 +41,56 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 			y := tile_bounds.y
 
 			direction_clicked := get_edge_clicked(tile_bounds, raylib.GetMousePosition())
-			fmt.printfln("{}", direction_clicked)
-
 
 			hovered_parent_node, index_in_parent := find_node_parent(root_node, hovered_node)
 			if index_in_parent == -1 { 	// Root node, spawn a single one that covers entire screen
 				root_node.layout_dir = .LeftToRight
 				append_elem(&hovered_node.sub_nodes, generate_default_leaf())
 
-				// normalize_tile_nodes_sizes(root_node, root_node)
-
 			} else {
 				if hovered_parent_node.layout_dir == .LeftToRight {
 					if direction_is_horizontal(direction_clicked) {
-						add_node(hovered_parent_node, index_in_parent + i32(direction_clicked == .Right), generate_default_leaf())
+
+						add_node(
+							hovered_parent_node,
+							index_in_parent + i32(direction_clicked == .Right),
+							generate_default_leaf(),
+						)
 					} else {
 						hovered_node.layout_dir = .TopToBottom
 
-						copy_old_leaf := hovered_node
-						hovered_node.clay_id = make_new_id() // memory leak? Overriding old one
-						add_node(hovered_node, 0, copy_old_leaf^)
-						add_node(hovered_node, 0, generate_default_leaf())
+						new_node := generate_default_leaf()
+						new_node.clay_id = hovered_node.clay_id
+						hovered_node.clay_id = make_new_id()
+
+						if direction_clicked == .Down {
+							add_node(hovered_node, 0, generate_default_leaf())
+							add_node(hovered_node, 0, new_node)
+						} else {
+							add_node(hovered_node, 0, new_node)
+							add_node(hovered_node, 0, generate_default_leaf())
+						}
 					}
 				} else {
 					if direction_is_vertical(direction_clicked) {
-						add_node(hovered_parent_node, index_in_parent + i32(direction_clicked == .Down), generate_default_leaf())
+						add_node(
+							hovered_parent_node,
+							index_in_parent + i32(direction_clicked == .Down),
+							generate_default_leaf(),
+						)
 					} else {
 						hovered_node.layout_dir = .LeftToRight
+						new_node := generate_default_leaf()
+						new_node.clay_id = hovered_node.clay_id
+						hovered_node.clay_id = make_new_id()
 
-						copy_old_leaf := hovered_node
-						hovered_node.clay_id = make_new_id() // memory leak? Overriding old one
-						add_node(hovered_node, 0, copy_old_leaf^)
-						add_node(hovered_node, 0, generate_default_leaf())
+						if direction_clicked == .Left {
+							add_node(hovered_node, 0, new_node)
+							add_node(hovered_node, 0, generate_default_leaf())
+						} else {
+							add_node(hovered_node, 0, generate_default_leaf())
+							add_node(hovered_node, 0, new_node)
+						}
 					}
 				}
 
@@ -83,11 +102,14 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 			if raylib.IsMouseButtonPressed(raylib.MouseButton.MIDDLE) {
 				scaling_node = hovered_node
 				start_pos = raylib.GetMousePosition()
+				log.info("hej before")
+				fmt.println("hej!!!")
 
 				corner_clicked = get_corner_clicked(
 					clay.GetElementData(clay.ID(hovered_node.clay_id)).boundingBox,
 					mouse_position,
 				)
+				log.info("hej after")
 
 				horizontal_node, vertical_node = find_parent_x_y_scalers(
 					root_node,
@@ -101,6 +123,12 @@ tiling_window_test :: proc(root_node: ^Tiling_Node) {
 		// TODO clean tree? Pop elements that only have a single child!
 	}
 	if raylib.IsMouseButtonDown(raylib.MouseButton.MIDDLE) {
+
+		// log.infof("middle down: hovered_node == nil -> {}", hovered_node == nil)
+		// log.infof("horizontal_node {}", horizontal_node == nil)
+		// log.infof("vertical_node   {}", vertical_node == nil)
+
+		if (vertical_node == nil || horizontal_node == nil) do return
 
 		mouse_diff := raylib.GetMousePosition() - start_pos
 

@@ -1,5 +1,6 @@
 package main
 
+import "core:log"
 import "base:runtime"
 import "core:debug/trace"
 
@@ -24,7 +25,7 @@ import ui_rr "ui/layout/raylib"
 
 GAME_WINDOW_NAME :: "game_window"
 
-USE_TRACESTACK :: #config(USE_TRACESTACK, false)
+USE_TRACESTACK :: #config(USE_TRACESTACK, true)
 
 generate_camera :: proc() -> rl.Camera {
 	return {
@@ -79,9 +80,13 @@ main :: proc() {
 
 		context.assertion_failure_proc = debug_trace_assertion_failure_proc
 	}
-	ok, file_logger_handle := m_log.logger_init()
-	assert(ok, "Could not initialize project Logger.")
-	defer m_log.logger_deinit(file_logger_handle)
+
+	main_console_logger := log.create_console_logger()
+	context.logger = main_console_logger
+	defer log.destroy_console_logger(main_console_logger)
+	// ok, file_logger_handle := m_log.logger_init()
+	// assert(ok, "Could not initialize project Logger.")
+	// defer m_log.logger_deinit(file_logger_handle)
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
@@ -127,7 +132,7 @@ main :: proc() {
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 
-		ui.update()
+		ui.update_state()
 		ui_render_commands := ui.layout(&root_node)
 		ui.render(&ui_render_commands)
 
@@ -138,25 +143,27 @@ main :: proc() {
 		// Render game window
 		// game_rect, game_rect_ok := ui.get_node(&root_node, GAME_WINDOW_NAME)
 		// assert(game_rect_ok)
-		game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-		game_rect := rl.Rectangle {
-			x      = game_window_bounds.x,
-			y      = game_window_bounds.y,
-			width  = game_window_bounds.width,
-			height = game_window_bounds.height,
+		if ui.find_node(&root_node, GAME_WINDOW_NAME) != nil {
+			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
+			game_rect := rl.Rectangle {
+				x      = game_window_bounds.x,
+				y      = game_window_bounds.y,
+				width  = game_window_bounds.width,
+				height = game_window_bounds.height,
+			}
+
+			// game_rect.width = 1000
+			// game_rect.height = 1000
+
+			render.render(
+				gc.current_level,
+				gc.players,
+				gc.cam,
+				&debug_draw_data,
+				gc.game_state,
+				game_rect,
+			)
 		}
-
-		// game_rect.width = 1000
-		// game_rect.height = 1000
-
-		render.render(
-			gc.current_level,
-			gc.players,
-			gc.cam,
-			&debug_draw_data,
-			gc.game_state,
-			game_rect,
-		)
 
 	}
 
