@@ -119,47 +119,47 @@ deinit_game_ui :: proc() {
 	rl.UnloadRenderTexture(state.screen_texture)
 }
 
-main :: proc() {
-	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
-	rl.InitWindow(1000, 1000, "test")
-	defer rl.CloseWindow()
-	rl.SetTargetFPS(180)
-
-	ctx := &state.mu_ctx
-
-	init_game_ui(&state.mu_ctx)
-	defer deinit_game_ui()
-
-	for !rl.WindowShouldClose() {
-		free_all(context.temp_allocator)
-
-		if rl.IsKeyPressed(rl.KeyboardKey.F) {
-
-			rl.ToggleBorderlessWindowed()
-		}
-
-		if ((rl.GetScreenWidth() != state.screen_width) ||
-			   (rl.GetScreenHeight() != state.screen_height)) {
-			resize_ui()
-		}
-
-		handle_input_micro_ui(ctx)
-
-		mu.begin(ctx)
-		//all_windows(ctx)
-		mu.end(ctx)
-
-		render(ctx)
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.RAYWHITE)
-		// Draw 3D stuff
-		rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
-
-		draw_ui()
-
-		rl.EndDrawing()
-	}
-}
+// main :: proc() {
+// 	rl.ConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
+// 	rl.InitWindow(1000, 1000, "test")
+// 	defer rl.CloseWindow()
+// 	rl.SetTargetFPS(180)
+//
+// 	ctx := &state.mu_ctx
+//
+// 	init_game_ui(&state.mu_ctx)
+// 	defer deinit_game_ui()
+//
+// 	for !rl.WindowShouldClose() {
+// 		free_all(context.temp_allocator)
+//
+// 		if rl.IsKeyPressed(rl.KeyboardKey.F) {
+//
+// 			rl.ToggleBorderlessWindowed()
+// 		}
+//
+// 		if ((rl.GetScreenWidth() != state.screen_width) ||
+// 			   (rl.GetScreenHeight() != state.screen_height)) {
+// 			resize_ui()
+// 		}
+//
+// 		handle_input_micro_ui(ctx)
+//
+// 		mu.begin(ctx)
+// 		//all_windows(ctx)
+// 		mu.end(ctx)
+//
+// 		render(ctx)
+// 		rl.BeginDrawing()
+// 		rl.ClearBackground(rl.RAYWHITE)
+// 		// Draw 3D stuff
+// 		rl.DrawRectangle(0, 0, 200, 300, rl.GREEN)
+//
+// 		draw_ui()
+//
+// 		rl.EndDrawing()
+// 	}
+// }
 
 resize_ui :: proc() {
 	state.screen_width = rl.GetScreenWidth()

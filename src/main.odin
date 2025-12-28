@@ -1,12 +1,12 @@
 package main
 
-import "core:strings"
-import "core:fmt"
-import "core:mem"
 import "base:runtime"
 import "core:c"
 import "core:debug/trace"
+import "core:fmt"
 import "core:log"
+import "core:mem"
+import "core:strings"
 import "core:time"
 
 import character "Character"
@@ -24,6 +24,7 @@ import "serialization"
 import clay "ui/clay-odin"
 import rl "vendor:raylib"
 
+import game_ui "ui"
 import ui "ui/layout"
 import ui_rr "ui/layout/raylib"
 
@@ -193,25 +194,36 @@ main :: proc() {
 	game_rt_needs_update := true
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
+		layout_updated := false
 
 		ui.update_state()
-		ui_render_commands, layout_updated := ui.create_layout_tiling(&root_node, true)
+
+		clay.BeginLayout()
+		if clay.UI(clay.ID("root"))(
+			config = clay.ElementDeclaration {
+				layout = clay.LayoutConfig {
+					padding = clay.PaddingAll(10),
+					layoutDirection = .TopToBottom,
+					sizing = clay.Sizing {
+						width = clay.SizingPercent(1),
+						height = clay.SizingPercent(1),
+					},
+				},
+				backgroundColor = {25, 55, 55, 0},
+			},
+		) {
+			// nothing drawn
+			game_ui.stats(gc.players)
+			layout_updated = ui.tiling_window_test(&root_node, rl.IsKeyDown(rl.KeyboardKey.C))
+			// ui_render_commands, layout_updated = ui.create_layout_tiling(
+			// 	&root_node,
+			// 	rl.IsKeyDown(rl.KeyboardKey.C),
+			// )
+		}
+		ui_render_commands := clay.EndLayout()
 		game_rt_needs_update |= layout_updated
 
-		// resize render targets
-
-
-		// log.infof("num rendering commands {}", ui_render_commands.length)
-		// sw : time.Stopwatch
-		// time.stopwatch_start(&sw)
-		// time.stopwatch_stop(&sw)
-
-		// rl.BeginDrawing()
-		// rl.DrawRectangleV({100,100}, {100,100}, rl.RED)
-		// rl.EndDrawing()
-		// time.sleep(100 * time.Millisecond)
-
-		// log.infof("render duration {}", time.duration_milliseconds(time.stopwatch_duration(sw)))
+		// stats_render_commands := game_ui.stats(gc.players)
 
 		debug_draw_data := game.update(&gc)
 
@@ -260,7 +272,12 @@ main :: proc() {
 				0,
 				rl.WHITE,
 			)
+			// ui.render(&stats_render_commands)
+			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
+			free_all(context.temp_allocator)
+
+
 		}
 
 		// render.render(

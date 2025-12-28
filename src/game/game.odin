@@ -15,7 +15,7 @@ import ddu "../debug_draw_utils/"
 import "../editor_player"
 import gs "../game_state"
 import l "../level"
-import gameui "../micro-ui/"
+// import gameui "../micro-ui/"
 import "../mph_ui/"
 import "../player_data"
 import plrs "../players"
@@ -28,48 +28,45 @@ import rl "vendor:raylib"
 import e_tools "../editor/tools"
 
 update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
-	free_all(context.temp_allocator)
-
-
 	dt := rl.GetFrameTime()
 
-	if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
-		   (rl.GetScreenHeight() != gameui.state.screen_height)) {
-		gameui.resize_ui()
-	}
+	// if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
+	// 	   (rl.GetScreenHeight() != gameui.state.screen_height)) {
+	// 	gameui.resize_ui()
+	// }
 
-	gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
-
-	mu.begin(&gameui.state.mu_ctx)
-	mph_ui.all_windows(
-		&gameui.state.mu_ctx,
-		gc.players,
-		gc.game_state,
-		{rl.GetScreenWidth(), rl.GetScreenHeight()},
-		gc.current_level,
-	)
-	//gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
-	mu.end(&gameui.state.mu_ctx)
-	gameui.render(&gameui.state.mu_ctx)
+	// gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
+	//
+	// mu.begin(&gameui.state.mu_ctx)
+	// mph_ui.all_windows(
+	// 	&gameui.state.mu_ctx,
+	// 	gc.players,
+	// 	gc.game_state,
+	// 	{rl.GetScreenWidth(), rl.GetScreenHeight()},
+	// 	gc.current_level,
+	// )
+	// //gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
+	// mu.end(&gameui.state.mu_ctx)
+	// gameui.render(&gameui.state.mu_ctx)
 
 
 	// Is our mouse overlapping any widget? (naive implementation)
-	mouse_over_ui := false
-	for &container in gameui.state.mu_ctx.containers {
-		if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
-		   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
-
-			mouse_over_ui = true
-			break
-		}
-	}
-	mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos) 
-
-	if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
-
-		container := mu.get_container(&gameui.state.mu_ctx, "Log")
-		container.open = !container.open
-	}
+	// mouse_over_ui := false
+	// for &container in gameui.state.mu_ctx.containers {
+	// 	if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
+	// 	   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
+	//
+	// 		mouse_over_ui = true
+	// 		break
+	// 	}
+	// }
+	// mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos) 
+	//
+	// if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
+	//
+	// 	container := mu.get_container(&gameui.state.mu_ctx, "Log")
+	// 	container.open = !container.open
+	// }
 	// time.stopwatch_stop(&timer)
 	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 
@@ -77,9 +74,9 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 
 	if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
 	   position_transform_tool.target_object_id.idx != 0 {
-		fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
+		// fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
 
-		if !mouse_over_ui {
+		// if !mouse_over_ui {
 			if position_transform_tool.dragging == true {
 				position_transform_tool.dragging = false
 				position_transform_tool.target_object_id = spat.notify_object_transform_changed(
@@ -89,7 +86,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 				)
 				//position_transform_tool.target_object_id.idx = 0
 			}
-		}
+		// }
 
 
 	}
@@ -124,7 +121,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			position_transform_tool.active_tool = e_tools.Scale_Tool{}
 		}
 
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && !mouse_over_ui {
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) /*&& !mouse_over_ui*/ {
 			e_tools.on_click(position_transform_tool, gc.cam, gc.current_level)
 
 		}

@@ -70,6 +70,39 @@ node_leaf_distance :: proc(node: Tiling_Node, current_dist: u32 = 0) -> u32 {
 
 draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 	if node.has_content do return hoovered_node
+	// if clay.UI(clay.ID(node.clay_id))(
+	// config = clay.ElementDeclaration{
+	// 	// layout = {
+	// 	// 	layoutDirection = node.layout_dir,
+	// 	// 	sizing = clay.Sizing {
+	// 	// 		clay.SizingPercent(0.1),
+	// 	// 		clay.SizingPercent(0.1),
+	// 	// 	},
+	// 	// 	padding = clay.PaddingAll(8),
+	// 	// 	childGap = 8,
+	// 	// },
+	// 	backgroundColor = {0,0,0,0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+	// 	floating = clay.FloatingElementConfig{offset = {0,0}, expand = clay.Dimensions{100,100}}
+	//
+	// },
+	// ) {
+	// 	for &n in node.sub_nodes {
+	// 		new_hovered_node := draw_nodes(&n)
+	// 		if new_hovered_node != nil do hoovered_node = new_hovered_node
+	// 	}
+	// 	if node_leaf_distance(node^) == 0 {
+	// 		leaf_distance := node_leaf_distance(node^)
+	//
+	// 		// node.draw_content(node)
+	// 		clay.TextDynamic(
+	// 			node.clay_id,
+	// 			clay.TextConfig(
+	// 				{fontSize = 32, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
+	// 			),
+	// 		)
+	// 		if clay.Hovered() do hoovered_node = node
+	// 	}
+	// }
 
 	if clay.UI(clay.ID(node.clay_id))(
 	{
