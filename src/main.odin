@@ -213,12 +213,12 @@ main :: proc() {
 			},
 		) {
 			// nothing drawn
-			game_ui.stats(gc.players)
+			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
+			game_ui.stats(gc.players, &current_level)
 			layout_updated = ui.tiling_window_test(&root_node, rl.IsKeyDown(rl.KeyboardKey.C))
-			// ui_render_commands, layout_updated = ui.create_layout_tiling(
-			// 	&root_node,
-			// 	rl.IsKeyDown(rl.KeyboardKey.C),
-			// )
+			// Need to have a callback mayhaps or similar to attach ui to a Tiling_Node.
+			// Need a way for ui to be drawn directly inside the Tiling node.
+			// Though this is cool though!
 		}
 		ui_render_commands := clay.EndLayout()
 		game_rt_needs_update |= layout_updated
@@ -257,7 +257,6 @@ main :: proc() {
 
 			rl.BeginDrawing()
 			rl.ClearBackground({14, 35, 45, 255})
-			ui.render(&ui_render_commands)
 
 			rl.DrawTexturePro(
 				render_targets.game.texture,
@@ -272,6 +271,7 @@ main :: proc() {
 				0,
 				rl.WHITE,
 			)
+			ui.render(&ui_render_commands)
 			// ui.render(&stats_render_commands)
 			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
