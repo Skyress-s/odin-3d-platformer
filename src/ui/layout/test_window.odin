@@ -6,7 +6,7 @@ import fmt "core:fmt"
 import "core:log"
 import raylib "vendor:raylib"
 
-layout_tiling_window :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
+layout_tiling_windows :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
 	mouse_position := [2]c.float{raylib.GetMousePosition().x, raylib.GetMousePosition().y}
 	root_node := root_node
 	// root := create_tiling_nodes_2X()

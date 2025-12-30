@@ -8,17 +8,19 @@ import "core:log"
 import "core:reflect"
 import "core:time"
 
+import ui "../ui"
 
 import verlet "../Physics/verlet"
 import spat "../Spatial"
 import ddu "../debug_draw_utils/"
 import "../editor_player"
 import gs "../game_state"
+import gctx "../global_context"
 import l "../level"
-// import gameui "../micro-ui/"
 import "../mph_ui/"
 import "../player_data"
 import plrs "../players"
+import layout "../ui/layout"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -27,7 +29,7 @@ import rl "vendor:raylib"
 
 import e_tools "../editor/tools"
 
-update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
+update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
 	dt := rl.GetFrameTime()
 
 	// if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
@@ -60,7 +62,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	// 		break
 	// 	}
 	// }
-	// mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos) 
+	// mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos)
 	//
 	// if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
 	//
@@ -77,32 +79,47 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		// fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
 
 		// if !mouse_over_ui {
-			if position_transform_tool.dragging == true {
-				position_transform_tool.dragging = false
-				position_transform_tool.target_object_id = spat.notify_object_transform_changed(
-					&gc.current_level.collision_object_map,
-					&gc.current_level.spatial_hash_grid,
-					position_transform_tool.target_object_id,
-				)
-				//position_transform_tool.target_object_id.idx = 0
-			}
+		if position_transform_tool.dragging == true {
+			position_transform_tool.dragging = false
+			position_transform_tool.target_object_id = spat.notify_object_transform_changed(
+				&gc.current_level.collision_object_map,
+				&gc.current_level.spatial_hash_grid,
+				position_transform_tool.target_object_id,
+			)
+			//position_transform_tool.target_object_id.idx = 0
+		}
 		// }
 
 
 	}
 
 	// should we change to another state
-	if rl.IsKeyPressed(.F10) || rl.IsKeyPressed(.K) || rl.IsKeyPressed(.Q) {
+	if rl.IsKeyPressed(.Q) {
 		switch gc.players.mode {
 		case plrs.Player_Mode.Game:
+			// enable editor mode
 			rl.EnableCursor()
 			gc.players.editor.position = gc.players.game.verlet_component.position
 			gc.players.editor.look_radians = gc.players.game.look_angles
 
+			found_node := layout.find_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
+			if found_node == nil {
+				ok, new_editor_details_node := layout.register_node(gc.root_node_tiling_ui, ui.make_editor_details_node(gc))
+				assert(ok)
+				found_node = new_editor_details_node
+			}
+
+
 			gc.players.mode = plrs.Player_Mode.Editor
 			character.pause_speedrun(&gc.players.game)
 		case plrs.Player_Mode.Editor:
+			// enable game mode
 			rl.DisableCursor()
+
+			
+			if found_node := layout.find_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME); found_node != nil {
+				layout.unregister_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
+			}
 
 			gc.players.mode = plrs.Player_Mode.Game
 			character.start_speedrun(&gc.players.game)
@@ -121,7 +138,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 			position_transform_tool.active_tool = e_tools.Scale_Tool{}
 		}
 
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) /*&& !mouse_over_ui*/ {
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT)  /*&& !mouse_over_ui*/{
 			e_tools.on_click(position_transform_tool, gc.cam, gc.current_level)
 
 		}
@@ -282,12 +299,4 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	debug_draw_data.active_cell_hash = active_hash_key
 	return debug_draw_data
 	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
-}
-
-// Class that contains most resources that are global / created at the very start of the game.
-Global_Context :: distinct struct {
-	players:       ^plrs.Players,
-	game_state:    ^gs.Game_State,
-	current_level: ^l.Level,
-	cam:           ^rl.Camera3D,
 }

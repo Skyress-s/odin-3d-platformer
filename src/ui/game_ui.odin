@@ -10,6 +10,38 @@ import l "../level"
 import plrs "../players/"
 import clay "clay-odin"
 import layout "layout"
+import gctx "../global_context"
+
+layout_game_ui :: proc(parent_node: ^layout.Tiling_Node) {
+	gc := cast(^gctx.Global_Context)parent_node.userdata
+	assert(gc != nil)
+
+	if gc.players.mode == .Game {
+		layout_stats(gc.players, gc.current_level)
+		layout_reticle(gc.players)
+		layout_speedrun_timer(gc.players)
+	} else {
+		// Might want to have something here?
+		layout_reticle(gc.players)
+	}
+
+
+}
+
+
+layout_editor_details :: proc(parent_node: ^layout.Tiling_Node) {
+	gc := cast(^gctx.Global_Context)parent_node.userdata
+	assert(gc != nil)
+
+
+}
+
+EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
+make_editor_details_node :: proc(gc : ^gctx.Global_Context) -> layout.Tiling_Node {
+	node := layout.make_new_node_with_draw_proc(EDITOR_DETAILS_PANEL_NAME, layout_editor_details, gc)
+	return node
+}
+
 text_entry :: proc(text: string, text_alignment : clay.TextAlignment = .Left) {
 	clay.TextDynamic(
 		text,

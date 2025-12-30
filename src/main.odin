@@ -15,7 +15,7 @@ import "core:testing"
 import e_tools "editor/tools"
 import "game"
 import gs "game_state"
-import gameui "micro-ui"
+import gctx "global_context"
 import m_log "mph_log"
 import plrs "players"
 import rlb "raylib_bridge"
@@ -162,19 +162,10 @@ main :: proc() {
 
 	character.start_speedrun(&players.game)
 
-	gc: game.Global_Context = {
-		players       = &players,
-		game_state    = &game_state,
-		current_level = &current_level,
-		cam           = &cam,
-	}
 
 
 	rlb.raylib_init()
 	defer rlb.raylib_deinit()
-
-	gameui.init_game_ui(&gameui.state.mu_ctx)
-	defer gameui.deinit_game_ui()
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
@@ -184,7 +175,18 @@ main :: proc() {
 	root_node := ui.create_root_node()
 	defer ui.delete_all_child_nodes(&root_node)
 
-	ui.register_node(&root_node, ui.make_new_node_with_draw_proc(strings.clone(GAME_WINDOW_NAME), layout_game_ui, &gc)) // todo how to safe free string
+	gc: gctx.Global_Context = {
+		players       = &players,
+		game_state    = &game_state,
+		current_level = &current_level,
+		cam           = &cam,
+		root_node_tiling_ui = &root_node
+	}
+
+	ui.register_node(
+		&root_node,
+		ui.make_new_node_with_draw_proc(strings.clone(GAME_WINDOW_NAME), game_ui.layout_game_ui, &gc),
+	) // todo how to safe free string
 	// ui.register_node(&root_node, ui.make_new_node(strings.clone()"Debug"))
 
 	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
@@ -212,14 +214,10 @@ main :: proc() {
 				backgroundColor = {25, 55, 55, 0},
 			},
 		) {
-			// nothing drawn
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-			// game_ui.stats(gc.players, &current_level)
-			layout_updated = ui.layout_tiling_window(&root_node, rl.IsKeyDown(rl.KeyboardKey.C))
-			// Need to have a callback mayhaps or similar to attach ui to a Tiling_Node.
-			// Need a way for ui to be drawn directly inside the Tiling node.
-			// Though this is cool though!
+			layout_updated = ui.layout_tiling_windows(&root_node, rl.IsKeyDown(rl.KeyboardKey.C))
 		}
+
 		ui_render_commands := clay.EndLayout()
 		game_rt_needs_update |= layout_updated
 
@@ -258,6 +256,7 @@ main :: proc() {
 			rl.BeginDrawing()
 			rl.ClearBackground({14, 35, 45, 255})
 
+			// draw game
 			rl.DrawTexturePro(
 				render_targets.game.texture,
 				rl.Rectangle {
@@ -300,10 +299,4 @@ test_main :: proc(t: ^testing.T) {
 
 }
 
-layout_game_ui :: proc(parent_node: ^ui.Tiling_Node){
-	gc := cast(^game.Global_Context)parent_node.userdata
-	game_ui.layout_stats(gc.players, gc.current_level)
-	game_ui.layout_reticle(gc.players)
-	game_ui.layout_speedrun_timer(gc.players)
 
-}
