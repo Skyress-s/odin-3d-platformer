@@ -163,7 +163,6 @@ main :: proc() {
 	character.start_speedrun(&players.game)
 
 
-
 	rlb.raylib_init()
 	defer rlb.raylib_deinit()
 
@@ -176,16 +175,20 @@ main :: proc() {
 	defer ui.delete_all_child_nodes(&root_node)
 
 	gc: gctx.Global_Context = {
-		players       = &players,
-		game_state    = &game_state,
-		current_level = &current_level,
-		cam           = &cam,
-		root_node_tiling_ui = &root_node
+		players             = &players,
+		game_state          = &game_state,
+		current_level       = &current_level,
+		cam                 = &cam,
+		root_node_tiling_ui = &root_node,
 	}
 
 	ui.register_node(
 		&root_node,
-		ui.make_new_node_with_draw_proc(strings.clone(GAME_WINDOW_NAME), game_ui.layout_game_ui, &gc),
+		ui.make_new_node_with_draw_proc(
+			strings.clone(GAME_WINDOW_NAME),
+			game_ui.layout_game_ui,
+			&gc,
+		),
 	) // todo how to safe free string
 	// ui.register_node(&root_node, ui.make_new_node(strings.clone()"Debug"))
 
@@ -298,5 +301,3 @@ test_main :: proc(t: ^testing.T) {
 	main()
 
 }
-
-
