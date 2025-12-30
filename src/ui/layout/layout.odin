@@ -21,8 +21,8 @@ Tiling_Node :: distinct struct {
 	clay_id:      string,
 	layout_dir:   clay.LayoutDirection,
 	size_percent: [2]f32,
-	has_content:  bool,
-	// draw_content: proc(parent_node: ^Tiling_Node),
+	layout_proc:  proc(parent_node: ^Tiling_Node),
+	userdata:     rawptr,
 }
 
 generate_root_node :: proc() -> Tiling_Node {
@@ -30,7 +30,23 @@ generate_root_node :: proc() -> Tiling_Node {
 	return make_new_node("root")
 }
 
-make_new_node :: proc(name: string) -> Tiling_Node {
+make_new_node :: proc {
+	make_new_node_with_draw_proc,
+	make_new_node_with_name,
+}
+
+make_new_node_with_draw_proc :: proc(
+	name: string,
+	layout_proc: proc(parent_node: ^Tiling_Node),
+	userdata: rawptr,
+) -> Tiling_Node {
+	new_node := make_new_node_with_name(name)
+	new_node.userdata = userdata
+	new_node.layout_proc = layout_proc
+	return new_node
+}
+
+make_new_node_with_name :: proc(name: string) -> Tiling_Node {
 	return Tiling_Node{layout_dir = .TopToBottom, clay_id = name, size_percent = {0.5, 0.5}}
 }
 
@@ -68,8 +84,9 @@ node_leaf_distance :: proc(node: Tiling_Node, current_dist: u32 = 0) -> u32 {
 	return max_dist
 }
 
-draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
-	if node.has_content do return hoovered_node
+layout_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
+	// if node.has_content do return hoovered_node
+
 	// if clay.UI(clay.ID(node.clay_id))(
 	// config = clay.ElementDeclaration{
 	// 	// layout = {
@@ -116,23 +133,33 @@ draw_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 			padding = clay.PaddingAll(8),
 			childGap = 8,
 		},
-		backgroundColor = {0,0,0,0} // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
 	},
 	) {
+		if node.layout_proc != nil {
+			node.layout_proc(node)
+			// return hoovered_node
+		}
 		for &n in node.sub_nodes {
-			new_hovered_node := draw_nodes(&n)
+			new_hovered_node := layout_nodes(&n)
 			if new_hovered_node != nil do hoovered_node = new_hovered_node
 		}
 		if node_leaf_distance(node^) == 0 {
 			leaf_distance := node_leaf_distance(node^)
 
 			// node.draw_content(node)
-			clay.TextDynamic(
-				node.clay_id,
-				clay.TextConfig(
-					{fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
-				),
-			)
+			if clay.UI(clay.ID(fmt.tprintf("{}_debug_name", node.clay_id)))(
+				config = clay.ElementDeclaration {
+					floating = clay.FloatingElementConfig{attachTo = .Parent},
+				},
+			) {
+				clay.TextDynamic(
+					node.clay_id,
+					clay.TextConfig(
+						{fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT},
+					),
+				)
+			}
 			if clay.Hovered() do hoovered_node = node
 		}
 	}

@@ -6,13 +6,13 @@ import fmt "core:fmt"
 import "core:log"
 import raylib "vendor:raylib"
 
-tiling_window_test :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
+layout_tiling_window :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
 	mouse_position := [2]c.float{raylib.GetMousePosition().x, raylib.GetMousePosition().y}
 	root_node := root_node
 	// root := create_tiling_nodes_2X()
 
 	normalize_entire_tile_tree(root_node)
-	hovered_node := draw_nodes(root_node)
+	hovered_node := layout_nodes(root_node)
 
 	if !allow_edit_layout do return
 
@@ -65,7 +65,13 @@ tiling_window_test :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) ->
 
 						new_node := generate_default_leaf()
 						new_node.clay_id = hovered_node.clay_id
+						new_node.userdata = hovered_node.userdata
+						new_node.layout_proc = hovered_node.layout_proc
+
+						hovered_node.userdata = nil
+						hovered_node.layout_proc = nil
 						hovered_node.clay_id = make_new_id()
+
 
 						if direction_clicked == .Down {
 							add_node(hovered_node, 0, generate_default_leaf())
@@ -84,8 +90,14 @@ tiling_window_test :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) ->
 						)
 					} else {
 						hovered_node.layout_dir = .LeftToRight
+
 						new_node := generate_default_leaf()
 						new_node.clay_id = hovered_node.clay_id
+						new_node.userdata = hovered_node.userdata
+						new_node.layout_proc = hovered_node.layout_proc
+
+						hovered_node.userdata = nil
+						hovered_node.layout_proc = nil
 						hovered_node.clay_id = make_new_id()
 
 						if direction_clicked == .Left {

@@ -37,7 +37,7 @@ create_layout_tiling :: proc(
 	root_node: ^Tiling_Node, allow_layout_edit: bool,
 ) -> (render_commands: clay.ClayArray(clay.RenderCommand), layout_updated: bool) {
 	clay.BeginLayout()
-	layout_updated = tiling_window_test(root_node, allow_layout_edit)
+	layout_updated = layout_tiling_window(root_node, allow_layout_edit)
 	return clay.EndLayout(), layout_updated
 }
 
