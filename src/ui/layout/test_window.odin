@@ -215,7 +215,9 @@ layout_tiling_windows :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool)
 
 // Does not do anything specific atm. Placeholder
 create_root_node :: proc() -> (root_node: Tiling_Node) {
-	return generate_default_leaf()
+	root_node =make_new_node_with_name(make_new_id())
+	root_node.layout_dir = .LeftToRight
+	return root_node
 }
 
 create_tiling_nodes_2X :: proc() -> (root_node: Tiling_Node) {

@@ -33,6 +33,7 @@ COLOR_ORANGE :: clay.Color{225, 138, 50, 255}
 COLOR_BLUE :: clay.Color{111, 173, 162, 255}
 COLOR_TEAL :: clay.Color{111, 173, 162, 255}
 COLOR_BLUE_DARK :: clay.Color{2, 32, 82, 255}
+COLOR_LIGHT_BLACK :: clay.Color{100, 100, 100, 255}
 COLOR_BLACK :: clay.Color{0, 0, 0, 255}
 
 COLOR_GREEN :: clay.Color{50, 200, 50, 255}

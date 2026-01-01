@@ -277,6 +277,9 @@ main :: proc() {
 			// ui.render(&stats_render_commands)
 			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
+
+			if gc.test_bool do fmt.printfln("yes!")
+
 			free_all(context.temp_allocator)
 
 
