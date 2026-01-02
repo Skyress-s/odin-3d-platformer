@@ -232,8 +232,11 @@ main :: proc() {
 		game_rt_needs_update |= layout_updated
 
 		// stats_render_commands := game_ui.stats(gc.players)
-
-		debug_draw_data := game.update(&gc)
+debug_draw_data :render.Debug_Draw_Data
+		// if (rl.GetTime() > 1)
+		// {
+			 debug_draw_data = game.update(&gc)
+		// }
 
 		// Render phase
 
@@ -285,9 +288,12 @@ main :: proc() {
 			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
 
-			if gc.test_bool do fmt.printfln("yes!")
 
+
+
+				// log.warnf("before_free_all {}", gc.players.game.verlet_component.position)
 			free_all(context.temp_allocator)
+				// log.warnf("after_free_all {}", gc.players.game.verlet_component.position)
 
 
 		}

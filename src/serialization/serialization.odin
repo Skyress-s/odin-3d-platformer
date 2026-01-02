@@ -51,10 +51,14 @@ Level_Serialization_Data :: struct {
 delete_level_serialization_data :: proc(lsd: ^Level_Serialization_Data) {
 	// delete(lsd.name)
 	// delete(lsd.objects)
-	for &scod in lsd.objects {
-		delete_serializable_collision_object_data(&scod)
-	}
+
+	// Memory in scod is transferred to level
+	// for &scod in lsd.objects {
+	// 	delete_serializable_collision_object_data(&scod)
+	// }
 	delete(lsd.objects)
+
+	// lsd.objects
 
 	delete(lsd.finish_volumes_ids)
 	delete(lsd.kill_volume_ids)

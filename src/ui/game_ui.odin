@@ -57,7 +57,7 @@ layout_game_ui :: proc(parent_node: ^layout.Tiling_Node) {
 			},
 		) {
 			layout_stats(gc.players, gc.current_level)
-			layout_cheats_panel(gc.players, gc.game_state, &gc.test_bool)
+			layout_cheats_panel(gc.players, gc.game_state)
 		}
 	} else {
 		// Might want to have something here?
@@ -405,7 +405,6 @@ Cheats_Panel_UI_State :: struct {
 layout_cheats_panel :: proc(
 	players: ^plrs.Players,
 	game_state: ^game_state.Game_State,
-	test_bool: ^bool,
 ) {
 
 	if clay.UI(clay.ID("cheats_panel_main"))(

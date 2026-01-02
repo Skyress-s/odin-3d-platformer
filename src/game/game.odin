@@ -31,6 +31,7 @@ import e_tools "../editor/tools"
 
 update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
 	dt := rl.GetFrameTime()
+	// dt = 0.06
 
 	// if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
 	// 	   (rl.GetScreenHeight() != gameui.state.screen_height)) {
@@ -104,7 +105,10 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 
 			found_node := layout.find_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
 			if found_node == nil {
-				ok, new_editor_details_node := layout.register_node(gc.root_node_tiling_ui, ui.make_editor_details_node(gc))
+				ok, new_editor_details_node := layout.register_node(
+					gc.root_node_tiling_ui,
+					ui.make_editor_details_node(gc),
+				)
 				assert(ok)
 				found_node = new_editor_details_node
 			}
@@ -116,8 +120,11 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 			// enable game mode
 			rl.DisableCursor()
 
-			
-			if found_node := layout.find_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME); found_node != nil {
+
+			if found_node := layout.find_node(
+				gc.root_node_tiling_ui,
+				ui.EDITOR_DETAILS_PANEL_NAME,
+			); found_node != nil {
 				layout.unregister_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
 			}
 
@@ -205,6 +212,7 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 	case plrs.Player_Mode.Game:
 		if !gc.game_state.finished_level {
 			verlet.velocity_verlet_leap(&gc.players.game.verlet_component, dt)
+
 			character.update_character_physics(
 				&gc.players.game,
 				gc.current_level,
@@ -297,6 +305,7 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 
 	debug_draw_data.active_cell = player_overlapping_cells
 	debug_draw_data.active_cell_hash = active_hash_key
+
 	return debug_draw_data
 	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
 }

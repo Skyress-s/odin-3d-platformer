@@ -14,5 +14,4 @@ Global_Context :: distinct struct {
 	current_level:       ^l.Level,
 	cam:                 ^rl.Camera3D,
 	root_node_tiling_ui: ^layout.Tiling_Node,
-	test_bool: bool
 }
