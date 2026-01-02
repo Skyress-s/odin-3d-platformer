@@ -226,11 +226,11 @@ deinit :: proc(arena: clay.Arena) {
 update_state :: proc() {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
-	// if (raylib.IsKeyPressed(.D)) {
-	// 	@(static) debugModeEnabled: bool
-	// 	debugModeEnabled = !debugModeEnabled
-	// 	clay.SetDebugModeEnabled(debugModeEnabled)
-	// }
+	if (raylib.IsKeyPressed(.U)) {
+		@(static) debugModeEnabled: bool
+		debugModeEnabled = !debugModeEnabled
+		clay.SetDebugModeEnabled(debugModeEnabled)
+	}
 	clay.SetPointerState(
 		transmute(clay.Vector2)raylib.GetMousePosition(),
 		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),

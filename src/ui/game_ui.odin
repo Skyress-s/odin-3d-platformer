@@ -24,11 +24,12 @@ layout_game_ui :: proc(parent_node: ^layout.Tiling_Node) {
 		layout_reticle(gc.players)
 		layout_speedrun_timer(gc.players)
 
-		if clay.UI()(
+		if clay.UI(clay.ID("Game_Divide"))(
 			config = clay.ElementDeclaration {
 				layout = clay.LayoutConfig {
 					layoutDirection = .LeftToRight,
-					sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
+					sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
+					// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
 				},
 				backgroundColor = {50, 50, 50, 50},
 			},
@@ -106,9 +107,10 @@ layout_stats :: proc(
 
 		// Velocities
 		text_entry(fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity))
+		text_entry(fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)))
 		vel_xz := char_data.verlet_component.velocity
 		vel_xz.y = 0
-		text_entry(fmt.tprintf("Velocity_XZ {:.1f}", linalg.length(vel_xz)))
+		text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
 		text_entry(fmt.tprintf("Current State {}", char_data.current_state))
 
 		// Rope length
