@@ -185,7 +185,7 @@ layout_speedrun_timer :: proc(players: ^plrs.Players) {
 }
 
 // Important that the memory of 'clicked' exitsts until 'EndLayout' is called
-Layout_Button :: proc(text: string, color, color_hover : clay.Color, clicked: ^bool,) {
+layout_button :: proc(text: string, color, color_hover: clay.Color, clicked: ^bool) {
 
 
 	if clay.UI()(
@@ -194,13 +194,16 @@ Layout_Button :: proc(text: string, color, color_hover : clay.Color, clicked: ^b
 				layoutDirection = .LeftToRight,
 				sizing = {clay.SizingGrow(), clay.SizingFit()},
 			},
-
 			backgroundColor = clay.Hovered() ? color_hover : color,
 		},
 	) {
 
-		on_hoover :: proc "c" (id: clay.ElementId, pointerData: clay.PointerData, userData: rawptr){
-			clicked := cast(^bool)userData 
+		on_hoover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
+		) {
+			clicked := cast(^bool)userData
 			clicked^ = pointerData.state == .PressedThisFrame
 		}
 		clay.OnHover(on_hoover, clicked)
@@ -209,12 +212,85 @@ Layout_Button :: proc(text: string, color, color_hover : clay.Color, clicked: ^b
 	}
 }
 
+layout_checkbox :: proc(
+	text: string,
+	color, color_hover: clay.Color,
+	checked_on: ^bool,
+	active: rune = 'x',
+	inactive: rune = ' ',
+) {
+	if clay.UI()(
+		config = clay.ElementDeclaration {
+			layout = {
+				layoutDirection = .LeftToRight,
+				sizing = {clay.SizingGrow(), clay.SizingFit()},
+			},
+			backgroundColor = clay.Hovered() ? color_hover : color,
+		},
+	) {
+
+		on_hoover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
+		) {
+			checked_on := cast(^bool)userData
+			if pointerData.state == .PressedThisFrame do checked_on^ = !checked_on^
+
+		}
+		clay.OnHover(on_hoover, checked_on)
+
+		checked_rune := checked_on^ ? 'x' : ' '
+		text_entry(fmt.tprintf("[{}] ", checked_rune))
+		text_entry(text)
+	}
+}
+
+layout_dropdown :: proc(
+	text: string,
+	color, color_hover: clay.Color,
+	dropped_down: ^bool,
+) -> bool {
+
+	if clay.UI()(
+		config = clay.ElementDeclaration {
+			layout = clay.LayoutConfig {
+				layoutDirection = .TopToBottom,
+				sizing = {clay.SizingGrow(), clay.SizingFit()},
+				padding = clay.PaddingAll(4),
+			},
+			backgroundColor = clay.Hovered() ? color_hover : color,
+		},
+	) {
+		layout_checkbox(text, color, color_hover, dropped_down, 'v', '-')
+		// if clay.UI()(
+		// 	config = clay.ElementDeclaration {
+		// 		layout = clay.LayoutConfig {
+		// 			layoutDirection = .TopToBottom,
+		// 			sizing = {clay.SizingGrow(), clay.SizingFit()},
+		// 			padding = clay.PaddingAll(4)
+		// 		},
+		// 		backgroundColor = clay.Hovered() ? color_hover : color,
+		// 	},
+		// ) {
+		//
+		// }
+
+	}
+
+	return dropped_down^ // mainly returning for ergonomics -> easily place in if
+}
+
 Cheats_Panel_UI_State :: struct {
 	show_controls, show_cheats: bool,
 }
 
 
-layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game_State, test_bool: ^bool) {
+layout_cheats_panel :: proc(
+	players: ^plrs.Players,
+	game_state: ^game_state.Game_State,
+	test_bool: ^bool,
+) {
 
 	if clay.UI(clay.ID("cheats_panel_main"))(
 		config = clay.ElementDeclaration {
@@ -252,26 +328,59 @@ layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game
 				layout = {
 					layoutDirection = .TopToBottom,
 					// sizing = {clay.SizingFixed(50), clay.SizingFixed(50)},
-					sizing          = {clay.SizingGrow(), clay.SizingGrow()},
+					sizing          = {clay.SizingGrow(), clay.SizingFit()},
 				},
 				backgroundColor = layout.COLOR_BLUE,
 			},
 		) {
-			Layout_Button(fmt.tprint("test button"), layout.COLOR_BLACK, layout.COLOR_LIGHT_BLACK, test_bool)
+			layout_button(
+				fmt.tprint("test button"),
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				test_bool,
+			)
+			@(static) bingus_bool := false
+			layout_checkbox(
+				fmt.tprint("test checkbox"),
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				&bingus_bool,
+			)
 
 		}
-		// mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
-		// mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
-		// mu.checkbox(
-		// 	ctx,
-		// 	"debug_draw_utils",
-		// 	&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-		// )
-		// mu.checkbox(
-		// 	ctx,
-		// 	"player_in_active_cell",
-		// 	&game_state.cheat_state.change_color_when_player_in_cell,
-		// )
+		@(static) bingus_bool2 := false
+		if layout_dropdown(
+			fmt.tprint("Controls"),
+			layout.COLOR_BLACK,
+			layout.COLOR_LIGHT_BLACK,
+			&bingus_bool2,
+		) {
+			layout_checkbox(
+				"air_jumping",
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				&players.game.air_jumping_cheat,
+			)
+			layout_checkbox(
+				"SHG_bounds",
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				&game_state.cheat_state.draw_bounds,
+			)
+			layout_checkbox(
+				"debug_draw_utils",
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				&game_state.cheat_state.draw_debug_draw_utilities_instructions,
+			)
+			layout_checkbox(
+				"player_in_active_cell",
+				layout.COLOR_BLACK,
+				layout.COLOR_LIGHT_BLACK,
+				&game_state.cheat_state.change_color_when_player_in_cell,
+			)
+		}
+
 		// 		}
 		//
 		// 		mu.layout_next(ctx)
@@ -365,8 +474,8 @@ layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game
 
 layout_controls_sheet :: proc() {
 
-	text_entry(fmt.tprint("WASD	- Movement"), .Left)
-	text_entry(fmt.tprint("SPACE	- Jump"), .Left)
-	text_entry(fmt.tprint("R		- Reset Run"), .Left)
-	text_entry(fmt.tprint("Q		- Open / Close Editor"), .Left)
+	text_entry(fmt.tprint("WASD  - Movement"), .Left)
+	text_entry(fmt.tprint("SPACE - Jump"), .Left)
+	text_entry(fmt.tprint("R     - Reset Run"), .Left)
+	text_entry(fmt.tprint("Q     - Open / Close Editor"), .Left)
 }
