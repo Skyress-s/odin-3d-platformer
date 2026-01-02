@@ -20,6 +20,10 @@ clay_color_to_rl_color :: proc(color: clay.Color) -> rl.Color {
 
 raylib_fonts := [dynamic]Raylib_Font{}
 
+delete_raylib_fonts :: proc(){
+	delete(raylib_fonts)
+}
+
 // Alias for compatibility, default to ascii support
 measure_text :: measure_text_ascii
 

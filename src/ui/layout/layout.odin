@@ -1,5 +1,6 @@
 package layout
 import clay "../clay-odin"
+import "core:log"
 import c "core:c"
 import "core:fmt"
 import "core:math"
@@ -410,8 +411,7 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 	for &n in node.sub_nodes {
 		// todo only preform this is its not empty?
 		delete_all_child_nodes(&n, true)
-		delete(n.clay_id)
-		delete(n.sub_nodes)
+		delete_node_memory(&n)
 	}
 
 	// delete(node.sub_nodes)
@@ -420,11 +420,18 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 
 }
 
+delete_node_memory :: proc(node: ^Tiling_Node){
+	delete(node.sub_nodes)
+	delete(node.clay_id)
+}
+
 delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool) {
 	delete_all_child_nodes(node_to_delete, true)
 
 	parent_node, node_index_parent := find_node_parent(root, node_to_delete)
 	unordered_remove(&parent_node.sub_nodes, node_index_parent)
+
+	delete_node_memory(node_to_delete)
 
 	if len(parent_node.sub_nodes) == 1 {
 		if parent_node.clay_id == root.clay_id {
@@ -436,6 +443,10 @@ delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool) {
 		assert(grandparent_index != -1)
 		if grandparent_index == -1 do return
 		grandparent_node.sub_nodes[grandparent_index] = parent_node.sub_nodes[0]
+
+		// delete(parent_node.clay_id)
+		// delete(parent_node.sub_nodes)
+
 	}
 
 	return true
@@ -443,8 +454,11 @@ delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool) {
 
 delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 	delete_all_child_nodes(&parent_node.sub_nodes[index], true)
+	delete_node_memory(&parent_node.sub_nodes[index])
 
 	unordered_remove(&parent_node.sub_nodes, index)
+
+
 
 	if len(parent_node.sub_nodes) == 1 {
 		if parent_node.clay_id == root.clay_id {
@@ -453,11 +467,14 @@ delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 			return
 		}
 
+
 		grandparent_node, grandparent_index := find_node_parent(root, parent_node)
 		assert(grandparent_index != -1)
 		if grandparent_index == -1 do return
 		grandparent_node.sub_nodes[grandparent_index] = parent_node.sub_nodes[0]
+		// delete_node_memory(parent_node)
 	}
+
 }
 
 add_node :: proc(node: ^Tiling_Node, index: i32, new_node: Tiling_Node) {
@@ -479,11 +496,11 @@ add_node2 :: proc(
 	return inject_ok, &node.sub_nodes[index]
 }
 
-@(test)
-test_delete_node :: proc(t: ^testing.T) {
-	root_node := create_tiling_nodes_2X()
-
-
-	// delete_node(&root_node)
-	free_all(context.temp_allocator)
-}
+// @(test)
+// test_delete_node :: proc(t: ^testing.T) {
+// 	root_node := create_tiling_nodes_2X()
+//
+//
+// 	// delete_node(&root_node)
+// 	free_all(context.temp_allocator)
+// }

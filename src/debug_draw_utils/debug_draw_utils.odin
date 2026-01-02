@@ -169,6 +169,8 @@ draw_instruction :: proc(debug_draw_instruction: ^Instruction) {
 update_lifetime_and_clean :: proc(dt: f32) {
 
 	to_remove: [dynamic]Id_Handle
+	defer delete(to_remove)
+
 	for &i in &ins_handle_map.items {
 		if hms.skip(i) do continue
 

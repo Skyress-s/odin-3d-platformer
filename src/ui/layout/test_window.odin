@@ -4,9 +4,15 @@ import clay "../clay-odin"
 import "core:c"
 import fmt "core:fmt"
 import "core:log"
+import "core:testing"
 import raylib "vendor:raylib"
 
-layout_tiling_windows :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool) -> (layout_updated : bool){
+layout_tiling_windows :: proc(
+	root_node: ^Tiling_Node,
+	allow_edit_layout: bool,
+) -> (
+	layout_updated: bool,
+) {
 	mouse_position := [2]c.float{raylib.GetMousePosition().x, raylib.GetMousePosition().y}
 	root_node := root_node
 	// root := create_tiling_nodes_2X()
@@ -116,7 +122,7 @@ layout_tiling_windows :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool)
 		}
 		{
 			if raylib.IsMouseButtonPressed(raylib.MouseButton.MIDDLE) {
-			layout_updated = true
+				layout_updated = true
 				scaling_node = hovered_node
 				start_pos = raylib.GetMousePosition()
 				log.info("hej before")
@@ -215,7 +221,7 @@ layout_tiling_windows :: proc(root_node: ^Tiling_Node, allow_edit_layout : bool)
 
 // Does not do anything specific atm. Placeholder
 create_root_node :: proc() -> (root_node: Tiling_Node) {
-	root_node =make_new_node_with_name(make_new_id())
+	root_node = make_new_node_with_name(make_new_id())
 	root_node.layout_dir = .LeftToRight
 	return root_node
 }
@@ -249,3 +255,21 @@ create_tiling_nodes_2X :: proc() -> (root_node: Tiling_Node) {
 }
 
 
+@(test)
+test_tiling_nodes :: proc(t: ^testing.T) {
+	// init(ui_rr.measure_text)
+	// defer deinit()
+
+	root_node := create_root_node()
+	register_node(&root_node, make_new_node_with_name(fmt.aprint("test")))
+	register_node(&root_node, make_new_node_with_name(fmt.aprint("test2")))
+	unregister_node(&root_node, "test")
+	defer {
+		delete_all_child_nodes(&root_node)
+		delete(root_node.sub_nodes)
+		delete(root_node.clay_id)
+
+	}
+
+	free_all(context.temp_allocator)
+}

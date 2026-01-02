@@ -1,5 +1,6 @@
 package raylib_bridge
 
+import "core:log"
 import rl "vendor:raylib"
 import spat "../Spatial"
 import "../lightray"
@@ -36,7 +37,8 @@ raylib_init :: proc() {
 }
 
 raylib_deinit :: proc() {
-	rl.CloseWindow()
+	// log.errorf("Reached end")
+	// rl.CloseWindow()
 	lightray.destroy_lighting()
 
 }

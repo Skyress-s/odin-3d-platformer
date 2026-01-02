@@ -23,6 +23,7 @@ import "render"
 import "serialization"
 import clay "ui/clay-odin"
 import rl "vendor:raylib"
+import l "level"
 
 import game_ui "ui"
 import ui "ui/layout"
@@ -168,8 +169,9 @@ main :: proc() {
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
-	ui.init(ui_rr.measure_text)
-	defer ui.deinit()
+	clay_memory_arena := ui.init(ui_rr.measure_text)
+	defer ui_rr.delete_raylib_fonts()
+	defer ui.deinit(clay_memory_arena)
 
 	root_node := ui.create_root_node()
 	defer ui.delete_all_child_nodes(&root_node)
@@ -180,6 +182,10 @@ main :: proc() {
 		current_level       = &current_level,
 		cam                 = &cam,
 		root_node_tiling_ui = &root_node,
+	}
+
+	defer {
+		l.delete_level(gc.current_level)
 	}
 
 	ui.register_node(
@@ -302,5 +308,4 @@ main :: proc() {
 @(test)
 test_main :: proc(t: ^testing.T) {
 	main()
-
 }

@@ -43,10 +43,26 @@ Level_Serialization_Data :: struct {
 	finish_volumes_ids:   [dynamic]spat.Collision_Object_Id,
 	kill_volume_ids:      [dynamic]spat.Collision_Object_Id,
 	grapple_volume_ids:   [dynamic]spat.Collision_Object_Id,
-
-	author_time: 		  f64
+	author_time:          f64,
 
 	//objects: [dynamic]int,
+}
+
+delete_level_serialization_data :: proc(lsd: ^Level_Serialization_Data) {
+	// delete(lsd.name)
+	// delete(lsd.objects)
+	for &scod in lsd.objects {
+		delete_serializable_collision_object_data(&scod)
+	}
+	delete(lsd.objects)
+
+	delete(lsd.finish_volumes_ids)
+	delete(lsd.kill_volume_ids)
+	delete(lsd.grapple_volume_ids)
+}
+
+delete_serializable_collision_object_data :: proc(scod: ^Serializable_Collision_Object_Data) {
+	delete(scod.tris)
 }
 
 // filepath is relative to root of project (where main.odin is)
@@ -56,8 +72,9 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
 		start_position       = level.start_position,
 		start_look_direction = level.start_look_direction,
-		author_time = level.author_time
+		author_time          = level.author_time,
 	}
+	defer delete_level_serialization_data(&level_serialization_data)
 
 	for id in level.finish_volumes {
 		append_elem(&level_serialization_data.finish_volumes_ids, id)
@@ -85,7 +102,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 			rotation = {real(rot), imag(rot), jmag(rot), kmag(rot)},
 			scale    = i.transform.scale,
 		}
-		
+
 		append_elem(
 			&level_serialization_data.objects,
 			Serializable_Collision_Object_Data {
@@ -98,6 +115,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 
 
 	data, err := json.marshal(level_serialization_data, {pretty = true})
+	defer delete(data)
 	assert(err == nil, fmt.aprint("Json save_to_file_level() error: ", err))
 
 	// data_as_string := "ops"
@@ -107,6 +125,8 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 
 load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	data, success := os.read_entire_file(filepath)
+	defer delete(data)
+
 	assert(
 		success == true,
 		fmt.aprint(
@@ -115,6 +135,7 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		),
 	)
 	loaded_serialized_level_data: Level_Serialization_Data
+	defer delete_level_serialization_data(&loaded_serialized_level_data)
 
 	err := json.unmarshal(data, &loaded_serialized_level_data)
 	assert(err == nil, fmt.aprint(err))
@@ -125,7 +146,8 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
 
 	// In case somebody loads an old level (author_time will be laoded as 0)
-	loaded_level.author_time = loaded_serialized_level_data.author_time != 0 ? loaded_serialized_level_data.author_time : max(f64)
+	loaded_level.author_time =
+		loaded_serialized_level_data.author_time != 0 ? loaded_serialized_level_data.author_time : max(f64)
 
 	for &id in loaded_serialized_level_data.finish_volumes_ids {
 		loaded_level.finish_volumes[id] = true

@@ -102,7 +102,6 @@ layout_stats :: proc(
 	) {
 		char_data := &players.game
 		text_entry(fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position))
-		text_entry(fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position))
 		text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
 
 		// Velocities

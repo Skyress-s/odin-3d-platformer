@@ -9,12 +9,12 @@ import raylib "vendor:raylib"
 windowWidth: i32 = 1024
 windowHeight: i32 = 768
 
-syntaxImage: raylib.Texture2D = {}
-checkImage1: raylib.Texture2D = {}
-checkImage2: raylib.Texture2D = {}
-checkImage3: raylib.Texture2D = {}
-checkImage4: raylib.Texture2D = {}
-checkImage5: raylib.Texture2D = {}
+// syntaxImage: raylib.Texture2D = {}
+// checkImage1: raylib.Texture2D = {}
+// checkImage2: raylib.Texture2D = {}
+// checkImage3: raylib.Texture2D = {}
+// checkImage4: raylib.Texture2D = {}
+// checkImage5: raylib.Texture2D = {}
 
 
 headerTextConfig := clay.TextElementConfig {
@@ -66,8 +66,8 @@ init :: proc(
 		text: clay.StringSlice,
 		config: ^clay.TextElementConfig,
 		userData: rawptr,
-	) -> clay.Dimensions,
-) {
+	) -> (clay.Dimensions)
+) -> (clay.Arena){
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
@@ -88,65 +88,47 @@ init :: proc(
 	loadFont(
 		FONT_ID_TITLE_56,
 		56,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
-		),
+			 "resources/Calistoga-Regular.ttf",
 	)
 	loadFont(
 		FONT_ID_TITLE_52,
 		52,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
-		),
+			 "resources/Calistoga-Regular.ttf",
 	)
 	loadFont(
 		FONT_ID_TITLE_48,
 		48,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
-		),
+			 "resources/Calistoga-Regular.ttf",
 	)
 	loadFont(
 		FONT_ID_TITLE_36,
 		36,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
-		),
+			 "resources/Calistoga-Regular.ttf",
 	)
 	loadFont(
 		FONT_ID_TITLE_32,
 		32,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Calistoga-Regular.ttf"}, "/"),
-		),
+			 "resources/Calistoga-Regular.ttf",
 	)
 	loadFont(
 		FONT_ID_BODY_36,
 		36,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
-		),
+			 "resources/Quicksand-Semibold.ttf",
 	)
 	loadFont(
 		FONT_ID_BODY_30,
 		30,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
-		),
+			 "resources/Quicksand-Semibold.ttf",
 	)
 	loadFont(
 		FONT_ID_BODY_28,
 		28,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
-		),
+			 "resources/Quicksand-Semibold.ttf",
 	)
 	loadFont(
 		FONT_ID_BODY_24,
 		24,
-		strings.clone_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/Quicksand-Semibold.ttf"}, "/"),
-		),
+			"resources/Quicksand-Semibold.ttf",
 	)
 
 	loadFont(
@@ -156,36 +138,37 @@ init :: proc(
 	)
 
 
-	syntaxImage = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/declarative.png"}, "/"),
-		),
-	)
-	checkImage1 = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/check_1.png"}, "/"),
-		),
-	)
-	checkImage2 = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/check_2.png"}, "/"),
-		),
-	)
-	checkImage3 = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/check_3.png"}, "/"),
-		),
-	)
-	checkImage4 = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/check_4.png"}, "/"),
-		),
-	)
-	checkImage5 = raylib.LoadTexture(
-		strings.unsafe_string_to_cstring(
-			strings.join({PATH_TO_RESOURCES, "resources/check_5.png"}, "/"),
-		),
-	)
+	// syntaxImage = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/declarative.png"}, "/"),
+	// 	),
+	// )
+	// checkImage1 = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/check_1.png"}, "/"),
+	// 	),
+	// )
+	// checkImage2 = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/check_2.png"}, "/"),
+	// 	),
+	// )
+	// checkImage3 = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/check_3.png"}, "/"),
+	// 	),
+	// )
+	// checkImage4 = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/check_4.png"}, "/"),
+	// 	),
+	// )
+	// checkImage5 = raylib.LoadTexture(
+	// 	strings.unsafe_string_to_cstring(
+	// 		strings.join({PATH_TO_RESOURCES, "resources/check_5.png"}, "/"),
+	// 	),
+	// )
+
 
 	debugModeEnabled: bool = false
 
@@ -225,10 +208,17 @@ init :: proc(
 	// 	rr.clay_raylib_render(&renderCommands)
 	// 	raylib.EndDrawing()
 	// }
+	return arena
 }
 
 
-deinit :: proc() {
+deinit :: proc(arena: clay.Arena) {
+	// raylib.UnloadTexture(checkImage1)
+	// raylib.UnloadTexture(checkImage2)
+	// raylib.UnloadTexture(checkImage3)
+	// raylib.UnloadTexture(checkImage4)
+	// raylib.UnloadTexture(checkImage5)
+	free(arena.memory)
 
 }
 

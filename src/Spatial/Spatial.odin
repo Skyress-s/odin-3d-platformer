@@ -1,11 +1,13 @@
 package Spatial
 
-import "core:math/rand"
+import "core:testing"
+import "core:log"
 import cc "../Physics/collision_channel"
 import hms "../handle_map/handle_map_static"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import "core:math/rand"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
@@ -20,7 +22,7 @@ ZERO_VEC4 :: Vector4{0, 0, 0, 0}
 ONE_VEC3 :: Vector{1, 1, 1}
 
 FORWARD_VEC3 :: Vector{1, 0, 0}
-RIGHT_VEC3 :: Vector{0,0,1}
+RIGHT_VEC3 :: Vector{0, 0, 1}
 UP_VEC3 :: Vector{0, 1, 0}
 
 // Transform :: rl.Transform
@@ -120,9 +122,39 @@ Hash_Key :: struct {
 
 Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
 
-rand_vector :: proc() -> Vector{ return Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
 
-rand_rot :: proc() -> Quaternion {return linalg.normalize(linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()))}
+
+@(test)
+test_spatial_hash_grid_and_map :: proc(t: ^testing.T)
+{
+	shg :Spatial_Hash_Grid
+	com : Collision_Object_Handle_Map
+
+	collision_object_data :=shape_to_collision_object(&Collision_Shape{shape = Box{{2,2,2}}})
+	defer delete(collision_object_data.tris)
+	collision_object_id := add_to_object_map(&com, collision_object_data)
+	add_to_spatial_hash_grid(&shg, collision_object_data, collision_object_id)
+
+	delete_spatial_hash_grid(&shg)
+}
+
+delete_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid){
+	for key, &hash_cell in shg{
+		delete_hash_cell(&hash_cell)
+	}
+	delete(shg^)
+}
+
+delete_hash_cell :: proc(shc: ^Hash_Cell){
+	delete(shc.objects_ids)
+}
+
+rand_vector :: proc() -> Vector {
+	return Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
+
+rand_rot :: proc() -> Quaternion {return linalg.normalize(
+		linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()),
+	)}
 
 key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
@@ -200,7 +232,7 @@ matrix_from_transform_tr :: proc(trans: Transform) -> linalg.Matrix4f32 {
 	return linalg.matrix4_from_trs(trans.position, trans.rotation, ONE_VEC3)
 }
 
-matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32{
+matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32 {
 	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
 
 	// translation := linalg.matrix4_translate(trans.position)
@@ -216,8 +248,8 @@ get_matrix_from_transform :: proc(trans: Transform) -> rl.Matrix { 	// TODO how 
 	matRotation := rl.QuaternionToMatrix(trans.rotation)
 	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
 
-	return  matTranslation* matRotation * matScale 
-	// return  matTranslation * matScale 
+	return matTranslation * matRotation * matScale
+	// return  matTranslation * matScale
 }
 
 // Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
@@ -689,11 +721,12 @@ add_to_spatial_hash_grid :: proc(
 
 	bounds := calculate_bounds_from_tris_transform(data.tris, data.transform) // todo defaults to  ref right hehe??
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
+	defer delete(potential_hash_keys)
 	for hash_key in potential_hash_keys {
 		cell := &spatial_hash_grid[hash_key]
 		if cell == nil {
-			// fmt.println("Emty cell, creating new one...")
-			spatial_hash_grid[hash_key] = {}
+			// log.warnf("Emty cell, creating new one...")
+			spatial_hash_grid[hash_key] = Hash_Cell{}
 			cell = &spatial_hash_grid[hash_key]
 		}
 
@@ -784,6 +817,7 @@ create_and_add_collision_object_from_tris :: proc(
 		append_elem(&cell.objects_ids, collision_object_id)
 	}
 }
+
 shape_to_collision_object :: proc(
 	shape: ^Collision_Shape,
 ) -> (
@@ -816,6 +850,7 @@ is_inside_object :: proc(
 	longest_size := linalg.length(bounds.max - bounds.min)
 	ray: Ray = make_ray_with_origin_direction_distance(location^, Vector{0, 1, 0}, longest_size)
 	hits := ray_trace_object_multi(&ray, collision_object)
+	defer delete(hits)
 
 	// fmt.printfln("num tris {}", len(collision_object.tris))
 	// fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)

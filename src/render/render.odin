@@ -1,5 +1,6 @@
 package render
 
+import "core:log"
 import spat "../Spatial"
 import col "../color"
 import gs "../game_state"
@@ -195,6 +196,7 @@ render :: proc(
 	}
 
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
+	defer delete(drawn_collision_objects_ids)
 
 	for kill_id in level.kill_volumes {
 		drawn_collision_objects_ids[kill_id] = true
