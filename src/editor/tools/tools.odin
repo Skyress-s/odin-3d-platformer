@@ -52,6 +52,7 @@ Transform_Tool_Data :: distinct struct {
 }
 
 
+// todo please dear "})& please remove
 tooltip_local: bool = true 
 
 init_transform_tool :: proc() -> (data: Transform_Tool_Data) {

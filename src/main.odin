@@ -208,6 +208,7 @@ main :: proc() {
 		layout_updated := false
 
 		ui.update_state()
+		game_ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
 
 		clay.BeginLayout()
 		if clay.UI(clay.ID("root"))(
