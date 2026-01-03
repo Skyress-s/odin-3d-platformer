@@ -126,14 +126,11 @@ layout_tiling_windows :: proc(
 				layout_updated = true
 				scaling_node = hovered_node
 				start_pos = raylib.GetMousePosition()
-				log.info("hej before")
-				fmt.println("hej!!!")
 
 				corner_clicked = get_corner_clicked(
 					clay.GetElementData(clay.ID(hovered_node.clay_id)).boundingBox,
 					mouse_position,
 				)
-				log.info("hej after")
 
 				horizontal_node, vertical_node = find_parent_x_y_scalers(
 					root_node,
