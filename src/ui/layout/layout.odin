@@ -1,8 +1,8 @@
 package layout
 import clay "../clay-odin"
-import "core:log"
 import c "core:c"
 import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:testing"
 import rl "vendor:raylib"
@@ -22,7 +22,7 @@ Tiling_Node :: distinct struct {
 	clay_id:      string,
 	layout_dir:   clay.LayoutDirection,
 	size_percent: [2]f32,
-	layout_proc:  proc(parent_node: ^Tiling_Node),
+	layout_proc:  proc(parent_node: ^Tiling_Node, active_elems: ^Active_Elements),
 	userdata:     rawptr,
 }
 
@@ -38,7 +38,10 @@ make_new_node :: proc {
 
 make_new_node_with_draw_proc :: proc(
 	name: string,
-	layout_proc: proc(parent_node: ^Tiling_Node),
+	layout_proc: proc(parent_node: ^Tiling_Node, 
+	active_elems: ^Active_Elements
+		),
+
 	userdata: rawptr,
 ) -> Tiling_Node {
 	new_node := make_new_node_with_name(name)
@@ -85,7 +88,12 @@ node_leaf_distance :: proc(node: Tiling_Node, current_dist: u32 = 0) -> u32 {
 	return max_dist
 }
 
-layout_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
+layout_nodes :: proc(
+	node: ^Tiling_Node,
+	active_elems: ^Active_Elements,
+) -> (
+	hoovered_node: ^Tiling_Node,
+) {
 	// if node.has_content do return hoovered_node
 
 	// if clay.UI(clay.ID(node.clay_id))(
@@ -138,11 +146,11 @@ layout_nodes :: proc(node: ^Tiling_Node) -> (hoovered_node: ^Tiling_Node) {
 	},
 	) {
 		if node.layout_proc != nil {
-			node.layout_proc(node)
+			node.layout_proc(node, active_elems)
 			// return hoovered_node
 		}
 		for &n in node.sub_nodes {
-			new_hovered_node := layout_nodes(&n)
+			new_hovered_node := layout_nodes(&n, active_elems)
 			if new_hovered_node != nil do hoovered_node = new_hovered_node
 		}
 		if node_leaf_distance(node^) == 0 {
@@ -420,7 +428,7 @@ delete_all_child_nodes :: proc(node: ^Tiling_Node, free: bool = false) {
 
 }
 
-delete_node_memory :: proc(node: ^Tiling_Node){
+delete_node_memory :: proc(node: ^Tiling_Node) {
 	delete(node.sub_nodes)
 	delete(node.clay_id)
 }
@@ -457,7 +465,6 @@ delete_node :: proc(root, parent_node: ^Tiling_Node, index: i32) {
 	delete_node_memory(&parent_node.sub_nodes[index])
 
 	unordered_remove(&parent_node.sub_nodes, index)
-
 
 
 	if len(parent_node.sub_nodes) == 1 {

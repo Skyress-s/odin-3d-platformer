@@ -33,13 +33,13 @@ LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, se
 
 animationLerpValue: f32 = -1.0
 
-create_layout_tiling :: proc(
-	root_node: ^Tiling_Node, allow_layout_edit: bool,
-) -> (render_commands: clay.ClayArray(clay.RenderCommand), layout_updated: bool) {
-	clay.BeginLayout()
-	layout_updated = layout_tiling_windows(root_node, allow_layout_edit)
-	return clay.EndLayout(), layout_updated
-}
+// create_layout_tiling :: proc(
+// 	root_node: ^Tiling_Node, allow_layout_edit: bool,
+// ) -> (render_commands: clay.ClayArray(clay.RenderCommand), layout_updated: bool) {
+// 	clay.BeginLayout()
+// 	layout_updated = layout_tiling_windows(root_node, allow_layout_edit, )
+// 	return clay.EndLayout(), layout_updated
+// }
 
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
 	assign_at(

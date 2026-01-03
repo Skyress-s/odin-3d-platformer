@@ -24,6 +24,7 @@ import plrs "../players/"
 import clay "clay-odin"
 import layout "layout"
 
+// todo this should probably not be a global. But keeping it like this for now.
 mouse_pressed_this_frame: bool
 
 Color_Configuration :: struct {
@@ -38,7 +39,7 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
-layout_game_ui :: proc(parent_node: ^layout.Tiling_Node) {
+layout_game_ui :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)parent_node.userdata
 	assert(gc != nil)
 
@@ -71,11 +72,12 @@ layout_game_ui :: proc(parent_node: ^layout.Tiling_Node) {
 }
 
 
-layout_editor_details :: proc(parent_node: ^layout.Tiling_Node) {
+layout_editor_details :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)parent_node.userdata
 	assert(gc != nil)
-
-
+	
+	layout_details_panel(gc.players, gc.game_state, gc.current_level, active_elems)
+	
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
@@ -561,265 +563,280 @@ layout_controls_sheet :: proc() {
 }
 
 
-// layout_details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State, level: ^l.Level) {
-//
-//
-// 	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
-// 	//
-// 	// 	current_container := mu.get_current_container(ctx)
-// 	// 	current_container.rect = screen_rect
-//
-// 	current_id := players.editor.transform_tool.target_object_id
-//
-//
-// 	@(static) object_manip_dropdown := false
-// 	if current_id != spat.INVALID_OBJECT_ID {
-// 		current_coll_obj := hms.get(&level.collision_object_map, current_id)
-// 		if layout_dropdown(fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
-//
-// 			layout_dynamic_text_entry(fmt.tprint(current_id))
-// 			if layout_button_immediate(fmt.tprint("duplicate")) {
-// 				if current_coll_obj != nil {
-// 					new_id := spat.add_to_level(
-// 						&level.collision_object_map,
-// 						&level.spatial_hash_grid,
-// 						current_coll_obj.data,
-// 					)
-//
-// 					_, is_kill_volume := level.kill_volumes[current_id]
-// 					if is_kill_volume {
-// 						level.kill_volumes[new_id] = true
-// 					}
-//
-// 					_, is_grappable := level.grappable[current_id]
-// 					if is_grappable {
-// 						level.grappable[new_id] = true
-// 					}
-// 				}
-// 			}
-//
-//
-// 			{
-// 				_, is_kill_volume := level.kill_volumes[current_id]
-//
-// 				if layout_checkbox_immediate(fmt.tprint("Kill Volume"), &is_kill_volume) {
-// 					if is_kill_volume do level.kill_volumes[current_id] = true
-// 					else do delete_key(&level.kill_volumes, current_id)
-// 				}
-// 			}
-//
-// 			{
-// 				_, grappable := level.grappable[current_id]
-//
-// 				if layout_checkbox_immediate(fmt.aprintf("Grappable"), &grappable) {
-// 					if grappable do level.grappable[current_id] = true
-// 					else do delete_key(&level.grappable, current_id)
-// 				}
-// 			}
-//
-// 			{
-// 				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
-// 				if layout_checkbox_immediate(fmt.aprintf("Colliding"), &is_colliding) {
-// 					current_coll_obj.collision_channels =
-// 						is_colliding ? cc.get_blocking() : cc.get_non_blocking()
-// 					// TODO we should also activate kill volumes when we get a normal collision.
-// 				}
-// 			}
-//
-// 			{
-// 				if layout_button_immediate(fmt.tprint("Reset Rotation")) {
-// 					current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
-// 				}
-// 				if layout_button_immediate(fmt.tprint("Random Rotation")) {
-// 					current_coll_obj.transform.rotation = spat.rand_rot()
-// 				}
-// 			}
-//
-// 		}
-// 	}
-//
-//
-// 	@(static) level_stuff_dropdown := false
-// 	if layout_dropdown(fmt.tprint("Level Stuff"), &level_stuff_dropdown) {
-//
-// 		@(static) buf: [128]byte
-// 		@(static) buf_len: int
-//
-// 		clicked_file_path := map_directory()
-//
-// 		double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
-//
-// 		if clicked_file_path != "" {
-// 			builder := strings.builder_make()
-//
-// 			fmt.println(clicked_file_path)
-// 			buf_len = copy(buf[0:], clicked_file_path)
-//
-// 		}
-//
-//
-// 		layout_dynamic_text_entry(fmt.tprint("Level:"))
-//
-//
-// 		// mu.text(ctx, "Level:")
-// 		// if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-// 		// 	fmt.println("Submit!")
-// 		// }
-//
-// 		if layout_button_immediate(fmt.tprint("Save Level")) {
-//
-// 			level.author_time = players.game.best_time
-// 			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-// 		}
-//
-// 		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
-// 		// 	level.author_time = players.game.best_time
-// 		//
-// 		// 	serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-// 		//
-// 		// }
-//
-// 		if layout_button_immediate(fmt.tprint("Load Level")) {
-// 			level^ = serialization.load_from_file_level(
-// 				to_cwd_map_path_from_local(string(buf[:buf_len])),
-// 			)
-//
-// 			character.notify_level_loaded(&players.game)
-// 			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
-//
-// 		}
-//
-// 		// mu.layout_row(ctx, {-1})
-// 		// if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
-// 		// 	level^ = serialization.load_from_file_level(
-// 		// 		to_cwd_map_path_from_local(string(buf[:buf_len])),
-// 		// 	)
-// 		//
-// 		// 	character.notify_level_loaded(&players.game)
-// 		// 	character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
-// 		//
-// 		//
-// 		// }
-//
-// 		// mu.layout_next(ctx) // Also function as a spaces
-//
-// 		// @(static)
-// 		// level_name_buffer : [128]byte
-// 		// @(static)
-// 		// level_name_buffer_len : int
-// 		//
-// 		// mu.layout_row(ctx, {65, -1})
-// 		// mu.text(ctx, "Name")
-// 		//
-// 		// mu.textbox(ctx, level_name_buffer[:], &level_name_buffer_len)
-//
-// 	}}
-// // }
-//
-//
-// display_editor_options :: proc() {
-// 	if clay.UI()(
-// 	clay.ElementDeclaration {
-// 		layout = {
-// 			layoutDirection = .TopToBottom,
-// 			sizing = {clay.SizingPercent(1), clay.SizingPercent(1)},
-// 		},
-// 	},
-// 	) {
-// 		layout_checkbox(fmt.tprintln("local"), &et.tooltip_local)
-// 	}
-//
+layout_details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State, level: ^l.Level, active_elems: ^layout.Active_Elements) {
+
+
+	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
+	//
+	// 	current_container := mu.get_current_container(ctx)
+	// 	current_container.rect = screen_rect
+
+	current_id := players.editor.transform_tool.target_object_id
+
+
+	@(static) object_manip_dropdown := false
+	if current_id != spat.INVALID_OBJECT_ID {
+		current_coll_obj := hms.get(&level.collision_object_map, current_id)
+		if layout_dropdown(fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
+
+			layout_dynamic_text_entry(fmt.tprint(current_id))
+			if layout_button_immediate(fmt.tprint("duplicate")) {
+				if current_coll_obj != nil {
+					new_id := spat.add_to_level(
+						&level.collision_object_map,
+						&level.spatial_hash_grid,
+						current_coll_obj.data,
+					)
+
+					_, is_kill_volume := level.kill_volumes[current_id]
+					if is_kill_volume {
+						level.kill_volumes[new_id] = true
+					}
+
+					_, is_grappable := level.grappable[current_id]
+					if is_grappable {
+						level.grappable[new_id] = true
+					}
+				}
+			}
+
+
+			{
+				_, is_kill_volume := level.kill_volumes[current_id]
+
+				if layout_checkbox_immediate(fmt.tprint("Kill Volume"), &is_kill_volume) {
+					if is_kill_volume do level.kill_volumes[current_id] = true
+					else do delete_key(&level.kill_volumes, current_id)
+				}
+			}
+
+			{
+				_, grappable := level.grappable[current_id]
+
+				if layout_checkbox_immediate(fmt.aprintf("Grappable"), &grappable) {
+					if grappable do level.grappable[current_id] = true
+					else do delete_key(&level.grappable, current_id)
+				}
+			}
+
+			{
+				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
+				if layout_checkbox_immediate(fmt.aprintf("Colliding"), &is_colliding) {
+					current_coll_obj.collision_channels =
+						is_colliding ? cc.get_blocking() : cc.get_non_blocking()
+					// TODO we should also activate kill volumes when we get a normal collision.
+				}
+			}
+
+			{
+				if layout_button_immediate(fmt.tprint("Reset Rotation")) {
+					current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
+				}
+				if layout_button_immediate(fmt.tprint("Random Rotation")) {
+					current_coll_obj.transform.rotation = spat.rand_rot()
+				}
+			}
+
+		}
+	}
+
+
+	@(static) level_stuff_dropdown := false
+	if layout_dropdown(fmt.tprint("Level Stuff"), &level_stuff_dropdown) {
+
+		@(static) buf: [128]byte
+		@(static) buf_len: int
+
+		clicked_file_path := map_directory(active_elems)
+
+		double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
+
+		if clicked_file_path != "" {
+			builder := strings.builder_make()
+
+			fmt.println(clicked_file_path)
+			buf_len = copy(buf[0:], clicked_file_path)
+
+		}
+
+
+		layout_dynamic_text_entry(fmt.tprint("Level:", string(buf[:buf_len])))
+
+
+		// mu.text(ctx, "Level:")
+		// if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+		// 	fmt.println("Submit!")
+		// }
+
+		if layout_button_immediate(fmt.tprint("Save Level")) {
+
+			level.author_time = players.game.best_time
+			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+		}
+
+		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+		// 	level.author_time = players.game.best_time
+		//
+		// 	serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+		//
+		// }
+
+		if layout_button_immediate(fmt.tprint("Load Level")) {
+			level^ = serialization.load_from_file_level(
+				to_cwd_map_path_from_local(string(buf[:buf_len])),
+			)
+
+			character.notify_level_loaded(&players.game)
+			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
+
+		}
+
+		// mu.layout_row(ctx, {-1})
+		// if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
+		// 	level^ = serialization.load_from_file_level(
+		// 		to_cwd_map_path_from_local(string(buf[:buf_len])),
+		// 	)
+		//
+		// 	character.notify_level_loaded(&players.game)
+		// 	character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
+		//
+		//
+		// }
+
+		// mu.layout_next(ctx) // Also function as a spaces
+
+		// @(static)
+		// level_name_buffer : [128]byte
+		// @(static)
+		// level_name_buffer_len : int
+		//
+		// mu.layout_row(ctx, {65, -1})
+		// mu.text(ctx, "Name")
+		//
+		// mu.textbox(ctx, level_name_buffer[:], &level_name_buffer_len)
+
+	}}
 // }
-//
-//
-// map_directory :: proc() -> string {
-//
-// 	cwd := os.get_current_directory()
-// 	f, err := os.open(cwd)
-// 	defer os.close(f)
-// 	if err != os.ERROR_NONE {
-// 		fmt.eprintln("Could not open directory for reading", err)
-// 		os.exit(1)
-// 	}
-// 	fis: []os.File_Info
-// 	defer os.file_info_slice_delete(fis)
-//
-// 	fis, err = os.read_dir(f, -1) // -1 reads all file infos
-// 	if err != os.ERROR_NONE {
-// 		fmt.eprintln("Could not read directory", err)
-// 		os.exit(2)
-// 	}
-//
-//
-// 	return vis_dir(os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})}, true)
-// }
-//
-// vis_dir :: proc(file_dir: os.File_Info, force_open: bool = false) -> string {
-// 	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
-// 	cwd := file_dir
-// 	f, err := os.open(cwd.fullpath)
-// 	defer os.close(f)
-// 	if err != os.ERROR_NONE {
-// 		fmt.eprintln("Could not open directory for reading", err)
-// 		os.exit(1)
-// 	}
-// 	fis: []os.File_Info
-// 	defer os.file_info_slice_delete(fis)
-//
-// 	fis, err = os.read_dir(f, -1) // -1 reads all file infos
-// 	if err != os.ERROR_NONE {
-// 		fmt.eprintln("Could not read directory", err)
-// 		os.exit(2)
-// 	}
-//
-// 	current_dir_name := filepath.base(file_dir.fullpath)
-//
-// 	// opts: mu.Options = force_open ? {mu.Opt.EXPANDED} : {}
-//
-// 	clicked_map_name := ""
-//
-//
-// 	if layout_dropdown(fmt.tprintf("{}", current_dir_name), find_or_add()) {
-// 		clay.GetElementData
-// 	}
-// 	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
-// 		for fi in fis {
-// 			full_directory, name := filepath.split(fi.fullpath)
-//
-// 			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
-//
-// 			if fi.is_dir {
-// 				dir_name := vis_dir(ctx, fi)
-// 				if dir_name != "" do clicked_map_name = dir_name
-// 			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-// 				if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
-//
-// 					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
-// 				}
-// 			}
-//
-// 		}
-//
-// 		mu.end_treenode(ctx)
-// 	}
-//
-// 	return clicked_map_name
-// }
-//
-// // Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
-// to_cwd_map_path_from_local :: proc(local_path: string) -> string {
-// 	return filepath.join(
-// 		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
-// 	)
-// }
-//
-// // Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
-// to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
-// 	local_path, _ := filepath.rel(
-// 		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
-// 		cwd_path,
-// 	)
-// 	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
-//
-// 	return local_path
-// }
+
+
+display_editor_options :: proc() {
+	if clay.UI()(
+	clay.ElementDeclaration {
+		layout = {
+			layoutDirection = .TopToBottom,
+			sizing = {clay.SizingPercent(1), clay.SizingPercent(1)},
+		},
+	},
+	) {
+		layout_checkbox(fmt.tprintln("local"), &et.tooltip_local)
+	}
+
+}
+
+
+map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
+
+	cwd := os.get_current_directory()
+	f, err := os.open(cwd)
+	defer os.close(f)
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not open directory for reading", err)
+		os.exit(1)
+	}
+	fis: []os.File_Info
+	defer os.file_info_slice_delete(fis)
+
+	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not read directory", err)
+		os.exit(2)
+	}
+
+
+	return vis_dir(os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})}, active_elems, true)
+}
+
+vis_dir :: proc(file_dir: os.File_Info, active_elems: ^layout.Active_Elements, force_open: bool = false) -> string {
+	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
+	cwd := file_dir
+	f, err := os.open(cwd.fullpath)
+	defer os.close(f)
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not open directory for reading", err)
+		os.exit(1)
+	}
+	fis: []os.File_Info
+	defer os.file_info_slice_delete(fis)
+
+	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	if err != os.ERROR_NONE {
+		fmt.eprintln("Could not read directory", err)
+		os.exit(2)
+	}
+
+	current_dir_name := filepath.base(file_dir.fullpath)
+
+	// opts: mu.Options = force_open ? {mu.Opt.EXPANDED} : {}
+
+	clicked_map_name := ""
+
+
+	active_elem := layout.active_elements_get_or_add(active_elems, current_dir_name)
+	if layout_dropdown(fmt.tprintf("{}", current_dir_name), &active_elem.active) {
+		for fi in fis {
+			full_directory, name := filepath.split(fi.fullpath)
+
+			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
+
+			if fi.is_dir {
+				dir_name := vis_dir(fi, active_elems)
+				if dir_name != "" do clicked_map_name = dir_name
+			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
+				if layout_button_immediate(fmt.tprint({}, name)){
+					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
+				}
+			}
+
+		}
+	}
+	// if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
+	// 	for fi in fis {
+	// 		full_directory, name := filepath.split(fi.fullpath)
+	//
+	// 		if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
+	//
+	// 		if fi.is_dir {
+	// 			dir_name := vis_dir(ctx, fi)
+	// 			if dir_name != "" do clicked_map_name = dir_name
+	// 		} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
+	// 			if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
+	//
+	// 				clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
+	// 			}
+	// 		}
+	//
+	// 	}
+	//
+	// 	mu.end_treenode(ctx)
+	// }
+
+	return clicked_map_name
+}
+
+// Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
+to_cwd_map_path_from_local :: proc(local_path: string) -> string {
+	return filepath.join(
+		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
+	)
+}
+
+// Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
+to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
+	local_path, _ := filepath.rel(
+		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
+		cwd_path,
+	)
+	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
+
+	return local_path
+}

@@ -196,6 +196,8 @@ main :: proc() {
 			&gc,
 		),
 	) // todo how to safe free string
+	ui_active_elems := ui.Active_Elements{}
+	defer delete(ui_active_elems.elems)
 	// ui.register_node(&root_node, ui.make_new_node(strings.clone()"Debug"))
 
 	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
@@ -225,7 +227,7 @@ main :: proc() {
 			},
 		) {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-			layout_updated = ui.layout_tiling_windows(&root_node, rl.IsKeyDown(rl.KeyboardKey.C))
+			layout_updated = ui.layout_tiling_windows(&root_node, rl.IsKeyDown(rl.KeyboardKey.C), &ui_active_elems)
 		}
 
 		ui_render_commands := clay.EndLayout()
