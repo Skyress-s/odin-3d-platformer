@@ -5,13 +5,16 @@ import "core:fmt"
 import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
+import "core:strings"
 import "core:time"
 
+import character "../Character"
 import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import et "../editor/tools"
 import gs "../game_state/"
 import hms "../handle_map/handle_map_static/"
+import "../serialization/"
 import rl "vendor:raylib"
 
 import game_state "../game_state"
@@ -28,8 +31,8 @@ Color_Configuration :: struct {
 }
 
 DEFAULT_COLOR_CONFIG :: Color_Configuration {
-	normal = layout.COLOR_BLUE_DARK,
-	hover  = layout.COLOR_LIGHT_BLACK,
+	normal = layout.COLOR_DARK_GREY,
+	hover  = layout.COLOR_GREY,
 }
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
@@ -402,10 +405,8 @@ Cheats_Panel_UI_State :: struct {
 }
 
 
-layout_cheats_panel :: proc(
-	players: ^plrs.Players,
-	game_state: ^game_state.Game_State,
-) {
+layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game_State) {
+
 
 	if clay.UI(clay.ID("cheats_panel_main"))(
 		config = clay.ElementDeclaration {
@@ -413,7 +414,7 @@ layout_cheats_panel :: proc(
 				layoutDirection = .TopToBottom,
 				sizing = clay.Sizing{width = clay.SizingPercent(0.3), height = clay.SizingGrow()},
 			},
-			backgroundColor = layout.COLOR_RED,
+			// backgroundColor = layout.COLOR_RED,
 		},
 	) {
 
@@ -436,25 +437,28 @@ layout_cheats_panel :: proc(
 			},
 		) {
 		}
+		@(static) panel_cheats_dropdown := false
+		if layout_dropdown(fmt.tprint("Cheats"), &panel_cheats_dropdown) {
 
-		@(static) cheats_dropdown := false
-		@(static) controls_dropdown := false
-		if layout_dropdown(fmt.tprint("Controls"), &controls_dropdown) {
-			layout_controls_sheet()
-		}
-		if layout_dropdown(fmt.tprint("Cheats"), &cheats_dropdown) {
+			@(static) cheats_dropdown := false
+			@(static) controls_dropdown := false
+			if layout_dropdown(fmt.tprint("Controls"), &controls_dropdown) {
+				layout_controls_sheet()
+			}
+			if layout_dropdown(fmt.tprint("Cheats"), &cheats_dropdown) {
 
-			layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
+				layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
 
-			layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
-			layout_checkbox(
-				"debug_draw_utils",
-				&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-			)
-			layout_checkbox(
-				"player_in_active_cell",
-				&game_state.cheat_state.change_color_when_player_in_cell,
-			)
+				layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
+				layout_checkbox(
+					"debug_draw_utils",
+					&game_state.cheat_state.draw_debug_draw_utilities_instructions,
+				)
+				layout_checkbox(
+					"player_in_active_cell",
+					&game_state.cheat_state.change_color_when_player_in_cell,
+				)
+			}
 		}
 
 		// 		}
@@ -557,7 +561,7 @@ layout_controls_sheet :: proc() {
 }
 
 
-// details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State, level: ^l.Level) {
+// layout_details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State, level: ^l.Level) {
 //
 //
 // 	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
@@ -574,7 +578,7 @@ layout_controls_sheet :: proc() {
 // 		if layout_dropdown(fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 //
 // 			layout_dynamic_text_entry(fmt.tprint(current_id))
-// 			lambda := proc() {
+// 			if layout_button_immediate(fmt.tprint("duplicate")) {
 // 				if current_coll_obj != nil {
 // 					new_id := spat.add_to_level(
 // 						&level.collision_object_map,
@@ -593,7 +597,6 @@ layout_controls_sheet :: proc() {
 // 					}
 // 				}
 // 			}
-// 			layout_button(fmt.tprint("duplicate"), lambda)
 //
 //
 // 			{
@@ -642,7 +645,7 @@ layout_controls_sheet :: proc() {
 // 		@(static) buf: [128]byte
 // 		@(static) buf_len: int
 //
-// 		clicked_file_path := map_directory(ctx)
+// 		clicked_file_path := map_directory()
 //
 // 		double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
 //
@@ -654,25 +657,29 @@ layout_controls_sheet :: proc() {
 //
 // 		}
 //
-// 		mu.layout_next(ctx)
-// 		mu.layout_row(ctx, {65, -1})
 //
-// 		mu.text(ctx, "Level:")
-// 		if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-// 			fmt.println("Submit!")
-// 		}
+// 		layout_dynamic_text_entry(fmt.tprint("Level:"))
 //
 //
-// 		mu.layout_row(ctx, {-1})
-// 		if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+// 		// mu.text(ctx, "Level:")
+// 		// if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
+// 		// 	fmt.println("Submit!")
+// 		// }
+//
+// 		if layout_button_immediate(fmt.tprint("Save Level")) {
+//
 // 			level.author_time = players.game.best_time
-//
 // 			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-//
 // 		}
 //
-// 		mu.layout_row(ctx, {-1})
-// 		if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
+// 		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
+// 		// 	level.author_time = players.game.best_time
+// 		//
+// 		// 	serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+// 		//
+// 		// }
+//
+// 		if layout_button_immediate(fmt.tprint("Load Level")) {
 // 			level^ = serialization.load_from_file_level(
 // 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 // 			)
@@ -680,10 +687,21 @@ layout_controls_sheet :: proc() {
 // 			character.notify_level_loaded(&players.game)
 // 			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
 //
-//
 // 		}
 //
-// 		mu.layout_next(ctx) // Also function as a spaces
+// 		// mu.layout_row(ctx, {-1})
+// 		// if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
+// 		// 	level^ = serialization.load_from_file_level(
+// 		// 		to_cwd_map_path_from_local(string(buf[:buf_len])),
+// 		// 	)
+// 		//
+// 		// 	character.notify_level_loaded(&players.game)
+// 		// 	character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
+// 		//
+// 		//
+// 		// }
+//
+// 		// mu.layout_next(ctx) // Also function as a spaces
 //
 // 		// @(static)
 // 		// level_name_buffer : [128]byte
@@ -761,18 +779,8 @@ layout_controls_sheet :: proc() {
 // 	clicked_map_name := ""
 //
 //
-// 	find_or_add :: proc(id: string) -> ^bool{
-// 		@(static) expanded: map[string]bool
-// 		b, ok := expanded[id]
-//
-// 		expanded[id] = true
-// 		return ok
-//
-//
-// 	}
-//
 // 	if layout_dropdown(fmt.tprintf("{}", current_dir_name), find_or_add()) {
-//
+// 		clay.GetElementData
 // 	}
 // 	if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
 // 		for fi in fis {
@@ -796,4 +804,22 @@ layout_controls_sheet :: proc() {
 // 	}
 //
 // 	return clicked_map_name
+// }
+//
+// // Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
+// to_cwd_map_path_from_local :: proc(local_path: string) -> string {
+// 	return filepath.join(
+// 		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
+// 	)
+// }
+//
+// // Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
+// to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
+// 	local_path, _ := filepath.rel(
+// 		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
+// 		cwd_path,
+// 	)
+// 	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
+//
+// 	return local_path
 // }

@@ -431,7 +431,7 @@ delete_node2 :: proc(root, node_to_delete: ^Tiling_Node) -> (deleted: bool) {
 	parent_node, node_index_parent := find_node_parent(root, node_to_delete)
 	unordered_remove(&parent_node.sub_nodes, node_index_parent)
 
-	delete_node_memory(node_to_delete)
+	// delete_node_memory(node_to_delete) todo crashes when opening and closing editor panel
 
 	if len(parent_node.sub_nodes) == 1 {
 		if parent_node.clay_id == root.clay_id {

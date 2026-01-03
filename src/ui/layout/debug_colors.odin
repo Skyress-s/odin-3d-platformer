@@ -51,6 +51,10 @@ COLOR_BLOB_BORDER_3 :: clay.Color{225, 138, 50, 255}
 COLOR_BLOB_BORDER_4 :: clay.Color{236, 159, 70, 255}
 COLOR_BLOB_BORDER_5 :: clay.Color{240, 189, 100, 255}
 
+COLOR_DARK_GREY :: clay.Color{50,50,50,255}
+COLOR_GREY :: clay.Color{110,110,110,255}
+COLOR_LIGHT_GREY :: clay.Color{200,200,200,255}
+
 leaf_dist_to_color :: proc(dist: u32) -> clay.Color {
 	switch dist {
 	case 0:
