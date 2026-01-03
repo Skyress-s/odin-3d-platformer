@@ -16,6 +16,7 @@ import e_tools "editor/tools"
 import "game"
 import gs "game_state"
 import gctx "global_context"
+import l "level"
 import m_log "mph_log"
 import plrs "players"
 import rlb "raylib_bridge"
@@ -23,7 +24,6 @@ import "render"
 import "serialization"
 import clay "ui/clay-odin"
 import rl "vendor:raylib"
-import l "level"
 
 import game_ui "ui"
 import ui "ui/layout"
@@ -208,6 +208,7 @@ main :: proc() {
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 		layout_updated := false
+		gc.mouse_over_game = false // todo feels kinda hacky
 
 		ui.update_state()
 		game_ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
@@ -223,21 +224,25 @@ main :: proc() {
 						height = clay.SizingPercent(1),
 					},
 				},
-				backgroundColor = {25, 55, 55, 0},
+				// backgroundColor = {25, 55, 55, 0},
 			},
 		) {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-			layout_updated = ui.layout_tiling_windows(&root_node, rl.IsKeyDown(rl.KeyboardKey.C), &ui_active_elems)
+			layout_updated = ui.layout_tiling_windows(
+				&root_node,
+				rl.IsKeyDown(rl.KeyboardKey.C),
+				&ui_active_elems,
+			)
 		}
 
 		ui_render_commands := clay.EndLayout()
 		game_rt_needs_update |= layout_updated
 
+
 		// stats_render_commands := game_ui.stats(gc.players)
-debug_draw_data :render.Debug_Draw_Data
+		debug_draw_data: render.Debug_Draw_Data
 		// if (rl.GetTime() > 1)
 		// {
-			 debug_draw_data = game.update(&gc)
 		// }
 
 		// Render phase
@@ -255,6 +260,8 @@ debug_draw_data :render.Debug_Draw_Data
 			if game_rt_needs_update {
 				render.resize_render_targets(&render_targets, game_rect)
 			}
+
+			debug_draw_data = game.update(&gc, transmute(rl.Rectangle)game_window_bounds)
 
 
 			render.render(
@@ -291,11 +298,9 @@ debug_draw_data :render.Debug_Draw_Data
 			rl.EndDrawing()
 
 
-
-
-				// log.warnf("before_free_all {}", gc.players.game.verlet_component.position)
+			// log.warnf("before_free_all {}", gc.players.game.verlet_component.position)
 			free_all(context.temp_allocator)
-				// log.warnf("after_free_all {}", gc.players.game.verlet_component.position)
+			// log.warnf("after_free_all {}", gc.players.game.verlet_component.position)
 
 
 		}

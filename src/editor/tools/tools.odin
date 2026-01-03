@@ -65,10 +65,14 @@ on_click :: proc(
 	transform_tool: ^Transform_Tool_Data,
 	cam: ^rl.Camera3D,
 	current_level: ^l.Level,
+	mouse_pos: rl.Vector2,
+	ray: spat.Ray,
 ) {
 
 	// TODO use ray, not a line (even though its called ray atm, it really is a line, since its not infinite)
-	ray := rlb.convert_ray(rl.GetScreenToWorldRay(rl.GetMousePosition(), cam^))
+
+	// ray := rlb.convert_ray(rl.GetScreenToWorldRay(mouse_pos, cam^))
+	ray := ray
 	ray.end = ray.origin + (ray.end - ray.origin) * 100000 // augh
 
 	found_object := hms.get(&current_level.collision_object_map, transform_tool.target_object_id)
@@ -209,15 +213,14 @@ update_transform_tool :: proc(
 	left_mouse_button_pressed: bool,
 	left_mouse_button_down: bool,
 	object_map: ^spat.Collision_Object_Handle_Map,
-	// mouse_ray: spat.Ray,
-	// start_mouse_position,
-	current_mouse_position: spat.Vector2,
+	ray: spat.Ray
 ) {
 	if !data.dragging do return
 	log.warnf("update {}", time.to_unix_seconds(time.now()))
 
 
-	current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
+	current_ray := ray
+	// current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
 	found_object := hms.get(object_map, data.target_object_id)
 	assert(found_object != nil)
 

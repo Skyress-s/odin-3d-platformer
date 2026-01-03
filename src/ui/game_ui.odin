@@ -2,6 +2,7 @@ package game_ui
 
 import "base:runtime"
 import "core:fmt"
+import "core:log"
 import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
@@ -39,45 +40,79 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
+
 layout_game_ui :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)parent_node.userdata
 	assert(gc != nil)
 
-	if gc.players.mode == .Game {
 
-		// floating
-
-		layout_reticle(gc.players)
-		layout_speedrun_timer(gc.players)
-
-		if clay.UI(clay.ID("Game_Divide"))(
-			config = clay.ElementDeclaration {
-				layout = clay.LayoutConfig {
-					layoutDirection = .LeftToRight,
-					sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
-					// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-				},
-				backgroundColor = {50, 50, 50, 50},
+	if clay.UI(clay.ID("Game_Window_For_Mouse"))(
+		config = clay.ElementDeclaration {
+			layout = clay.LayoutConfig {
+				layoutDirection = .LeftToRight,
+				sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
+				// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
 			},
+			// backgroundColor = {50, 50, 50, 50},
+		},
+	) {
+		on_hover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
 		) {
-			layout_stats(gc.players, gc.current_level)
-			layout_cheats_panel(gc.players, gc.game_state)
+			gc := cast(^gctx.Global_Context)userData
+
+			assert_contextless(gc != nil)
+
+			gc.mouse_over_game = true
 		}
-	} else {
-		// Might want to have something here?
-		layout_reticle(gc.players)
+
+		clay.OnHover(on_hover, gc)
+
+		if gc.players.mode == .Game {
+			layout_reticle(gc.players)
+			layout_speedrun_timer(gc.players)
+
+			if clay.UI(clay.ID("Game_Divide"))(
+				config = clay.ElementDeclaration {
+					layout = clay.LayoutConfig {
+						layoutDirection = .LeftToRight,
+						sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
+						// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
+					},
+					// backgroundColor = {50, 50, 50, 50},
+				},
+			) {
+
+				layout_stats(gc.players, gc.current_level)
+				layout_cheats_panel(gc.players, gc.game_state)
+			}
+		} else {
+			// Might want to have something here?
+
+
+			layout_reticle(gc.players)
+		}
+
 	}
+
+
+	// if clay.Hovered() do log.errorf("hover over game window!!!!")
 
 
 }
 
 
-layout_editor_details :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+layout_editor_details :: proc(
+	parent_node: ^layout.Tiling_Node,
+	active_elems: ^layout.Active_Elements,
+) {
 	gc := cast(^gctx.Global_Context)parent_node.userdata
 	assert(gc != nil)
-	
+
 	layout_details_panel(gc.players, gc.game_state, gc.current_level, active_elems)
-	
+
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
@@ -563,7 +598,12 @@ layout_controls_sheet :: proc() {
 }
 
 
-layout_details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State, level: ^l.Level, active_elems: ^layout.Active_Elements) {
+layout_details_panel :: proc(
+	players: ^plrs.Players,
+	game_state: ^gs.Game_State,
+	level: ^l.Level,
+	active_elems: ^layout.Active_Elements,
+) {
 
 
 	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
@@ -691,46 +731,13 @@ layout_details_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State,
 
 		}
 
-		// mu.layout_row(ctx, {-1})
-		// if mu.Result.SUBMIT in mu.button(ctx, "load_level") || double_click {
-		// 	level^ = serialization.load_from_file_level(
-		// 		to_cwd_map_path_from_local(string(buf[:buf_len])),
-		// 	)
-		//
-		// 	character.notify_level_loaded(&players.game)
-		// 	character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
-		//
-		//
-		// }
-
-		// mu.layout_next(ctx) // Also function as a spaces
-
-		// @(static)
-		// level_name_buffer : [128]byte
-		// @(static)
-		// level_name_buffer_len : int
-		//
-		// mu.layout_row(ctx, {65, -1})
-		// mu.text(ctx, "Name")
-		//
-		// mu.textbox(ctx, level_name_buffer[:], &level_name_buffer_len)
-
-	}}
-// }
-
-
-display_editor_options :: proc() {
-	if clay.UI()(
-	clay.ElementDeclaration {
-		layout = {
-			layoutDirection = .TopToBottom,
-			sizing = {clay.SizingPercent(1), clay.SizingPercent(1)},
-		},
-	},
-	) {
-		layout_checkbox(fmt.tprintln("local"), &et.tooltip_local)
 	}
+	layout_editor_options()
+}
 
+
+layout_editor_options :: proc() {
+	layout_checkbox(fmt.tprintln("Edit Objects Local"), &et.tooltip_local)
 }
 
 
@@ -753,10 +760,18 @@ map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
 	}
 
 
-	return vis_dir(os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})}, active_elems, true)
+	return vis_dir(
+		os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})},
+		active_elems,
+		true,
+	)
 }
 
-vis_dir :: proc(file_dir: os.File_Info, active_elems: ^layout.Active_Elements, force_open: bool = false) -> string {
+vis_dir :: proc(
+	file_dir: os.File_Info,
+	active_elems: ^layout.Active_Elements,
+	force_open: bool = false,
+) -> string {
 	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
 	cwd := file_dir
 	f, err := os.open(cwd.fullpath)
@@ -792,7 +807,7 @@ vis_dir :: proc(file_dir: os.File_Info, active_elems: ^layout.Active_Elements, f
 				dir_name := vis_dir(fi, active_elems)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-				if layout_button_immediate(fmt.tprint({}, name)){
+				if layout_button_immediate(fmt.tprint({}, name)) {
 					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
 				}
 			}

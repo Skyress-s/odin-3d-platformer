@@ -6,7 +6,6 @@ import "base:runtime"
 import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
-import mu "vendor:microui"
 import "core:c"
 
 log_state := struct {

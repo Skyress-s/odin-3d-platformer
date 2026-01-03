@@ -17,61 +17,34 @@ import "../editor_player"
 import gs "../game_state"
 import gctx "../global_context"
 import l "../level"
-import "../mph_ui/"
 import "../player_data"
 import plrs "../players"
+import rlb "../raylib_bridge"
 import layout "../ui/layout"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
-import mu "vendor:microui"
 import rl "vendor:raylib"
 
 import e_tools "../editor/tools"
 
-update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
+update :: proc(
+	gc: ^gctx.Global_Context,
+	game_rect: rl.Rectangle,
+) -> (
+	debug_draw_data: render.Debug_Draw_Data,
+) {
 	dt := rl.GetFrameTime()
 	// dt = 0.06
-
-	// if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
-	// 	   (rl.GetScreenHeight() != gameui.state.screen_height)) {
-	// 	gameui.resize_ui()
-	// }
-
-	// gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
-	//
-	// mu.begin(&gameui.state.mu_ctx)
-	// mph_ui.all_windows(
-	// 	&gameui.state.mu_ctx,
-	// 	gc.players,
-	// 	gc.game_state,
-	// 	{rl.GetScreenWidth(), rl.GetScreenHeight()},
-	// 	gc.current_level,
-	// )
-	// //gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
-	// mu.end(&gameui.state.mu_ctx)
-	// gameui.render(&gameui.state.mu_ctx)
+	mouse_pos := rl.GetMousePosition()
+	mouse_pos.x -= game_rect.x
+	mouse_pos.y -= game_rect.y
 
 
-	// Is our mouse overlapping any widget? (naive implementation)
-	// mouse_over_ui := false
-	// for &container in gameui.state.mu_ctx.containers {
-	// 	if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
-	// 	   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
-	//
-	// 		mouse_over_ui = true
-	// 		break
-	// 	}
-	// }
-	// mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos)
-	//
-	// if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
-	//
-	// 	container := mu.get_container(&gameui.state.mu_ctx, "Log")
-	// 	container.open = !container.open
-	// }
-	// time.stopwatch_stop(&timer)
-	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
+	ray := rlb.convert_ray(
+		rl.GetScreenToWorldRayEx(mouse_pos, gc.cam^, i32(game_rect.width), i32(game_rect.height)),
+	)
+
 
 	position_transform_tool := &gc.players.editor.transform_tool
 
@@ -145,8 +118,8 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 			position_transform_tool.active_tool = e_tools.Scale_Tool{}
 		}
 
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT)  /*&& !mouse_over_ui*/{
-			e_tools.on_click(position_transform_tool, gc.cam, gc.current_level)
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
+			e_tools.on_click(position_transform_tool, gc.cam, gc.current_level, mouse_pos, ray)
 
 		}
 		if position_transform_tool.target_object_id.idx != 0 {
@@ -157,7 +130,7 @@ update :: proc(gc: ^gctx.Global_Context) -> (debug_draw_data: render.Debug_Draw_
 					rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
 					rl.IsMouseButtonDown(rl.MouseButton.LEFT),
 					&gc.current_level.collision_object_map,
-					rl.GetMousePosition(),
+					ray
 				)
 			}
 		}
