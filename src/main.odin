@@ -40,7 +40,7 @@ generate_camera :: proc() -> rl.Camera {
 		position = {5, 1, 5},
 		target = {0, 0, 3},
 		up = {0, 3, 0},
-		fovy = 110,
+		fovy = 95,
 		projection = .PERSPECTIVE,
 	}
 }
@@ -181,7 +181,7 @@ main :: proc() {
 		game_state          = &game_state,
 		current_level       = &current_level,
 		root_node_tiling_ui = &root_node,
-		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.3, lerp_speed = 5})
+		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5})
 	}
 
 
