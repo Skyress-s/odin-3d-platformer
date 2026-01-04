@@ -1,5 +1,6 @@
 package global_context
 
+import camera "../camera"
 import gs "../game_state/"
 import l "../level/"
 import plrs "../players/"
@@ -12,7 +13,8 @@ Global_Context :: distinct struct {
 	players:             ^plrs.Players,
 	game_state:          ^gs.Game_State,
 	current_level:       ^l.Level,
-	cam:                 ^rl.Camera3D,
+	// cam:                 ^rl.Camera3D,
+	camera_state:        camera.Global_State,
 	root_node_tiling_ui: ^layout.Tiling_Node,
 	mouse_over_game:     bool, // cursor over the game window. And not obstructed by other ui
 }

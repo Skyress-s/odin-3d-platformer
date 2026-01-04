@@ -68,9 +68,6 @@ get_current_speedrun_time :: proc(game_player: ^CharacternData) -> f64 {
 	return time.duration_seconds(time.stopwatch_duration(game_player.speedrun_stop_watch))
 }
 
-@(private)
-cursor_enabled: bool = false
-
 update_character :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
@@ -87,11 +84,6 @@ update_character :: proc(
 		gamestate.finished_level = false
 	}
 
-	if rl.IsKeyPressed(.TAB) {
-		cursor_enabled = !cursor_enabled
-		if cursor_enabled {rl.EnableCursor()} else {rl.DisableCursor()}
-
-	}
 
 	input_snapshot: input.Input_Snapshot = input.make_input_snapshot()
 	switch &state in character_data.current_state {

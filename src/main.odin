@@ -9,6 +9,7 @@ import "core:mem"
 import "core:strings"
 import "core:time"
 
+import camera "camera"
 import character "Character"
 import spat "Spatial"
 import "core:testing"
@@ -157,7 +158,6 @@ main :: proc() {
 		&current_level.start_look_direction,
 	)
 
-	cam := generate_camera()
 
 	players.editor.transform_tool = e_tools.init_transform_tool()
 
@@ -180,9 +180,10 @@ main :: proc() {
 		players             = &players,
 		game_state          = &game_state,
 		current_level       = &current_level,
-		cam                 = &cam,
 		root_node_tiling_ui = &root_node,
+		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.3, lerp_speed = 5})
 	}
+
 
 	defer {
 		l.delete_level(gc.current_level)
@@ -250,24 +251,26 @@ main :: proc() {
 		// Render game window
 		if ui.find_node(&root_node, GAME_WINDOW_NAME) != nil {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-			game_rect := rl.Rectangle {
-				x      = game_window_bounds.x,
-				y      = game_window_bounds.y,
-				width  = game_window_bounds.width,
-				height = game_window_bounds.height,
-			}
+
+			game_rect : rl.Rectangle = transmute(rl.Rectangle)game_window_bounds
+			// game_rect := rl.Rectangle {
+			// 	x      = game_window_bounds.x,
+			// 	y      = game_window_bounds.y,
+			// 	width  = game_window_bounds.width,
+			// 	height = game_window_bounds.height,
+			// }
 
 			if game_rt_needs_update {
 				render.resize_render_targets(&render_targets, game_rect)
 			}
 
-			debug_draw_data = game.update(&gc, transmute(rl.Rectangle)game_window_bounds)
+			debug_draw_data = game.update(&gc, game_rect)
 
 
 			render.render(
 				gc.current_level,
 				gc.players,
-				gc.cam,
+				gc.camera_state.current_camera,
 				&debug_draw_data,
 				gc.game_state,
 				game_rect,

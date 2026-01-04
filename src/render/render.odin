@@ -42,7 +42,7 @@ render_targets_deinit :: proc(render_targets: Render_Targets) {
 render :: proc(
 	level: ^l.Level,
 	players: ^plrs.Players,
-	cam: ^rl.Camera3D,
+	cam: rl.Camera3D,
 	debug_draw_data: ^Debug_Draw_Data,
 	game_state: ^gs.Game_State,
 	game_rect: rl.Rectangle,
@@ -55,7 +55,7 @@ render :: proc(
 	rl.BeginTextureMode(render_targets.game)
 	rl.ClearBackground({40, 30, 50, 255})
 
-	rl.BeginMode3D(cam^)
+	rl.BeginMode3D(cam)
 
 
 	@(static) shader_editor_tool_depth: rl.Shader
@@ -63,10 +63,12 @@ render :: proc(
 
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
+
+	cam_position := cam.position
 	rl.SetShaderValue(
 		lightray.lighting.shader,
 		view_loc,
-		&cam.position,
+		&cam_position,
 		rlgl.ShaderUniformDataType.VEC3,
 	)
 

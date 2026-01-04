@@ -17,6 +17,7 @@ import gs "../game_state/"
 import hms "../handle_map/handle_map_static/"
 import "../serialization/"
 import rl "vendor:raylib"
+import "vendor:microui"
 
 import game_state "../game_state"
 import gctx "../global_context"
@@ -41,8 +42,8 @@ PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
-layout_game_ui :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)parent_node.userdata
+layout_game_ui :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
 
@@ -86,7 +87,6 @@ layout_game_ui :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.A
 			) {
 
 				layout_stats(gc.players, gc.current_level)
-				layout_cheats_panel(gc.players, gc.game_state)
 			}
 		} else {
 			// Might want to have something here?
@@ -103,12 +103,22 @@ layout_game_ui :: proc(parent_node: ^layout.Tiling_Node, active_elems: ^layout.A
 
 }
 
-
-layout_editor_details :: proc(
-	parent_node: ^layout.Tiling_Node,
+layout_game_cheats_window :: proc(
+	node: ^layout.Tiling_Node,
 	active_elems: ^layout.Active_Elements,
 ) {
-	gc := cast(^gctx.Global_Context)parent_node.userdata
+	gc := cast(^gctx.Global_Context)node.userdata
+	assert(gc != nil)
+
+	layout_cheats_panel(gc.players, gc.game_state)
+}
+
+
+layout_editor_details :: proc(
+	node: ^layout.Tiling_Node,
+	active_elems: ^layout.Active_Elements,
+) {
+	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
 	layout_details_panel(gc.players, gc.game_state, gc.current_level, active_elems)
@@ -252,6 +262,25 @@ layout_speedrun_timer :: proc(players: ^plrs.Players) {
 		layout_dynamic_text_entry(fmt.tprintf("{:.3f} s", duration_seconds), .Center)
 
 	}
+}
+
+layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int){
+		@(static) buf: [128]byte
+		@(static) buf_len: int
+	// microui.textbox()
+	max_iter := 7
+	for key_pressed := rl.GetCharPressed(); key_pressed != ' ' && max_iter > 0; key_pressed = rl.GetCharPressed(){
+		max_iter -= 1
+		if key_pressed == '\b' {
+			text_buf_length^ -= 1
+		}
+		else{
+			// text_buf[4:5] = key_pressed
+			text_buf_length^ += 1
+		}
+
+	}
+		
 }
 
 layout_button_immediate :: proc(
@@ -449,7 +478,7 @@ layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game
 		config = clay.ElementDeclaration {
 			layout = clay.LayoutConfig {
 				layoutDirection = .TopToBottom,
-				sizing = clay.Sizing{width = clay.SizingPercent(0.3), height = clay.SizingGrow()},
+				sizing = clay.Sizing{width = clay.SizingGrow(), height = clay.SizingGrow()},
 			},
 			// backgroundColor = layout.COLOR_RED,
 		},
@@ -701,6 +730,9 @@ layout_details_panel :: proc(
 
 
 		layout_dynamic_text_entry(fmt.tprint("Level:", string(buf[:buf_len])))
+
+		
+
 
 
 		// mu.text(ctx, "Level:")
