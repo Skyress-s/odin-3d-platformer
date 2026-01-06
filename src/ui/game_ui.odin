@@ -8,6 +8,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import "core:time"
+import "core:unicode/utf8"
 
 import character "../Character"
 import cc "../Physics/collision_channel/"
@@ -16,8 +17,8 @@ import et "../editor/tools"
 import gs "../game_state/"
 import hms "../handle_map/handle_map_static/"
 import "../serialization/"
-import rl "vendor:raylib"
 import "vendor:microui"
+import rl "vendor:raylib"
 
 import game_state "../game_state"
 import gctx "../global_context"
@@ -27,6 +28,28 @@ import clay "clay-odin"
 import layout "layout"
 
 // todo this should probably not be a global. But keeping it like this for now.
+// mouse_buttons_map := [mu.Mouse]rl.MouseButton{
+// 	.LEFT    = .LEFT,
+// 	.RIGHT   = .RIGHT,
+// 	.MIDDLE  = .MIDDLE,
+// }
+//
+// key_map := [mu.Key][2]rl.KeyboardKey{
+// 	.SHIFT     = {.LEFT_SHIFT,   .RIGHT_SHIFT},
+// 	.CTRL      = {.LEFT_CONTROL, .RIGHT_CONTROL},
+// 	.ALT       = {.LEFT_ALT,     .RIGHT_ALT},
+// 	.BACKSPACE = {.BACKSPACE,    .KEY_NULL},
+// 	.DELETE    = {.DELETE,       .KEY_NULL},
+// 	.RETURN    = {.ENTER,        .KP_ENTER},
+// 	.LEFT      = {.LEFT,         .KEY_NULL},
+// 	.RIGHT     = {.RIGHT,        .KEY_NULL},
+// 	.HOME      = {.HOME,         .KEY_NULL},
+// 	.END       = {.END,          .KEY_NULL},
+// 	.A         = {.A,            .KEY_NULL},
+// 	.X         = {.X,            .KEY_NULL},
+// 	.C         = {.C,            .KEY_NULL},
+// 	.V         = {.V,            .KEY_NULL},
+// }
 mouse_pressed_this_frame: bool
 
 Color_Configuration :: struct {
@@ -41,6 +64,23 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
+
+// Key_Set :: distinct bit_set[Key; u32]
+// Key_Set :: bit_set[rl.KeyboardKey]
+// Input_Context :: struct{
+// 	key_bits_pressed: Key_Set
+// }
+//
+// update_input :: proc(){
+// 	microui.input_key_up()
+// 	microui.textbox_raw()
+// 	for key in rl.KeyboardKey{
+// 		if rl.IsKeyPressed(key) { // todo add repeat?
+//
+// 		}
+//
+// 	}
+// }
 
 layout_game_ui :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
@@ -114,10 +154,7 @@ layout_game_cheats_window :: proc(
 }
 
 
-layout_editor_details :: proc(
-	node: ^layout.Tiling_Node,
-	active_elems: ^layout.Active_Elements,
-) {
+layout_editor_details :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -264,24 +301,224 @@ layout_speedrun_timer :: proc(players: ^plrs.Players) {
 	}
 }
 
-layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int){
-		@(static) buf: [128]byte
-		@(static) buf_len: int
-	// microui.textbox()
+layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
+	@(static) buf: [128]byte
+	@(static) buf_len: int
 	max_iter := 7
-	for key_pressed := rl.GetCharPressed(); key_pressed != ' ' && max_iter > 0; key_pressed = rl.GetCharPressed(){
+	for key_pressed := rl.GetCharPressed();
+	    key_pressed != ' ' && max_iter > 0;
+	    key_pressed = rl.GetCharPressed() {
 		max_iter -= 1
 		if key_pressed == '\b' {
 			text_buf_length^ -= 1
-		}
-		else{
+		} else {
 			// text_buf[4:5] = key_pressed
 			text_buf_length^ += 1
 		}
 
 	}
-		
+
 }
+
+// todo move to a better place
+
+init_input_context :: proc() -> Text_Input_Context {
+	ctx: Text_Input_Context
+	strings.builder_init(&ctx.input_text)
+
+	return ctx
+}
+deinit_input_context :: proc(ctx: ^Text_Input_Context){
+	strings.builder_destroy(&ctx.input_text)
+}
+
+Text_Input_Context :: struct {
+	input_text: strings.Builder, // huh, we learning today boys!
+}
+
+update_text_input :: proc(ctx: ^Text_Input_Context) {
+	buf: [512]byte
+	n: int
+	for n < len(buf) {
+		c := rl.GetCharPressed()
+		if c == 0 {
+			break
+		}
+		b, w := utf8.encode_rune(c)
+		n += copy(buf[n:], b[:w])
+
+		strings.write_string(&ctx.input_text, string(buf[:n]))
+	}
+}
+
+// layout_textbox_immediate2 :: proc(
+// 	textbuf: []u8,
+// 	textlen: ^int,
+// 	id: Id,
+// 	r: Rect,
+// 	opt := Options{},
+// ) -> (
+// 	res: Result_Set,
+// ) {
+// 	// update_control(ctx, id, r, opt | {.HOLD_FOCUS})
+//
+// 	// font := ctx.style.font
+//
+// 	if ctx.focus_id == id {
+// 		/* create a builder backed by the user's buffer */
+// 		builder := strings.builder_from_bytes(textbuf)
+// 		non_zero_resize(&builder.buf, textlen^)
+// 		ctx.textbox_state.builder = &builder
+// 		if ctx.textbox_state.id != u64(id) {
+// 			ctx.textbox_state.id = u64(id)
+// 			ctx.textbox_state.selection = {}
+// 		}
+//
+// 		/* check selection bounds */
+// 		if ctx.textbox_state.selection[0] > textlen^ || ctx.textbox_state.selection[1] > textlen^ {
+// 			ctx.textbox_state.selection = {}
+// 		}
+//
+// 		/* handle text input */
+// 		if strings.builder_len(ctx.text_input) > 0 {
+// 			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
+// 				textlen^ = strings.builder_len(builder)
+// 				res += {.CHANGE}
+// 			}
+// 		}
+// 		/* handle ctrl+a */
+// 		if .A in ctx.key_pressed_bits &&
+// 		   .CTRL in ctx.key_down_bits &&
+// 		   .ALT not_in ctx.key_down_bits {
+// 			ctx.textbox_state.selection = {textlen^, 0}
+// 		}
+// 		/* handle ctrl+x */
+// 		if .X in ctx.key_pressed_bits &&
+// 		   .CTRL in ctx.key_down_bits &&
+// 		   .ALT not_in ctx.key_down_bits {
+// 			if textedit.cut(&ctx.textbox_state) {
+// 				textlen^ = strings.builder_len(builder)
+// 				res += {.CHANGE}
+// 			}
+// 		}
+// 		/* handle ctrl+c */
+// 		if .C in ctx.key_pressed_bits &&
+// 		   .CTRL in ctx.key_down_bits &&
+// 		   .ALT not_in ctx.key_down_bits {
+// 			textedit.copy(&ctx.textbox_state)
+// 		}
+// 		/* handle ctrl+v */
+// 		if .V in ctx.key_pressed_bits &&
+// 		   .CTRL in ctx.key_down_bits &&
+// 		   .ALT not_in ctx.key_down_bits {
+// 			if textedit.paste(&ctx.textbox_state) {
+// 				textlen^ = strings.builder_len(builder)
+// 				res += {.CHANGE}
+// 			}
+// 		}
+// 		/* handle left/right */
+// 		if .LEFT in ctx.key_pressed_bits {
+// 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+// 			if .SHIFT in ctx.key_down_bits {
+// 				textedit.select_to(&ctx.textbox_state, move)
+// 			} else {
+// 				textedit.move_to(&ctx.textbox_state, move)
+// 			}
+// 		}
+// 		if .RIGHT in ctx.key_pressed_bits {
+// 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+// 			if .SHIFT in ctx.key_down_bits {
+// 				textedit.select_to(&ctx.textbox_state, move)
+// 			} else {
+// 				textedit.move_to(&ctx.textbox_state, move)
+// 			}
+// 		}
+// 		/* handle home/end */
+// 		if .HOME in ctx.key_pressed_bits {
+// 			if .SHIFT in ctx.key_down_bits {
+// 				textedit.select_to(&ctx.textbox_state, .Start)
+// 			} else {
+// 				textedit.move_to(&ctx.textbox_state, .Start)
+// 			}
+// 		}
+// 		if .END in ctx.key_pressed_bits {
+// 			if .SHIFT in ctx.key_down_bits {
+// 				textedit.select_to(&ctx.textbox_state, .End)
+// 			} else {
+// 				textedit.move_to(&ctx.textbox_state, .End)
+// 			}
+// 		}
+// 		/* handle backspace/delete */
+// 		if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
+// 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+// 			textedit.delete_to(&ctx.textbox_state, move)
+// 			textlen^ = strings.builder_len(builder)
+// 			res += {.CHANGE}
+// 		}
+// 		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
+// 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+// 			textedit.delete_to(&ctx.textbox_state, move)
+// 			textlen^ = strings.builder_len(builder)
+// 			res += {.CHANGE}
+// 		}
+// 		/* handle return */
+// 		if .RETURN in ctx.key_pressed_bits {
+// 			set_focus(ctx, 0)
+// 			res += {.SUBMIT}
+// 		}
+//
+// 		/* handle click/drag */
+// 		if .LEFT in ctx.mouse_down_bits {
+// 			idx := textlen^
+// 			for i in 0 ..< textlen^ {
+// 				/* skip continuation bytes */
+// 				if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
+// 					continue
+// 				}
+// 				if ctx.mouse_pos.x <
+// 				   r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
+// 					idx = i
+// 					break
+// 				}
+// 			}
+// 			ctx.textbox_state.selection[0] = idx
+// 			if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+// 				ctx.textbox_state.selection[1] = idx
+// 			}
+// 		}
+// 	}
+//
+// 	textstr := string(textbuf[:textlen^])
+//
+// 	/* draw */
+// 	draw_control_frame(ctx, id, r, .BASE, opt)
+// 	if ctx.focus_id == id {
+// 		text_color := ctx.style.colors[.TEXT]
+// 		sel_color := ctx.style.colors[.SELECTION_BG]
+// 		textw := ctx.text_width(font, textstr)
+// 		texth := ctx.text_height(font)
+// 		headx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[0]])
+// 		tailx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[1]])
+// 		ofmin := max(ctx.style.padding - headx, r.w - textw - ctx.style.padding)
+// 		ofmax := min(r.w - headx - ctx.style.padding, ctx.style.padding)
+// 		ctx.textbox_offset = clamp(ctx.textbox_offset, ofmin, ofmax)
+// 		textx := r.x + ctx.textbox_offset
+// 		texty := r.y + (r.h - texth) / 2
+// 		push_clip_rect(ctx, r)
+// 		draw_rect(
+// 			ctx,
+// 			Rect{textx + min(headx, tailx), texty, abs(headx - tailx), texth},
+// 			sel_color,
+// 		)
+// 		draw_text(ctx, font, textstr, Vec2{textx, texty}, text_color)
+// 		draw_rect(ctx, Rect{textx + headx, texty, 1, texth}, text_color)
+// 		pop_clip_rect(ctx)
+// 	} else {
+// 		draw_control_text(ctx, textstr, r, .TEXT, opt)
+// 	}
+//
+// 	return
+// }
 
 layout_button_immediate :: proc(
 	text: string,
@@ -730,9 +967,6 @@ layout_details_panel :: proc(
 
 
 		layout_dynamic_text_entry(fmt.tprint("Level:", string(buf[:buf_len])))
-
-		
-
 
 
 		// mu.text(ctx, "Level:")
