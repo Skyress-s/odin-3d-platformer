@@ -7,6 +7,7 @@ import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
+import textedit "core:text/edit"
 import "core:time"
 import "core:unicode/utf8"
 
@@ -322,21 +323,58 @@ layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
 
 // todo move to a better place
 
-init_input_context :: proc() -> Text_Input_Context {
-	ctx: Text_Input_Context
-	strings.builder_init(&ctx.input_text)
+init_input_context :: proc() -> Context {
+	ctx: Context
+	// strings.builder_init(&ctx.input_string_builder)
 
 	return ctx
 }
-deinit_input_context :: proc(ctx: ^Text_Input_Context){
-	strings.builder_destroy(&ctx.input_text)
+deinit_input_context :: proc(ctx: ^Context) {
+	// strings.builder_destroy(&ctx.input_string_builder)
+}
+
+Key :: enum u32 {
+	SHIFT,
+	CTRL,
+	ALT,
+	BACKSPACE,
+	DELETE,
+	RETURN,
+	LEFT,
+	RIGHT,
+	HOME,
+	END,
+	A,
+	X,
+	C,
+	V,
+}
+Key_Set :: distinct bit_set[Key; u32]
+
+Mouse :: enum u32 {
+	LEFT,
+	RIGHT,
+	MIDDLE,
+}
+Mouse_Set :: distinct bit_set[Mouse; u32]
+Context :: struct {
+	focus_id:      string,
+	textbox_state: textedit.State,
+	text_input:    strings.Builder,
+	key_down_bits, key_pressed_bits:     Key_Set,
+	mouse_down_bits:                     Mouse_Set,
+	mouse_pressed_bits:                  Mouse_Set,
+	mouse_released_bits:                 Mouse_Set,
 }
 
 Text_Input_Context :: struct {
-	input_text: strings.Builder, // huh, we learning today boys!
+	builder: ^strings.Builder, // huh, we learning today boys!
+	id:      string,
 }
 
-update_text_input :: proc(ctx: ^Text_Input_Context) {
+update_text_input :: proc(ctx: ^Context) {
+
+	// microui.input_text()
 	buf: [512]byte
 	n: int
 	for n < len(buf) {
@@ -347,14 +385,15 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 		b, w := utf8.encode_rune(c)
 		n += copy(buf[n:], b[:w])
 
-		strings.write_string(&ctx.input_text, string(buf[:n]))
+		strings.write_string(ctx.textbox_state.builder, string(buf[:n]))
 	}
 }
 
 // layout_textbox_immediate2 :: proc(
+// 	ctx: ^Context,
 // 	textbuf: []u8,
 // 	textlen: ^int,
-// 	id: Id,
+// 	id: string,
 // 	r: Rect,
 // 	opt := Options{},
 // ) -> (
@@ -369,7 +408,7 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 // 		builder := strings.builder_from_bytes(textbuf)
 // 		non_zero_resize(&builder.buf, textlen^)
 // 		ctx.textbox_state.builder = &builder
-// 		if ctx.textbox_state.id != u64(id) {
+// 		if ctx.textbox_state.id != id {
 // 			ctx.textbox_state.id = u64(id)
 // 			ctx.textbox_state.selection = {}
 // 		}
@@ -383,7 +422,7 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 // 		if strings.builder_len(ctx.text_input) > 0 {
 // 			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
 // 				textlen^ = strings.builder_len(builder)
-// 				res += {.CHANGE}
+// 				// res += {.CHANGE}
 // 			}
 // 		}
 // 		/* handle ctrl+a */
@@ -398,7 +437,7 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 // 		   .ALT not_in ctx.key_down_bits {
 // 			if textedit.cut(&ctx.textbox_state) {
 // 				textlen^ = strings.builder_len(builder)
-// 				res += {.CHANGE}
+// 				// res += {.CHANGE}
 // 			}
 // 		}
 // 		/* handle ctrl+c */
@@ -413,7 +452,7 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 // 		   .ALT not_in ctx.key_down_bits {
 // 			if textedit.paste(&ctx.textbox_state) {
 // 				textlen^ = strings.builder_len(builder)
-// 				res += {.CHANGE}
+// 				// res += {.CHANGE}
 // 			}
 // 		}
 // 		/* handle left/right */
@@ -453,18 +492,18 @@ update_text_input :: proc(ctx: ^Text_Input_Context) {
 // 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
 // 			textedit.delete_to(&ctx.textbox_state, move)
 // 			textlen^ = strings.builder_len(builder)
-// 			res += {.CHANGE}
+// 			// res += {.CHANGE}
 // 		}
 // 		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
 // 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
 // 			textedit.delete_to(&ctx.textbox_state, move)
 // 			textlen^ = strings.builder_len(builder)
-// 			res += {.CHANGE}
+// 			// res += {.CHANGE}
 // 		}
 // 		/* handle return */
 // 		if .RETURN in ctx.key_pressed_bits {
 // 			set_focus(ctx, 0)
-// 			res += {.SUBMIT}
+// 			// res += {.SUBMIT}
 // 		}
 //
 // 		/* handle click/drag */

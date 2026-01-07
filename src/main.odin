@@ -204,10 +204,18 @@ main :: proc() {
 	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
 	defer render.render_targets_deinit(render_targets)
 
+	input_context := game_ui.init_input_context()
+	defer game_ui.deinit_input_context(&input_context)
+
 
 	game_rt_needs_update := true
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
+
+		game_ui.update_text_input(&input_context)
+		// log.warnf("{}", strings.to_string(input_context.input_string_builder))
+
+		
 		layout_updated := false
 		gc.mouse_over_game = false // todo feels kinda hacky
 
