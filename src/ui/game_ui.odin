@@ -1,4 +1,4 @@
-package game_ui
+package ui
 
 import "base:runtime"
 import "core:fmt"
@@ -22,35 +22,34 @@ import "vendor:microui"
 import rl "vendor:raylib"
 
 import game_state "../game_state"
-import gctx "../global_context"
 import l "../level"
 import plrs "../players/"
 import clay "clay-odin"
 import layout "layout"
 
 // todo this should probably not be a global. But keeping it like this for now.
-// mouse_buttons_map := [mu.Mouse]rl.MouseButton{
-// 	.LEFT    = .LEFT,
-// 	.RIGHT   = .RIGHT,
-// 	.MIDDLE  = .MIDDLE,
-// }
-//
-// key_map := [mu.Key][2]rl.KeyboardKey{
-// 	.SHIFT     = {.LEFT_SHIFT,   .RIGHT_SHIFT},
-// 	.CTRL      = {.LEFT_CONTROL, .RIGHT_CONTROL},
-// 	.ALT       = {.LEFT_ALT,     .RIGHT_ALT},
-// 	.BACKSPACE = {.BACKSPACE,    .KEY_NULL},
-// 	.DELETE    = {.DELETE,       .KEY_NULL},
-// 	.RETURN    = {.ENTER,        .KP_ENTER},
-// 	.LEFT      = {.LEFT,         .KEY_NULL},
-// 	.RIGHT     = {.RIGHT,        .KEY_NULL},
-// 	.HOME      = {.HOME,         .KEY_NULL},
-// 	.END       = {.END,          .KEY_NULL},
-// 	.A         = {.A,            .KEY_NULL},
-// 	.X         = {.X,            .KEY_NULL},
-// 	.C         = {.C,            .KEY_NULL},
-// 	.V         = {.V,            .KEY_NULL},
-// }
+mouse_buttons_map := [Mouse]rl.MouseButton {
+	.LEFT   = .LEFT,
+	.RIGHT  = .RIGHT,
+	.MIDDLE = .MIDDLE,
+}
+
+key_map := [Key][2]rl.KeyboardKey {
+	.SHIFT     = {.LEFT_SHIFT, .RIGHT_SHIFT},
+	.CTRL      = {.LEFT_CONTROL, .RIGHT_CONTROL},
+	.ALT       = {.LEFT_ALT, .RIGHT_ALT},
+	.BACKSPACE = {.BACKSPACE, .KEY_NULL},
+	.DELETE    = {.DELETE, .KEY_NULL},
+	.RETURN    = {.ENTER, .KP_ENTER},
+	.LEFT      = {.LEFT, .KEY_NULL},
+	.RIGHT     = {.RIGHT, .KEY_NULL},
+	.HOME      = {.HOME, .KEY_NULL},
+	.END       = {.END, .KEY_NULL},
+	.A         = {.A, .KEY_NULL},
+	.X         = {.X, .KEY_NULL},
+	.C         = {.C, .KEY_NULL},
+	.V         = {.V, .KEY_NULL},
+}
 mouse_pressed_this_frame: bool
 
 Color_Configuration :: struct {
@@ -62,9 +61,6 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 	hover  = layout.COLOR_GREY,
 }
 
-PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
-MAP_FILE_EXTENSION :: ".map"
-MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
 // Key_Set :: distinct bit_set[Key; u32]
 // Key_Set :: bit_set[rl.KeyboardKey]
@@ -83,95 +79,6 @@ MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 // 	}
 // }
 
-layout_game_ui :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
-
-
-	if clay.UI(clay.ID("Game_Window_For_Mouse"))(
-		config = clay.ElementDeclaration {
-			layout = clay.LayoutConfig {
-				layoutDirection = .LeftToRight,
-				sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
-				// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-			},
-			// backgroundColor = {50, 50, 50, 50},
-		},
-	) {
-		on_hover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			gc := cast(^gctx.Global_Context)userData
-
-			assert_contextless(gc != nil)
-
-			gc.mouse_over_game = true
-		}
-
-		clay.OnHover(on_hover, gc)
-
-		if gc.players.mode == .Game {
-			layout_reticle(gc.players)
-			layout_speedrun_timer(gc.players)
-
-			if clay.UI(clay.ID("Game_Divide"))(
-				config = clay.ElementDeclaration {
-					layout = clay.LayoutConfig {
-						layoutDirection = .LeftToRight,
-						sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
-						// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-					},
-					// backgroundColor = {50, 50, 50, 50},
-				},
-			) {
-
-				layout_stats(gc.players, gc.current_level)
-			}
-		} else {
-			// Might want to have something here?
-
-
-			layout_reticle(gc.players)
-		}
-
-	}
-
-
-	// if clay.Hovered() do log.errorf("hover over game window!!!!")
-
-
-}
-
-layout_game_cheats_window :: proc(
-	node: ^layout.Tiling_Node,
-	active_elems: ^layout.Active_Elements,
-) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
-
-	layout_cheats_panel(gc.players, gc.game_state)
-}
-
-
-layout_editor_details :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
-
-	layout_details_panel(gc.players, gc.game_state, gc.current_level, active_elems)
-
-}
-
-EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
-make_editor_details_node :: proc(gc: ^gctx.Global_Context) -> layout.Tiling_Node {
-	node := layout.make_new_node_with_draw_proc(
-		EDITOR_DETAILS_PANEL_NAME,
-		layout_editor_details,
-		gc,
-	)
-	return node
-}
 
 layout_dynamic_text_entry :: proc(text: string, text_alignment: clay.TextAlignment = .Left) {
 	clay.TextDynamic(
@@ -191,116 +98,6 @@ layout_dynamic_text_entry :: proc(text: string, text_alignment: clay.TextAlignme
 }
 
 // Game Window Stats
-layout_stats :: proc(
-	players: ^plrs.Players,
-	// game_state: ^game_state.Game_State,
-	// screen_rect: rl.Rectangle,
-	level: ^l.Level,
-) {
-	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
-	// clay.BeginLayout()
-	if clay.UI(clay.ID("stats_main"))(
-	{
-		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},
-		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
-		// floating = clay.FloatingElementConfig {
-		// 	offset = {50, 50},
-		// 	attachTo = .Parent,
-		// 	zIndex = 1000,
-		// },
-		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
-	},
-	) {
-		char_data := &players.game
-		layout_dynamic_text_entry(
-			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
-		)
-		layout_dynamic_text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
-
-		// Velocities
-		layout_dynamic_text_entry(
-			fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity),
-		)
-		layout_dynamic_text_entry(
-			fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)),
-		)
-		vel_xz := char_data.verlet_component.velocity
-		vel_xz.y = 0
-		layout_dynamic_text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
-		layout_dynamic_text_entry(fmt.tprintf("Current State {}", char_data.current_state))
-
-		// Rope length
-		rope_length := linalg.distance(
-			char_data.verlet_component.position,
-			char_data.hooked_position,
-		)
-		layout_dynamic_text_entry(
-			fmt.tprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0),
-		)
-
-		// Enegies
-		m: f32 = 0.01
-		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
-		kinetic_energy :=
-			0.5 *
-			m *
-			linalg.length(char_data.verlet_component.velocity) *
-			linalg.length(char_data.verlet_component.velocity)
-		total_energy := potential_energy + kinetic_energy
-		layout_dynamic_text_entry(fmt.tprintf("Potential {:.1f}", potential_energy))
-		layout_dynamic_text_entry(fmt.tprintf("Kinetic {:.1f}", kinetic_energy))
-		layout_dynamic_text_entry(fmt.tprintf("Total {:.1f}", total_energy))
-		layout_dynamic_text_entry(
-			fmt.tprintf(
-				"Best run    {}",
-				players.game.best_time != 0 ? fmt.tprintf("{:.3f}", players.game.best_time) : fmt.tprint("No Time Set"),
-			),
-		)
-		layout_dynamic_text_entry(fmt.tprintf("Author time {:.3f}", level.author_time))
-	}
-}
-
-
-layout_reticle :: proc(
-	players: ^plrs.Players, // screen_dimentions: [2]i32,
-	// screen_rect: mu.Rect,
-) {
-	if clay.UI(clay.ID("reticle_main"))(
-		config = clay.ElementDeclaration {
-			floating = clay.FloatingElementConfig {
-				zIndex = 0,
-				expand = {2.0, 2.0},
-				attachTo = .Parent,
-				attachment = clay.FloatingAttachPoints{parent = .CenterCenter},
-			},
-			backgroundColor = layout.COLOR_GREEN,
-		},
-	) {
-
-	}
-}
-
-
-layout_speedrun_timer :: proc(players: ^plrs.Players) {
-
-	duration_seconds := time.duration_seconds(
-		time.stopwatch_duration(players.game.speedrun_stop_watch),
-	)
-
-	if clay.UI(clay.ID("speedrun_timer_main"))(
-		config = clay.ElementDeclaration {
-			floating = clay.FloatingElementConfig {
-				attachTo = .Parent,
-				attachment = clay.FloatingAttachPoints{parent = .CenterTop},
-				expand = {100, 100},
-			},
-			// backgroundColor = layout.COLOR_GREEN,
-		},
-	) {
-		layout_dynamic_text_entry(fmt.tprintf("{:.3f} s", duration_seconds), .Center)
-
-	}
-}
 
 layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
 	@(static) buf: [128]byte
@@ -325,12 +122,74 @@ layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
 
 init_input_context :: proc() -> Context {
 	ctx: Context
-	// strings.builder_init(&ctx.input_string_builder)
+	strings.builder_init(&ctx.text_input)
 
 	return ctx
 }
 deinit_input_context :: proc(ctx: ^Context) {
-	// strings.builder_destroy(&ctx.input_string_builder)
+	strings.builder_destroy(&ctx.text_input)
+}
+
+end_frame :: proc(ctx: ^Context) {
+	/* check stacks */
+	// assert(ctx.container_stack.idx == 0)
+	// assert(ctx.clip_stack.idx      == 0)
+	// assert(ctx.id_stack.idx        == 0)
+	// assert(ctx.layout_stack.idx    == 0)
+
+	/* handle scroll input */
+	// if ctx.scroll_target != nil {
+	// 	ctx.scroll_target.scroll.x += ctx.scroll_delta.x
+	// 	ctx.scroll_target.scroll.y += ctx.scroll_delta.y
+	// }
+
+	/* unset focus if focus id was not touched this frame */
+	// microui.end()
+	// microui.textbox_raw
+	if !ctx.updated_focus {
+		ctx.focus_id = 0
+	}
+	ctx.updated_focus = false
+
+	/* bring hover root to front if mouse was pressed */
+	// if mouse_pressed(ctx) && ctx.next_hover_root != nil &&
+	//    ctx.next_hover_root.zindex < ctx.last_zindex &&
+	//    ctx.next_hover_root.zindex >= 0 {
+	// 	bring_to_front(ctx, ctx.next_hover_root)
+	// }
+
+	/* reset input state */
+	ctx.key_pressed_bits = {} // clear
+	strings.builder_reset(&ctx.text_input)
+	ctx.mouse_pressed_bits = {} // clear
+	ctx.mouse_released_bits = {} // clear
+	ctx.scroll_delta = Vec2{0, 0}
+	ctx.last_mouse_pos = ctx.mouse_pos
+
+	/* sort root containers by zindex */
+	// n := ctx.root_list.idx
+	// sort.quick_sort_proc(ctx.root_list.items[:n], proc(a, b: ^Container) -> int {
+	// 	return int(a.zindex) - int(b.zindex)
+	// })
+
+	/* set root container jump commands */
+	// for i: i32 = 0; i < n; i += 1 {
+	// 	cnt := ctx.root_list.items[i]
+	// 	/* if this is the first container then make the first command jump to it.
+	// 	** otherwise set the previous container's tail to jump to this one */
+	// 	if i == 0 {
+	// 		cmd := (^Command_Jump)(&ctx.command_list.items[0])
+	// 		cmd.dst = rawptr(uintptr(cnt.head) + size_of(Command_Jump))
+	// 	} else {
+	// 		prev := ctx.root_list.items[i - 1]
+	// 		prev.tail.variant.(^Command_Jump).dst = rawptr(uintptr(cnt.head) + size_of(Command_Jump))
+	// 	}
+	// 	/* make the last container's tail jump to the end of command list */
+	// 	if i == n - 1 {
+	// 		cnt.tail.variant.(^Command_Jump).dst = rawptr(&ctx.command_list.items[ctx.command_list.idx])
+	// 	}
+	// }
+
 }
 
 Key :: enum u32 {
@@ -349,27 +208,93 @@ Key :: enum u32 {
 	C,
 	V,
 }
-Key_Set :: distinct bit_set[Key; u32]
+
+Key_Set :: distinct bit_set[Key;u32]
 
 Mouse :: enum u32 {
 	LEFT,
 	RIGHT,
 	MIDDLE,
 }
-Mouse_Set :: distinct bit_set[Mouse; u32]
+Mouse_Set :: distinct bit_set[Mouse;u32]
 Context :: struct {
-	focus_id:      string,
-	textbox_state: textedit.State,
-	text_input:    strings.Builder,
-	key_down_bits, key_pressed_bits:     Key_Set,
-	mouse_down_bits:                     Mouse_Set,
-	mouse_pressed_bits:                  Mouse_Set,
-	mouse_released_bits:                 Mouse_Set,
+	focus_id:                        u32,
+	updated_focus:                   bool,
+	textbox_state:                   textedit.State,
+	text_input:                      strings.Builder,
+	key_down_bits, key_pressed_bits: Key_Set,
+	mouse_down_bits:                 Mouse_Set,
+	mouse_pressed_bits:              Mouse_Set,
+	mouse_released_bits:             Mouse_Set,
+	mouse_pos, last_mouse_pos:       Vec2,
+	mouse_delta, scroll_delta:       Vec2,
 }
+
+Vec2 :: distinct [2]i32
 
 Text_Input_Context :: struct {
 	builder: ^strings.Builder, // huh, we learning today boys!
 	id:      string,
+}
+
+input_key_down :: proc(ctx: ^Context, key: Key) {
+	ctx.key_pressed_bits += {key}
+	ctx.key_down_bits += {key}
+}
+input_key_up :: proc(ctx: ^Context, key: Key) {
+	ctx.key_down_bits -= {key}
+}
+
+update_key_input :: proc(ctx: ^Context) {
+	for keys_rl, key in key_map {
+		for key_rl in keys_rl {
+			switch {
+			case key_rl == .KEY_NULL:
+			case rl.IsKeyPressed(key_rl), rl.IsKeyPressedRepeat(key_rl):
+				input_key_down(ctx, key)
+			case rl.IsKeyReleased(key_rl):
+				input_key_up(ctx, key)
+			}
+		}
+	}
+}
+
+
+input_mouse_down :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {
+	input_mouse_move(ctx, x, y)
+	ctx.mouse_down_bits += {btn}
+	ctx.mouse_pressed_bits += {btn}
+}
+
+input_mouse_up :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {
+	input_mouse_move(ctx, x, y)
+	ctx.mouse_down_bits -= {btn}
+	ctx.mouse_released_bits += {btn}
+}
+input_mouse_move :: proc(ctx: ^Context, x, y: i32) {
+	ctx.mouse_pos = Vec2{x, y}
+}
+input_scroll :: proc(ctx: ^Context, x, y: i32) {
+	ctx.scroll_delta.x += x
+	ctx.scroll_delta.y += y
+}
+
+update_mouse_input :: proc(ctx: ^Context) {
+	mouse_pos := rl.GetMousePosition()
+	mouse_x, mouse_y := i32(mouse_pos.x), i32(mouse_pos.y)
+	input_mouse_move(ctx, mouse_x, mouse_y)
+
+	mouse_wheel_pos := rl.GetMouseWheelMoveV()
+	input_scroll(ctx, i32(mouse_wheel_pos.x) * 30, i32(mouse_wheel_pos.y) * -30)
+
+	for button_rl, button_mu in mouse_buttons_map {
+		switch {
+		case rl.IsMouseButtonPressed(button_rl):
+			input_mouse_down(ctx, mouse_x, mouse_y, button_mu)
+		case rl.IsMouseButtonReleased(button_rl):
+			input_mouse_up(ctx, mouse_x, mouse_y, button_mu)
+		}
+	}
 }
 
 update_text_input :: proc(ctx: ^Context) {
@@ -385,179 +310,221 @@ update_text_input :: proc(ctx: ^Context) {
 		b, w := utf8.encode_rune(c)
 		n += copy(buf[n:], b[:w])
 
-		strings.write_string(ctx.textbox_state.builder, string(buf[:n]))
+		// microui.input_text()
+		strings.write_string(&ctx.text_input, string(buf[:n]))
 	}
 }
 
-// layout_textbox_immediate2 :: proc(
-// 	ctx: ^Context,
-// 	textbuf: []u8,
-// 	textlen: ^int,
-// 	id: string,
-// 	r: Rect,
-// 	opt := Options{},
-// ) -> (
-// 	res: Result_Set,
-// ) {
-// 	// update_control(ctx, id, r, opt | {.HOLD_FOCUS})
-//
-// 	// font := ctx.style.font
-//
-// 	if ctx.focus_id == id {
-// 		/* create a builder backed by the user's buffer */
-// 		builder := strings.builder_from_bytes(textbuf)
-// 		non_zero_resize(&builder.buf, textlen^)
-// 		ctx.textbox_state.builder = &builder
-// 		if ctx.textbox_state.id != id {
-// 			ctx.textbox_state.id = u64(id)
-// 			ctx.textbox_state.selection = {}
-// 		}
-//
-// 		/* check selection bounds */
-// 		if ctx.textbox_state.selection[0] > textlen^ || ctx.textbox_state.selection[1] > textlen^ {
-// 			ctx.textbox_state.selection = {}
-// 		}
-//
-// 		/* handle text input */
-// 		if strings.builder_len(ctx.text_input) > 0 {
-// 			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
-// 				textlen^ = strings.builder_len(builder)
-// 				// res += {.CHANGE}
-// 			}
-// 		}
-// 		/* handle ctrl+a */
-// 		if .A in ctx.key_pressed_bits &&
-// 		   .CTRL in ctx.key_down_bits &&
-// 		   .ALT not_in ctx.key_down_bits {
-// 			ctx.textbox_state.selection = {textlen^, 0}
-// 		}
-// 		/* handle ctrl+x */
-// 		if .X in ctx.key_pressed_bits &&
-// 		   .CTRL in ctx.key_down_bits &&
-// 		   .ALT not_in ctx.key_down_bits {
-// 			if textedit.cut(&ctx.textbox_state) {
-// 				textlen^ = strings.builder_len(builder)
-// 				// res += {.CHANGE}
-// 			}
-// 		}
-// 		/* handle ctrl+c */
-// 		if .C in ctx.key_pressed_bits &&
-// 		   .CTRL in ctx.key_down_bits &&
-// 		   .ALT not_in ctx.key_down_bits {
-// 			textedit.copy(&ctx.textbox_state)
-// 		}
-// 		/* handle ctrl+v */
-// 		if .V in ctx.key_pressed_bits &&
-// 		   .CTRL in ctx.key_down_bits &&
-// 		   .ALT not_in ctx.key_down_bits {
-// 			if textedit.paste(&ctx.textbox_state) {
-// 				textlen^ = strings.builder_len(builder)
-// 				// res += {.CHANGE}
-// 			}
-// 		}
-// 		/* handle left/right */
-// 		if .LEFT in ctx.key_pressed_bits {
-// 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
-// 			if .SHIFT in ctx.key_down_bits {
-// 				textedit.select_to(&ctx.textbox_state, move)
-// 			} else {
-// 				textedit.move_to(&ctx.textbox_state, move)
-// 			}
-// 		}
-// 		if .RIGHT in ctx.key_pressed_bits {
-// 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
-// 			if .SHIFT in ctx.key_down_bits {
-// 				textedit.select_to(&ctx.textbox_state, move)
-// 			} else {
-// 				textedit.move_to(&ctx.textbox_state, move)
-// 			}
-// 		}
-// 		/* handle home/end */
-// 		if .HOME in ctx.key_pressed_bits {
-// 			if .SHIFT in ctx.key_down_bits {
-// 				textedit.select_to(&ctx.textbox_state, .Start)
-// 			} else {
-// 				textedit.move_to(&ctx.textbox_state, .Start)
-// 			}
-// 		}
-// 		if .END in ctx.key_pressed_bits {
-// 			if .SHIFT in ctx.key_down_bits {
-// 				textedit.select_to(&ctx.textbox_state, .End)
-// 			} else {
-// 				textedit.move_to(&ctx.textbox_state, .End)
-// 			}
-// 		}
-// 		/* handle backspace/delete */
-// 		if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
-// 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
-// 			textedit.delete_to(&ctx.textbox_state, move)
-// 			textlen^ = strings.builder_len(builder)
-// 			// res += {.CHANGE}
-// 		}
-// 		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
-// 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
-// 			textedit.delete_to(&ctx.textbox_state, move)
-// 			textlen^ = strings.builder_len(builder)
-// 			// res += {.CHANGE}
-// 		}
-// 		/* handle return */
-// 		if .RETURN in ctx.key_pressed_bits {
-// 			set_focus(ctx, 0)
-// 			// res += {.SUBMIT}
-// 		}
-//
-// 		/* handle click/drag */
-// 		if .LEFT in ctx.mouse_down_bits {
-// 			idx := textlen^
-// 			for i in 0 ..< textlen^ {
-// 				/* skip continuation bytes */
-// 				if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
-// 					continue
-// 				}
-// 				if ctx.mouse_pos.x <
-// 				   r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-// 			ctx.textbox_state.selection[0] = idx
-// 			if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
-// 				ctx.textbox_state.selection[1] = idx
-// 			}
-// 		}
-// 	}
-//
-// 	textstr := string(textbuf[:textlen^])
-//
-// 	/* draw */
-// 	draw_control_frame(ctx, id, r, .BASE, opt)
-// 	if ctx.focus_id == id {
-// 		text_color := ctx.style.colors[.TEXT]
-// 		sel_color := ctx.style.colors[.SELECTION_BG]
-// 		textw := ctx.text_width(font, textstr)
-// 		texth := ctx.text_height(font)
-// 		headx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[0]])
-// 		tailx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[1]])
-// 		ofmin := max(ctx.style.padding - headx, r.w - textw - ctx.style.padding)
-// 		ofmax := min(r.w - headx - ctx.style.padding, ctx.style.padding)
-// 		ctx.textbox_offset = clamp(ctx.textbox_offset, ofmin, ofmax)
-// 		textx := r.x + ctx.textbox_offset
-// 		texty := r.y + (r.h - texth) / 2
-// 		push_clip_rect(ctx, r)
-// 		draw_rect(
-// 			ctx,
-// 			Rect{textx + min(headx, tailx), texty, abs(headx - tailx), texth},
-// 			sel_color,
-// 		)
-// 		draw_text(ctx, font, textstr, Vec2{textx, texty}, text_color)
-// 		draw_rect(ctx, Rect{textx + headx, texty, 1, texth}, text_color)
-// 		pop_clip_rect(ctx)
-// 	} else {
-// 		draw_control_text(ctx, textstr, r, .TEXT, opt)
-// 	}
-//
-// 	return
-// }
+update_input :: proc(ctx: ^Context) {
+	update_mouse_input(ctx)
+	update_key_input(ctx)
+	update_text_input(ctx)
+}
+
+set_focus :: proc(ctx: ^Context, id: u32) {
+	ctx.focus_id = id
+	ctx.updated_focus = true
+}
+
+layout_textbox_immediate2 :: proc(
+	ctx: ^Context,
+	textbuf: []u8,
+	textlen: ^int,
+	// id: u32,
+	// r: Rect,
+	// opt := Options{},
+) // res: Result_Set,
+{
+	// update_control(ctx, id, r, opt | {.HOLD_FOCUS})
+
+	// microui.textbox_raw()
+	// font := ctx.style.font
+
+	id := clay.ID_LOCAL("text_box")
+	if ctx.focus_id == id.id {
+		/* create a builder backed by the user's buffer */
+		builder := strings.builder_from_bytes(textbuf)
+		non_zero_resize(&builder.buf, textlen^)
+		ctx.textbox_state.builder = &builder
+
+		if ctx.textbox_state.id != u64(id.id) {
+			ctx.textbox_state.id = u64(id.id)
+			ctx.textbox_state.selection = {}
+		}
+
+		/* check selection bounds */
+		if ctx.textbox_state.selection[0] > textlen^ || ctx.textbox_state.selection[1] > textlen^ {
+			ctx.textbox_state.selection = {}
+		}
+
+		/* handle text input */
+		if strings.builder_len(ctx.text_input) > 0 {
+			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
+				textlen^ = strings.builder_len(builder)
+				// res += {.CHANGE}
+			}
+		}
+		/* handle ctrl+a */
+		if .A in ctx.key_pressed_bits &&
+		   .CTRL in ctx.key_down_bits &&
+		   .ALT not_in ctx.key_down_bits {
+			ctx.textbox_state.selection = {textlen^, 0}
+		}
+		/* handle ctrl+x */
+		if .X in ctx.key_pressed_bits &&
+		   .CTRL in ctx.key_down_bits &&
+		   .ALT not_in ctx.key_down_bits {
+			if textedit.cut(&ctx.textbox_state) {
+				textlen^ = strings.builder_len(builder)
+				// res += {.CHANGE}
+			}
+		}
+		/* handle ctrl+c */
+		if .C in ctx.key_pressed_bits &&
+		   .CTRL in ctx.key_down_bits &&
+		   .ALT not_in ctx.key_down_bits {
+			textedit.copy(&ctx.textbox_state)
+		}
+		/* handle ctrl+v */
+		if .V in ctx.key_pressed_bits &&
+		   .CTRL in ctx.key_down_bits &&
+		   .ALT not_in ctx.key_down_bits {
+			if textedit.paste(&ctx.textbox_state) {
+				textlen^ = strings.builder_len(builder)
+				// res += {.CHANGE}
+			}
+		}
+		/* handle left/right */
+		if .LEFT in ctx.key_pressed_bits {
+			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+			if .SHIFT in ctx.key_down_bits {
+				textedit.select_to(&ctx.textbox_state, move)
+			} else {
+				textedit.move_to(&ctx.textbox_state, move)
+			}
+		}
+		if .RIGHT in ctx.key_pressed_bits {
+			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+			if .SHIFT in ctx.key_down_bits {
+				textedit.select_to(&ctx.textbox_state, move)
+			} else {
+				textedit.move_to(&ctx.textbox_state, move)
+			}
+		}
+		/* handle home/end */
+		if .HOME in ctx.key_pressed_bits {
+			if .SHIFT in ctx.key_down_bits {
+				textedit.select_to(&ctx.textbox_state, .Start)
+			} else {
+				textedit.move_to(&ctx.textbox_state, .Start)
+			}
+		}
+		if .END in ctx.key_pressed_bits {
+			if .SHIFT in ctx.key_down_bits {
+				textedit.select_to(&ctx.textbox_state, .End)
+			} else {
+				textedit.move_to(&ctx.textbox_state, .End)
+			}
+		}
+		/* handle backspace/delete */
+		if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
+			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+			textedit.delete_to(&ctx.textbox_state, move)
+			textlen^ = strings.builder_len(builder)
+			// res += {.CHANGE}
+		}
+		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
+			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+			textedit.delete_to(&ctx.textbox_state, move)
+			textlen^ = strings.builder_len(builder)
+			// res += {.CHANGE}
+		}
+		/* handle return */
+		if .RETURN in ctx.key_pressed_bits {
+			set_focus(ctx, 0)
+		}
+
+		/* handle click/drag */
+		// if .LEFT in ctx.mouse_down_bits {
+		// 	idx := textlen^
+		// 	for i in 0 ..< textlen^ {
+		// 		/* skip continuation bytes */
+		// 		if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
+		// 			continue
+		// 		}
+		// 		if ctx.mouse_pos.x <
+		// 		   r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
+		// 			idx = i
+		// 			break
+		// 		}
+		// 	}
+		// 	ctx.textbox_state.selection[0] = idx
+		// 	if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+		// 		ctx.textbox_state.selection[1] = idx
+		// 	}
+		// }
+	}
+
+	textstr := string(textbuf[:textlen^])
+
+	if clay.UI(id)(
+		config = clay.ElementDeclaration {
+			layout = clay.LayoutConfig {
+				layoutDirection = .TopToBottom,
+				sizing = clay.Sizing{clay.SizingGrow(), clay.SizingGrow()},
+			},
+			backgroundColor = layout.COLOR_BLUE_DARK,
+		},
+	) {
+		layout_dynamic_text_entry(fmt.tprint("hej"))
+		layout_dynamic_text_entry(textstr)
+
+		on_hover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
+		) {
+			context = runtime.default_context()
+
+			ctx := cast(^Context)userData
+			assert_contextless(ctx != nil)
+			set_focus(ctx, id.id)
+
+
+		}
+		clay.OnHover(on_hover, ctx)
+	}
+
+
+	// /* draw */
+	// draw_control_frame(ctx, id, r, .BASE, opt)
+	// if ctx.focus_id == id {
+	// 	text_color := ctx.style.colors[.TEXT]
+	// 	sel_color := ctx.style.colors[.SELECTION_BG]
+	// 	textw := ctx.text_width(font, textstr)
+	// 	texth := ctx.text_height(font)
+	// 	headx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[0]])
+	// 	tailx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[1]])
+	// 	ofmin := max(ctx.style.padding - headx, r.w - textw - ctx.style.padding)
+	// 	ofmax := min(r.w - headx - ctx.style.padding, ctx.style.padding)
+	// 	ctx.textbox_offset = clamp(ctx.textbox_offset, ofmin, ofmax)
+	// 	textx := r.x + ctx.textbox_offset
+	// 	texty := r.y + (r.h - texth) / 2
+	// 	push_clip_rect(ctx, r)
+	// 	draw_rect(
+	// 		ctx,
+	// 		Rect{textx + min(headx, tailx), texty, abs(headx - tailx), texth},
+	// 		sel_color,
+	// 	)
+	// 	draw_text(ctx, font, textstr, Vec2{textx, texty}, text_color)
+	// 	draw_rect(ctx, Rect{textx + headx, texty, 1, texth}, text_color)
+	// 	pop_clip_rect(ctx)
+	// } else {
+	// 	draw_control_text(ctx, textstr, r, .TEXT, opt)
+	// }
+
+	return
+}
 
 layout_button_immediate :: proc(
 	text: string,
@@ -739,424 +706,4 @@ layout_dropdown :: proc(
 
 	// mainly here for ergonomics. can use in if
 	return dropped_down^
-}
-
-
-Cheats_Panel_UI_State :: struct {
-	show_controls, show_cheats: bool,
-}
-
-
-layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^game_state.Game_State) {
-
-
-	if clay.UI(clay.ID("cheats_panel_main"))(
-		config = clay.ElementDeclaration {
-			layout = clay.LayoutConfig {
-				layoutDirection = .TopToBottom,
-				sizing = clay.Sizing{width = clay.SizingGrow(), height = clay.SizingGrow()},
-			},
-			// backgroundColor = layout.COLOR_RED,
-		},
-	) {
-
-		// clay.GetMaxElementCount
-
-		// if .ACTIVE in mu.treenode(ctx, "Controls", {mu.Opt.EXPANDED}) {
-		// }
-		//
-		// 		mu.get_current_container(ctx).rect = screen_rect
-		//
-		// 		mu.layout_next(ctx)
-		//
-		// 		if .ACTIVE in mu.treenode(ctx, "CHEATS") {
-		if clay.UI()(
-			config = clay.ElementDeclaration {
-				layout = clay.LayoutConfig {
-					layoutDirection = .TopToBottom,
-					sizing = {clay.SizingGrow(), clay.SizingFit()},
-				},
-			},
-		) {
-		}
-		@(static) panel_cheats_dropdown := false
-		if layout_dropdown(fmt.tprint("Cheats"), &panel_cheats_dropdown) {
-
-			@(static) cheats_dropdown := false
-			@(static) controls_dropdown := false
-			if layout_dropdown(fmt.tprint("Controls"), &controls_dropdown) {
-				layout_controls_sheet()
-			}
-			if layout_dropdown(fmt.tprint("Cheats"), &cheats_dropdown) {
-
-				layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
-
-				layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
-				layout_checkbox(
-					"debug_draw_utils",
-					&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-				)
-				layout_checkbox(
-					"player_in_active_cell",
-					&game_state.cheat_state.change_color_when_player_in_cell,
-				)
-			}
-		}
-
-		// 		}
-		//
-		// 		mu.layout_next(ctx)
-		//
-		// 		// if .ACTIVE in mu.treenode(ctx, "MISC") {
-		// 		// 	if stats_container != nil {
-		// 		// 		mu.layout_row(ctx, {-1})
-		// 		// 		open := bool(stats_container.open)
-		// 		// 		mu.checkbox(ctx, "display_stats", &open)
-		// 		//
-		// 		// 		stats_container.open = b32(open)
-		// 		// 	}
-		// 		// }
-		// 	}
-		//
-		// }
-
-	}
-	// percent: f32 = 0.30
-	// screen_rect := screen_rect
-	// screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
-	// screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
-	// // rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
-	//
-	// stats_container := mu.get_container(
-	// ctx, // TODO we should get the container, but it should be hidden / closed by default!
-	// "stats",
-	// {
-	// 	// mu.Opt.NO_INTERACT,
-	// 	// mu.Opt.NO_SCROLL,
-	// 	// mu.Opt.CLOSED,
-	// 	// mu.Opt.NO_FRAME,
-	// 	// mu.Opt.NO_RESIZE,
-	// 	// mu.Opt.NO_TITLE,
-	// },
-	// ) // TODO this crashes the game.
-	// if mu.window(
-	// 	ctx,
-	// 	"Cheat Window (TAB to free mouse)",
-	// 	screen_rect,
-	// 	{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME, .NO_TITLE},
-	// ) {
-	// 	mu.get_current_container(ctx).rect = screen_rect
-	//
-	// 	if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)", {mu.Opt.EXPANDED}) {
-	// 		if .ACTIVE in mu.treenode(ctx, "Controls", {mu.Opt.EXPANDED}) {
-	// 			controls_sheet(ctx)
-	// 		}
-	//
-	// 		mu.get_current_container(ctx).rect = screen_rect
-	//
-	// 		mu.layout_next(ctx)
-	//
-	// 		if .ACTIVE in mu.treenode(ctx, "CHEATS") {
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(
-	// 				ctx,
-	// 				"debug_draw_utils",
-	// 				&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-	// 			)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(
-	// 				ctx,
-	// 				"player_in_active_cell",
-	// 				&game_state.cheat_state.change_color_when_player_in_cell,
-	// 			)
-	// 		}
-	//
-	// 		mu.layout_next(ctx)
-	//
-	// 		// if .ACTIVE in mu.treenode(ctx, "MISC") {
-	// 		// 	if stats_container != nil {
-	// 		// 		mu.layout_row(ctx, {-1})
-	// 		// 		open := bool(stats_container.open)
-	// 		// 		mu.checkbox(ctx, "display_stats", &open)
-	// 		//
-	// 		// 		stats_container.open = b32(open)
-	// 		// 	}
-	// 		// }
-	// 	}
-	//
-	// }
-}
-
-layout_controls_sheet :: proc() {
-
-	layout_dynamic_text_entry(fmt.tprint("WASD  - Movement"), .Left)
-	layout_dynamic_text_entry(fmt.tprint("SPACE - Jump"), .Left)
-	layout_dynamic_text_entry(fmt.tprint("R     - Reset Run"), .Left)
-	layout_dynamic_text_entry(fmt.tprint("Q     - Open / Close Editor"), .Left)
-}
-
-
-layout_details_panel :: proc(
-	players: ^plrs.Players,
-	game_state: ^gs.Game_State,
-	level: ^l.Level,
-	active_elems: ^layout.Active_Elements,
-) {
-
-
-	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
-	//
-	// 	current_container := mu.get_current_container(ctx)
-	// 	current_container.rect = screen_rect
-
-	current_id := players.editor.transform_tool.target_object_id
-
-
-	@(static) object_manip_dropdown := false
-	if current_id != spat.INVALID_OBJECT_ID {
-		current_coll_obj := hms.get(&level.collision_object_map, current_id)
-		if layout_dropdown(fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
-
-			layout_dynamic_text_entry(fmt.tprint(current_id))
-			if layout_button_immediate(fmt.tprint("duplicate")) {
-				if current_coll_obj != nil {
-					new_id := spat.add_to_level(
-						&level.collision_object_map,
-						&level.spatial_hash_grid,
-						current_coll_obj.data,
-					)
-
-					_, is_kill_volume := level.kill_volumes[current_id]
-					if is_kill_volume {
-						level.kill_volumes[new_id] = true
-					}
-
-					_, is_grappable := level.grappable[current_id]
-					if is_grappable {
-						level.grappable[new_id] = true
-					}
-				}
-			}
-
-
-			{
-				_, is_kill_volume := level.kill_volumes[current_id]
-
-				if layout_checkbox_immediate(fmt.tprint("Kill Volume"), &is_kill_volume) {
-					if is_kill_volume do level.kill_volumes[current_id] = true
-					else do delete_key(&level.kill_volumes, current_id)
-				}
-			}
-
-			{
-				_, grappable := level.grappable[current_id]
-
-				if layout_checkbox_immediate(fmt.aprintf("Grappable"), &grappable) {
-					if grappable do level.grappable[current_id] = true
-					else do delete_key(&level.grappable, current_id)
-				}
-			}
-
-			{
-				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
-				if layout_checkbox_immediate(fmt.aprintf("Colliding"), &is_colliding) {
-					current_coll_obj.collision_channels =
-						is_colliding ? cc.get_blocking() : cc.get_non_blocking()
-					// TODO we should also activate kill volumes when we get a normal collision.
-				}
-			}
-
-			{
-				if layout_button_immediate(fmt.tprint("Reset Rotation")) {
-					current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
-				}
-				if layout_button_immediate(fmt.tprint("Random Rotation")) {
-					current_coll_obj.transform.rotation = spat.rand_rot()
-				}
-			}
-
-		}
-	}
-
-
-	@(static) level_stuff_dropdown := false
-	if layout_dropdown(fmt.tprint("Level Stuff"), &level_stuff_dropdown) {
-
-		@(static) buf: [128]byte
-		@(static) buf_len: int
-
-		clicked_file_path := map_directory(active_elems)
-
-		double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
-
-		if clicked_file_path != "" {
-			builder := strings.builder_make()
-
-			fmt.println(clicked_file_path)
-			buf_len = copy(buf[0:], clicked_file_path)
-
-		}
-
-
-		layout_dynamic_text_entry(fmt.tprint("Level:", string(buf[:buf_len])))
-
-
-		// mu.text(ctx, "Level:")
-		// if .SUBMIT in mu.textbox(ctx, buf[:], &buf_len) {
-		// 	fmt.println("Submit!")
-		// }
-
-		if layout_button_immediate(fmt.tprint("Save Level")) {
-
-			level.author_time = players.game.best_time
-			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-		}
-
-		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
-		// 	level.author_time = players.game.best_time
-		//
-		// 	serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-		//
-		// }
-
-		if layout_button_immediate(fmt.tprint("Load Level")) {
-			level^ = serialization.load_from_file_level(
-				to_cwd_map_path_from_local(string(buf[:buf_len])),
-			)
-
-			character.notify_level_loaded(&players.game)
-			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
-
-		}
-
-	}
-	layout_editor_options()
-}
-
-
-layout_editor_options :: proc() {
-	layout_checkbox(fmt.tprintln("Edit Objects Local"), &et.tooltip_local)
-}
-
-
-map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
-
-	cwd := os.get_current_directory()
-	f, err := os.open(cwd)
-	defer os.close(f)
-	if err != os.ERROR_NONE {
-		fmt.eprintln("Could not open directory for reading", err)
-		os.exit(1)
-	}
-	fis: []os.File_Info
-	defer os.file_info_slice_delete(fis)
-
-	fis, err = os.read_dir(f, -1) // -1 reads all file infos
-	if err != os.ERROR_NONE {
-		fmt.eprintln("Could not read directory", err)
-		os.exit(2)
-	}
-
-
-	return vis_dir(
-		os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})},
-		active_elems,
-		true,
-	)
-}
-
-vis_dir :: proc(
-	file_dir: os.File_Info,
-	active_elems: ^layout.Active_Elements,
-	force_open: bool = false,
-) -> string {
-	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
-	cwd := file_dir
-	f, err := os.open(cwd.fullpath)
-	defer os.close(f)
-	if err != os.ERROR_NONE {
-		fmt.eprintln("Could not open directory for reading", err)
-		os.exit(1)
-	}
-	fis: []os.File_Info
-	defer os.file_info_slice_delete(fis)
-
-	fis, err = os.read_dir(f, -1) // -1 reads all file infos
-	if err != os.ERROR_NONE {
-		fmt.eprintln("Could not read directory", err)
-		os.exit(2)
-	}
-
-	current_dir_name := filepath.base(file_dir.fullpath)
-
-	// opts: mu.Options = force_open ? {mu.Opt.EXPANDED} : {}
-
-	clicked_map_name := ""
-
-
-	active_elem := layout.active_elements_get_or_add(active_elems, current_dir_name)
-	if layout_dropdown(fmt.tprintf("{}", current_dir_name), &active_elem.active) {
-		for fi in fis {
-			full_directory, name := filepath.split(fi.fullpath)
-
-			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
-
-			if fi.is_dir {
-				dir_name := vis_dir(fi, active_elems)
-				if dir_name != "" do clicked_map_name = dir_name
-			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-				if layout_button_immediate(fmt.tprint({}, name)) {
-					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
-				}
-			}
-
-		}
-	}
-	// if .ACTIVE in mu.begin_treenode(ctx, fmt.aprintf("{}", current_dir_name), opts) {
-	// 	for fi in fis {
-	// 		full_directory, name := filepath.split(fi.fullpath)
-	//
-	// 		if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
-	//
-	// 		if fi.is_dir {
-	// 			dir_name := vis_dir(ctx, fi)
-	// 			if dir_name != "" do clicked_map_name = dir_name
-	// 		} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-	// 			if .SUBMIT in mu.button(ctx, fmt.aprintf("{}", name)) {
-	//
-	// 				clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
-	// 			}
-	// 		}
-	//
-	// 	}
-	//
-	// 	mu.end_treenode(ctx)
-	// }
-
-	return clicked_map_name
-}
-
-// Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
-to_cwd_map_path_from_local :: proc(local_path: string) -> string {
-	return filepath.join(
-		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
-	)
-}
-
-// Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
-to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
-	local_path, _ := filepath.rel(
-		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
-		cwd_path,
-	)
-	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
-
-	return local_path
 }

@@ -5,6 +5,7 @@ import gs "../game_state/"
 import l "../level/"
 import plrs "../players/"
 import layout "../ui/layout/"
+import ui "../ui/"
 
 import rl "vendor:raylib"
 
@@ -16,5 +17,6 @@ Global_Context :: distinct struct {
 	// cam:                 ^rl.Camera3D,
 	camera_state:        camera.Global_State,
 	root_node_tiling_ui: ^layout.Tiling_Node,
+	ui_context: ^ui.Context,
 	mouse_over_game:     bool, // cursor over the game window. And not obstructed by other ui
 }

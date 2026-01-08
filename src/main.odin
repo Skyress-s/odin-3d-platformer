@@ -26,8 +26,9 @@ import "serialization"
 import clay "ui/clay-odin"
 import rl "vendor:raylib"
 
-import game_ui "ui"
-import ui "ui/layout"
+import game_ui "ui/game_ui"
+import ui "ui"
+import layout "ui/layout"
 import ui_rr "ui/layout/raylib"
 
 
@@ -169,19 +170,23 @@ main :: proc() {
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
-	clay_memory_arena := ui.init(ui_rr.measure_text)
+	clay_memory_arena := layout.init(ui_rr.measure_text)
 	defer ui_rr.delete_raylib_fonts()
-	defer ui.deinit(clay_memory_arena)
+	defer layout.deinit(clay_memory_arena)
 
-	root_node := ui.create_root_node()
-	defer ui.delete_all_child_nodes(&root_node)
+	root_node := layout.create_root_node()
+	defer layout.delete_all_child_nodes(&root_node)
+
+	ui_context := ui.init_input_context()
+	defer ui.deinit_input_context(&ui_context)
 
 	gc: gctx.Global_Context = {
 		players             = &players,
 		game_state          = &game_state,
 		current_level       = &current_level,
 		root_node_tiling_ui = &root_node,
-		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5})
+		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5}),
+		ui_context = &ui_context
 	}
 
 
@@ -189,38 +194,37 @@ main :: proc() {
 		l.delete_level(gc.current_level)
 	}
 
-	ui.register_node(
+	layout.register_node(
 		&root_node,
-		ui.make_new_node_with_draw_proc(
+		layout.make_new_node_with_draw_proc(
 			strings.clone(GAME_WINDOW_NAME),
 			game_ui.layout_game_ui,
 			&gc,
 		),
 	) // todo how to safe free string
-	ui_active_elems := ui.Active_Elements{}
+	ui_active_elems := layout.Active_Elements{}
 	defer delete(ui_active_elems.elems)
 	// ui.register_node(&root_node, ui.make_new_node(strings.clone()"Debug"))
 
 	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
 	defer render.render_targets_deinit(render_targets)
 
-	input_context := game_ui.init_input_context()
-	defer game_ui.deinit_input_context(&input_context)
 
 
 	game_rt_needs_update := true
 	// TODO make esc NOT close the
 	for !rl.WindowShouldClose() {
 
-		game_ui.update_text_input(&input_context)
-		// log.warnf("{}", strings.to_string(input_context.input_string_builder))
+		ui.update_input(&ui_context)
+		// log.warnf("{}", strings.to_string(ui_context.text_input))
 
 		
 		layout_updated := false
 		gc.mouse_over_game = false // todo feels kinda hacky
 
-		ui.update_state()
-		game_ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
+		layout.update_state()
+		// todo move into ui.Context
+		ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
 
 		clay.BeginLayout()
 		if clay.UI(clay.ID("root"))(
@@ -237,7 +241,7 @@ main :: proc() {
 			},
 		) {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
-			layout_updated = ui.layout_tiling_windows(
+			layout_updated = layout.layout_tiling_windows(
 				&root_node,
 				rl.IsKeyDown(rl.KeyboardKey.C),
 				&ui_active_elems,
@@ -257,7 +261,7 @@ main :: proc() {
 		// Render phase
 
 		// Render game window
-		if ui.find_node(&root_node, GAME_WINDOW_NAME) != nil {
+		if layout.find_node(&root_node, GAME_WINDOW_NAME) != nil {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
 
 			game_rect : rl.Rectangle = transmute(rl.Rectangle)game_window_bounds
@@ -303,7 +307,7 @@ main :: proc() {
 				0,
 				rl.WHITE,
 			)
-			ui.render(&ui_render_commands)
+			layout.render(&ui_render_commands)
 			// ui.render(&stats_render_commands)
 			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
@@ -324,6 +328,7 @@ main :: proc() {
 		// 	gc.game_state,
 		// 	rl.Rectangle{0,0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())})
 
+		ui.end_frame(&ui_context)
 	}
 
 

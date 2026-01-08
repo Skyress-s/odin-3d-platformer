@@ -9,6 +9,8 @@ import "core:reflect"
 import "core:time"
 
 import ui "../ui"
+import layout "../ui/layout/"
+import game_ui "../ui/game_ui/"
 
 import camera "../camera"
 import verlet "../Physics/verlet"
@@ -21,7 +23,6 @@ import l "../level"
 import "../player_data"
 import plrs "../players"
 import rlb "../raylib_bridge"
-import layout "../ui/layout"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -77,7 +78,7 @@ update :: proc(
 		cursor_enabled = !cursor_enabled
 		if cursor_enabled {
 			rl.EnableCursor()
-			layout.register_node(gc.root_node_tiling_ui, layout.make_new_node_with_draw_proc(GAME_CHEATS_WINDOW_NAME, ui.layout_game_cheats_window, gc))
+			layout.register_node(gc.root_node_tiling_ui, layout.make_new_node_with_draw_proc(GAME_CHEATS_WINDOW_NAME, game_ui.layout_game_cheats_window, gc))
 		} else {
 			rl.DisableCursor()
 			layout.unregister_node(gc.root_node_tiling_ui, GAME_CHEATS_WINDOW_NAME)
@@ -95,11 +96,11 @@ update :: proc(
 			gc.players.editor.position = gc.players.game.verlet_component.position
 			gc.players.editor.look_radians = gc.players.game.look_angles
 
-			found_node := layout.find_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
+			found_node := layout.find_node(gc.root_node_tiling_ui, game_ui.EDITOR_DETAILS_PANEL_NAME)
 			if found_node == nil {
 				ok, new_editor_details_node := layout.register_node(
 					gc.root_node_tiling_ui,
-					ui.make_editor_details_node(gc),
+					game_ui.make_editor_details_node(gc),
 				)
 				assert(ok)
 				found_node = new_editor_details_node
@@ -115,9 +116,9 @@ update :: proc(
 
 			if found_node := layout.find_node(
 				gc.root_node_tiling_ui,
-				ui.EDITOR_DETAILS_PANEL_NAME,
+				game_ui.EDITOR_DETAILS_PANEL_NAME,
 			); found_node != nil {
-				layout.unregister_node(gc.root_node_tiling_ui, ui.EDITOR_DETAILS_PANEL_NAME)
+				layout.unregister_node(gc.root_node_tiling_ui, game_ui.EDITOR_DETAILS_PANEL_NAME)
 			}
 
 			gc.players.mode = plrs.Player_Mode.Game

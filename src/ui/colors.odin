@@ -1,1 +1,1 @@
-package game_ui
+package ui
