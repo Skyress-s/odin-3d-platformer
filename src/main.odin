@@ -7,18 +7,15 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:strings"
-import "core:time"
 
 import camera "camera"
 import character "Character"
-import spat "Spatial"
 import "core:testing"
 import e_tools "editor/tools"
 import "game"
 import gs "game_state"
 import gctx "global_context"
 import l "level"
-import m_log "mph_log"
 import plrs "players"
 import rlb "raylib_bridge"
 import "render"
@@ -159,11 +156,9 @@ main :: proc() {
 		&current_level.start_look_direction,
 	)
 
-
 	players.editor.transform_tool = e_tools.init_transform_tool()
 
 	character.start_speedrun(&players.game)
-
 
 	rlb.raylib_init()
 	defer rlb.raylib_deinit()
@@ -216,15 +211,12 @@ main :: proc() {
 	for !rl.WindowShouldClose() {
 
 		ui.update_input(&ui_context)
-		// log.warnf("{}", strings.to_string(ui_context.text_input))
-
-		
 		layout_updated := false
 		gc.mouse_over_game = false // todo feels kinda hacky
 
+		ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
 		layout.update_state()
 		// todo move into ui.Context
-		ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
 
 		clay.BeginLayout()
 		if clay.UI(clay.ID("root"))(
@@ -252,25 +244,13 @@ main :: proc() {
 		game_rt_needs_update |= layout_updated
 
 
-		// stats_render_commands := game_ui.stats(gc.players)
 		debug_draw_data: render.Debug_Draw_Data
-		// if (rl.GetTime() > 1)
-		// {
-		// }
-
 		// Render phase
-
 		// Render game window
 		if layout.find_node(&root_node, GAME_WINDOW_NAME) != nil {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
 
 			game_rect : rl.Rectangle = transmute(rl.Rectangle)game_window_bounds
-			// game_rect := rl.Rectangle {
-			// 	x      = game_window_bounds.x,
-			// 	y      = game_window_bounds.y,
-			// 	width  = game_window_bounds.width,
-			// 	height = game_window_bounds.height,
-			// }
 
 			if game_rt_needs_update {
 				render.resize_render_targets(&render_targets, game_rect)
@@ -308,25 +288,12 @@ main :: proc() {
 				rl.WHITE,
 			)
 			layout.render(&ui_render_commands)
-			// ui.render(&stats_render_commands)
-			// log.infof("num render commands {}", stats_render_commands.length)
 			rl.EndDrawing()
 
 
-			// log.warnf("before_free_all {}", gc.players.game.verlet_component.position)
 			free_all(context.temp_allocator)
-			// log.warnf("after_free_all {}", gc.players.game.verlet_component.position)
-
 
 		}
-
-		// render.render(
-		// 	gc.current_level,
-		// 	gc.players,
-		// 	gc.cam,
-		// 	&debug_draw_data,
-		// 	gc.game_state,
-		// 	rl.Rectangle{0,0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())})
 
 		ui.end_frame(&ui_context)
 	}

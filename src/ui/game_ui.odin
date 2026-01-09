@@ -1,29 +1,14 @@
 package ui
 
+import "vendor:microui"
 import "base:runtime"
 import "core:fmt"
-import "core:log"
-import "core:math/linalg"
-import "core:os"
-import "core:path/filepath"
 import "core:strings"
 import textedit "core:text/edit"
-import "core:time"
 import "core:unicode/utf8"
 
-import character "../Character"
-import cc "../Physics/collision_channel/"
-import spat "../Spatial"
-import et "../editor/tools"
-import gs "../game_state/"
-import hms "../handle_map/handle_map_static/"
-import "../serialization/"
-import "vendor:microui"
 import rl "vendor:raylib"
 
-import game_state "../game_state"
-import l "../level"
-import plrs "../players/"
 import clay "clay-odin"
 import layout "layout"
 
@@ -326,6 +311,38 @@ set_focus :: proc(ctx: ^Context, id: u32) {
 	ctx.updated_focus = true
 }
 
+update_control :: proc(ctx: ^Context, id: u32/*, rect: Rect, opt := Options{}*/) {
+	// mouseover := microui.mouse_over(ctx, rect)
+
+	// Keep holding focus
+	if ctx.focus_id == id {
+		ctx.updated_focus = true
+	}
+	// if .NO_INTERACT in opt {
+	// 	return
+	// }
+	// if mouseover && !mouse_down(ctx) {
+	// 	ctx.hover_id = id
+	// }
+	//
+	// if ctx.focus_id == id {
+	// 	if mouse_pressed(ctx) && !mouseover {
+	// 		set_focus(ctx, 0)
+	// 	}
+	// 	if !mouse_down(ctx) && .HOLD_FOCUS not_in opt {
+	// 		set_focus(ctx, 0)
+	// 	}
+	// }
+	//
+	// if ctx.hover_id == id {
+	// 	if mouse_pressed(ctx) {
+	// 		set_focus(ctx, id)
+	// 	} else if !mouseover {
+	// 		ctx.hover_id = 0
+	// 	}
+	// }
+}
+
 layout_textbox_immediate2 :: proc(
 	ctx: ^Context,
 	textbuf: []u8,
@@ -487,6 +504,7 @@ layout_textbox_immediate2 :: proc(
 			context = runtime.default_context()
 
 			ctx := cast(^Context)userData
+			update_control(ctx, id.id)
 			assert_contextless(ctx != nil)
 			set_focus(ctx, id.id)
 
