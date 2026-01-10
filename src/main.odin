@@ -9,6 +9,7 @@ import "core:mem"
 import "core:strings"
 
 import character "Character"
+import camera "camera"
 import "core:testing"
 import e_tools "editor/tools"
 import "game"
@@ -247,7 +248,7 @@ main :: proc() {
 		if layout.find_node(&root_node, GAME_WINDOW_NAME) != nil {
 			game_window_bounds := clay.GetElementData(clay.ID(GAME_WINDOW_NAME)).boundingBox
 
-			game_rect : rl.Rectangle = transmute(rl.Rectangle)game_window_bounds
+			game_rect: rl.Rectangle = transmute(rl.Rectangle)game_window_bounds
 
 			if game_rt_needs_update {
 				render.resize_render_targets(&render_targets, game_rect)
