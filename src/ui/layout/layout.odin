@@ -38,10 +38,7 @@ make_new_node :: proc {
 
 make_new_node_with_draw_proc :: proc(
 	name: string,
-	layout_proc: proc(parent_node: ^Tiling_Node, 
-	active_elems: ^Active_Elements
-		),
-
+	layout_proc: proc(node: ^Tiling_Node, active_elems: ^Active_Elements),
 	userdata: rawptr,
 ) -> Tiling_Node {
 	new_node := make_new_node_with_name(name)

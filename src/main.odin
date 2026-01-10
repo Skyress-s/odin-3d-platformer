@@ -8,7 +8,6 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 
-import camera "camera"
 import character "Character"
 import "core:testing"
 import e_tools "editor/tools"
@@ -23,8 +22,8 @@ import "serialization"
 import clay "ui/clay-odin"
 import rl "vendor:raylib"
 
-import game_ui "ui/game_ui"
 import ui "ui"
+import game_ui "ui/game_ui"
 import layout "ui/layout"
 import ui_rr "ui/layout/raylib"
 
@@ -141,9 +140,6 @@ main :: proc() {
 	main_console_logger := log.create_console_logger()
 	context.logger = main_console_logger
 	defer log.destroy_console_logger(main_console_logger)
-	// ok, file_logger_handle := m_log.logger_init()
-	// assert(ok, "Could not initialize project Logger.")
-	// defer m_log.logger_deinit(file_logger_handle)
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
@@ -170,7 +166,7 @@ main :: proc() {
 	defer layout.deinit(clay_memory_arena)
 
 	root_node := layout.create_root_node()
-	defer layout.delete_all_child_nodes(&root_node)
+	// defer layout.delete_all_child_nodes(&root_node)
 
 	ui_context := ui.init_input_context()
 	defer ui.deinit_input_context(&ui_context)
@@ -180,10 +176,12 @@ main :: proc() {
 		game_state          = &game_state,
 		current_level       = &current_level,
 		root_node_tiling_ui = &root_node,
-		camera_state = camera.init(generate_camera(), camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5}),
-		ui_context = &ui_context
+		camera_state        = camera.init(
+			generate_camera(),
+			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
+		),
+		ui_context          = &ui_context,
 	}
-
 
 	defer {
 		l.delete_level(gc.current_level)
@@ -203,7 +201,6 @@ main :: proc() {
 
 	render_targets := render.render_targets_init({0, 0}) // Will do a resize first frame. Could potentially do this here, by calculating the layout once. But keeping it simple for now.
 	defer render.render_targets_deinit(render_targets)
-
 
 
 	game_rt_needs_update := true

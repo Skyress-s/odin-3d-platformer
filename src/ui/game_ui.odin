@@ -108,11 +108,18 @@ layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
 init_input_context :: proc() -> Context {
 	ctx: Context
 	strings.builder_init(&ctx.text_input)
+	ctx.clay_context_data.arena = layout.init(ui_rr.measure_text)
+
+	ctx.root_node = layout.create_root_node()
 
 	return ctx
 }
 deinit_input_context :: proc(ctx: ^Context) {
 	strings.builder_destroy(&ctx.text_input)
+
+	layout.deinit(ctx.clay_context_data.arena)
+
+	// layout.delete_node2(&root_node, &root_node) // TODO: crashes program
 }
 
 end_frame :: proc(ctx: ^Context) {
@@ -213,6 +220,12 @@ Context :: struct {
 	mouse_released_bits:             Mouse_Set,
 	mouse_pos, last_mouse_pos:       Vec2,
 	mouse_delta, scroll_delta:       Vec2,
+	clay_context_data:               Clay_Context_Data,
+	root_node:                       layout.Tiling_Node, // TODO: should these really be in the same context?
+}
+
+Clay_Context_Data :: struct {
+	arena: clay.Arena,
 }
 
 Vec2 :: distinct [2]i32
@@ -488,7 +501,7 @@ layout_textbox_immediate2 :: proc(
 		config = clay.ElementDeclaration {
 			layout = clay.LayoutConfig {
 				layoutDirection = .TopToBottom,
-				sizing = clay.Sizing{clay.SizingGrow(), clay.SizingGrow()},
+				sizing = clay.Sizing{clay.SizingGrow(), clay.SizingFit()},
 			},
 			backgroundColor = layout.COLOR_BLUE_DARK,
 		},
