@@ -36,7 +36,6 @@ key_map := [Key][2]rl.KeyboardKey {
 	.C         = {.C, .KEY_NULL},
 	.V         = {.V, .KEY_NULL},
 }
-mouse_pressed_this_frame: bool
 
 Color_Configuration :: struct {
 	normal, hover: clay.Color,
@@ -47,36 +46,24 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 	hover  = layout.COLOR_GREY,
 }
 
-
-// Key_Set :: distinct bit_set[Key; u32]
-// Key_Set :: bit_set[rl.KeyboardKey]
-// Input_Context :: struct{
-// 	key_bits_pressed: Key_Set
-// }
-//
-// update_input :: proc(){
-// 	microui.input_key_up()
-// 	microui.textbox_raw()
-// 	for key in rl.KeyboardKey{
-// 		if rl.IsKeyPressed(key) { // todo add repeat?
-//
-// 		}
-//
-// 	}
-// }
-
+mouse_pressed :: proc(ctx: ^Context) -> bool {
+	return Mouse.LEFT in ctx.mouse_pressed_bits
+}
+mouse_down :: proc(ctx: ^Context) -> bool {
+	return Mouse.LEFT in ctx.mouse_down_bits
+}
 
 layout_dynamic_text_entry :: proc(text: string, text_alignment: clay.TextAlignment = .Left) {
 	clay.TextDynamic(
 		text,
 		clay.TextConfig(
 			{
-				fontSize      = 32,
-				fontId        = layout.FONT_ID_BODY_16,
-				textColor     = layout.COLOR_LIGHT,
+				fontSize = 32,
+				fontId = layout.FONT_ID_BODY_16,
+				textColor = layout.COLOR_LIGHT,
 				textAlignment = text_alignment,
-				wrapMode      = .Words,
-				// lineHeight = 4
+				wrapMode = .Words,
+				lineHeight = 32,
 			},
 		),
 	)
@@ -143,6 +130,7 @@ end_frame :: proc(ctx: ^Context) {
 		ctx.focus_id = 0
 	}
 	ctx.updated_focus = false
+
 
 	/* bring hover root to front if mouse was pressed */
 	// if mouse_pressed(ctx) && ctx.next_hover_root != nil &&
@@ -212,6 +200,7 @@ Mouse :: enum u32 {
 Mouse_Set :: distinct bit_set[Mouse;u32]
 Context :: struct {
 	focus_id:                        u32,
+	hover_id:                        u32,
 	updated_focus:                   bool,
 	textbox_state:                   textedit.State,
 	text_input:                      strings.Builder,
@@ -328,6 +317,7 @@ set_focus :: proc(ctx: ^Context, id: u32) {
 update_control :: proc(
 	ctx: ^Context,
 	id: u32,
+	hold_focus: bool = false,
 	/*, rect: Rect, opt := Options{}*/
 ) {
 	// mouseover := microui.mouse_over(ctx, rect)
@@ -339,26 +329,30 @@ update_control :: proc(
 	// if .NO_INTERACT in opt {
 	// 	return
 	// }
-	// if mouseover && !mouse_down(ctx) {
-	// 	ctx.hover_id = id
-	// }
+	if clay.Hovered() && !mouse_down(ctx) {
+		ctx.hover_id = id
+	}
 	//
-	// if ctx.focus_id == id {
-	// 	if mouse_pressed(ctx) && !mouseover {
-	// 		set_focus(ctx, 0)
-	// 	}
-	// 	if !mouse_down(ctx) && .HOLD_FOCUS not_in opt {
-	// 		set_focus(ctx, 0)
-	// 	}
-	// }
 	//
-	// if ctx.hover_id == id {
-	// 	if mouse_pressed(ctx) {
-	// 		set_focus(ctx, id)
-	// 	} else if !mouseover {
-	// 		ctx.hover_id = 0
-	// 	}
-	// }
+	if ctx.focus_id == id {
+		if mouse_pressed(ctx) && !clay.Hovered() {
+			// if mouse_pressed(ctx) && !mouseover {
+			set_focus(ctx, 0)
+		}
+		if !mouse_down(ctx) && !hold_focus {
+			// if !mouse_down(ctx) && .HOLD_FOCUS not_in opt {
+			set_focus(ctx, 0)
+		}
+	}
+
+
+	if ctx.hover_id == id {
+		if mouse_pressed(ctx) {
+			set_focus(ctx, id)
+		} else if !clay.Hovered() {
+			ctx.hover_id = 0
+		}
+	}
 }
 
 layout_textbox_immediate2 :: proc(
@@ -376,6 +370,7 @@ layout_textbox_immediate2 :: proc(
 	// font := ctx.style.font
 
 	id := clay.ID_LOCAL("text_box")
+
 	if ctx.focus_id == id.id {
 		/* create a builder backed by the user's buffer */
 		builder := strings.builder_from_bytes(textbuf)
@@ -511,7 +506,8 @@ layout_textbox_immediate2 :: proc(
 			backgroundColor = layout.COLOR_BLUE_DARK,
 		},
 	) {
-		layout_dynamic_text_entry(fmt.tprint("hej"))
+		update_control(ctx, id.id, true)
+		// layout_dynamic_text_entry(fmt.tprint("hej"))
 		layout_dynamic_text_entry(textstr)
 
 		on_hover :: proc "c" (
@@ -522,9 +518,11 @@ layout_textbox_immediate2 :: proc(
 			context = runtime.default_context()
 
 			ctx := cast(^Context)userData
-			update_control(ctx, id.id)
+			// update_control(ctx, id.id)
 			assert_contextless(ctx != nil)
-			set_focus(ctx, id.id)
+			// if pointerData.state == .Pressed {
+			// 	set_focus(ctx, id.id)
+			// }
 
 
 		}
@@ -563,10 +561,12 @@ layout_textbox_immediate2 :: proc(
 }
 
 layout_button_immediate :: proc(
+	ctx: ^Context,
 	text: string,
 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
 ) -> bool {
-	if clay.UI()(
+	id := clay.ID_LOCAL("layout_button_immediate")
+	if clay.UI(id)(
 		config = clay.ElementDeclaration {
 			layout = {
 				layoutDirection = .LeftToRight,
@@ -575,11 +575,10 @@ layout_button_immediate :: proc(
 			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
 		},
 	) {
-
-
 		layout_dynamic_text_entry(text)
 
-		return clay.Hovered() && mouse_pressed_this_frame
+		update_control(ctx, id.id)
+		return clay.Hovered() && mouse_pressed(ctx)
 	}
 	return false
 }
@@ -656,12 +655,15 @@ layout_button_proc :: proc(
 // (If both the parent element and child element has clicking functionality). But lets add it so I can use this and be aware of it.
 // Returns on change
 layout_checkbox_immediate :: proc(
+	ctx: ^Context,
 	text: string,
 	checked_on: ^bool,
 	active: rune = 'x',
 	inactive: rune = ' ',
 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
 ) -> bool {
+
+	// id := clay.ID_LOCAL("layout_checkbox_immediate")
 	if clay.UI()(
 		config = clay.ElementDeclaration {
 			layout = {
@@ -672,10 +674,26 @@ layout_checkbox_immediate :: proc(
 		},
 	) {
 		checked_rune := checked_on^ ? active : inactive
-		layout_dynamic_text_entry(fmt.tprintf("[{}] ", checked_rune))
+		layout_dynamic_text_entry(fmt.tprintf("{} ", checked_rune))
 		layout_dynamic_text_entry(text)
+		// microui.button()
 
-		if clay.Hovered() && mouse_pressed_this_frame {
+
+		on_hoover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
+		) {
+			context = runtime.default_context()
+			ctx := cast(^Context)userData
+			// ctx.focus_id = id.id
+			fmt.printfln("id {}, mouse_pressed {}", id.id, mouse_pressed(ctx))
+			update_control(ctx, id.id)
+		}
+
+		clay.OnHover(on_hoover, ctx)
+
+		if clay.Hovered() && mouse_pressed(ctx) {
 			checked_on^ = !checked_on^
 			return true
 		}
@@ -684,47 +702,48 @@ layout_checkbox_immediate :: proc(
 	return false
 }
 
-layout_checkbox :: proc(
-	text: string,
-	checked_on: ^bool,
-	active: rune = 'x',
-	inactive: rune = ' ',
-	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
-) {
-	if clay.UI()(
-		config = clay.ElementDeclaration {
-			layout = {
-				layoutDirection = .LeftToRight,
-				sizing = {clay.SizingGrow(), clay.SizingFit()},
-			},
-			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
-		},
-	) {
-
-		on_hoover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			checked_on := cast(^bool)userData
-			if pointerData.state == .PressedThisFrame do checked_on^ = !checked_on^
-
-		}
-		clay.OnHover(on_hoover, checked_on)
-
-		checked_rune := checked_on^ ? active : inactive
-		layout_dynamic_text_entry(fmt.tprintf("[{}] ", checked_rune))
-		layout_dynamic_text_entry(text)
-	}
-}
+// layout_checkbox :: proc(
+// 	text: string,
+// 	checked_on: ^bool,
+// 	active: rune = 'x',
+// 	inactive: rune = ' ',
+// 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
+// ) {
+// 	if clay.UI()(
+// 		config = clay.ElementDeclaration {
+// 			layout = {
+// 				layoutDirection = .LeftToRight,
+// 				sizing = {clay.SizingGrow(), clay.SizingFit()},
+// 			},
+// 			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
+// 		},
+// 	) {
+//
+// 		on_hoover :: proc "c" (
+// 			id: clay.ElementId,
+// 			pointerData: clay.PointerData,
+// 			userData: rawptr,
+// 		) {
+// 			checked_on := cast(^bool)userData
+// 			if pointerData.state == .PressedThisFrame do checked_on^ = !checked_on^
+//
+// 		}
+// 		clay.OnHover(on_hoover, checked_on)
+//
+// 		checked_rune := checked_on^ ? active : inactive
+// 		layout_dynamic_text_entry(fmt.tprintf("[{}] ", checked_rune))
+// 		layout_dynamic_text_entry(text)
+// 	}
+// }
 
 @(deferred_none = clay._CloseElement)
 layout_dropdown :: proc(
+	ctx: ^Context,
 	text: string,
 	dropped_down: ^bool,
 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
 ) -> bool {
-	layout_checkbox(text, dropped_down, 'v', 'O')
+	layout_checkbox_immediate(ctx, text, dropped_down, 'v', '>')
 
 	clay._OpenElement()
 	clay.ConfigureOpenElement(
@@ -733,7 +752,7 @@ layout_dropdown :: proc(
 				layoutDirection = .TopToBottom,
 				sizing          = {clay.SizingGrow(), clay.SizingFit()},
 				// padding = clay.PaddingAll(8),
-				padding         = clay.Padding{12, 0, 0, 0},
+				padding         = clay.Padding{12, 0, 0, 0}, // indentation
 			},
 			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
 		},

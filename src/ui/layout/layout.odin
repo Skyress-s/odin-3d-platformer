@@ -2,9 +2,7 @@ package layout
 import clay "../clay-odin"
 import c "core:c"
 import "core:fmt"
-import "core:log"
 import "core:math"
-import "core:testing"
 import rl "vendor:raylib"
 
 
@@ -136,10 +134,11 @@ layout_nodes :: proc(
 				clay.SizingPercent(node.size_percent.x),
 				clay.SizingPercent(node.size_percent.y),
 			},
-			padding = clay.PaddingAll(8),
+			padding = node_leaf_distance(node^) == 0 ? clay.PaddingAll(8) : clay.PaddingAll(0),
 			childGap = 8,
 		},
-		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+		backgroundColor = 
+		/*{0, 0, 0, 0},*/node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
 	},
 	) {
 		if node.layout_proc != nil {

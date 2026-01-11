@@ -32,17 +32,32 @@ main :: proc() {
 		&ui_context.root_node,
 		layout.make_new_node_with_draw_proc(fmt.aprint("window_1"), layout_window_1, &ui_context),
 	)
+
+	layout.register_node(
+		&ui_context.root_node,
+		layout.make_new_node_with_draw_proc(
+			fmt.aprint("stats_window"),
+			layout_stats_window,
+			&ui_context,
+		),
+	)
 	// todo unregister node?
 
 	for !rl.WindowShouldClose() {
 		{
+			fmt.println("FRAME START")
 			// UI Layout
+			fmt.println("update_input")
 			ui.update_input(&ui_context)
 
+			fmt.println("update_state")
 			layout.update_state()
+			// fmt.printfln("focus id {}", ui_context.focus_id)
 
+			fmt.println("clay.BeginLayout")
 			clay.BeginLayout()
 
+			fmt.println("layout_tiling_windows")
 			layout_updated := layout.layout_tiling_windows(
 				&ui_context.root_node,
 				rl.IsKeyDown(rl.KeyboardKey.C),
@@ -58,8 +73,10 @@ main :: proc() {
 
 			layout.render(&ui_render_commands)
 
+			// fmt.println(ui_context)
 
 		}
+		ui.end_frame(&ui_context)
 		free_all(context.temp_allocator)
 	}
 
