@@ -53,6 +53,7 @@ on_hover_update_control :: proc "c" (
 ) {
 	context = runtime.default_context()
 	ctx := cast(^Context)userData
+	assert(ctx != nil)
 
 	update_control_2(ctx, id.id, pointerData.state)
 }
@@ -64,6 +65,7 @@ on_hover_update_control_hold_focus :: proc "c" (
 ) {
 	context = runtime.default_context()
 	ctx := cast(^Context)userData
+	assert(ctx != nil)
 
 	update_control_2(ctx, id.id, pointerData.state, true)
 }
@@ -429,135 +431,152 @@ layout_textbox_immediate2 :: proc(
 	// microui.textbox_raw()
 	// font := ctx.style.font
 
-	id := clay.ID_LOCAL("text_box")
+	Text_Box_Data :: struct {
+		ctx:     ^Context,
+		textbuf: []byte,
+		textlen: ^int,
+	}
 
-	if ctx.focus_id == id.id {
-		/* create a builder backed by the user's buffer */
-		builder := strings.builder_from_bytes(textbuf)
-		non_zero_resize(&builder.buf, textlen^)
-		ctx.textbox_state.builder = &builder
+	on_hover :: proc "c" (id: clay.ElementId, pointerData: clay.PointerData, userData: rawptr) {
+		context = runtime.default_context()
 
-		if ctx.textbox_state.id != u64(id.id) {
-			ctx.textbox_state.id = u64(id.id)
-			ctx.textbox_state.selection = {}
-		}
+		text_box_data := cast(^Text_Box_Data)userData
+		assert(text_box_data != nil)
+		ctx := text_box_data.ctx
+		textbuf := text_box_data.textbuf
+		textlen := text_box_data.textlen
 
-		/* check selection bounds */
-		if ctx.textbox_state.selection[0] > textlen^ || ctx.textbox_state.selection[1] > textlen^ {
-			ctx.textbox_state.selection = {}
-		}
+		on_hover_update_control_hold_focus(id, pointerData, ctx)
 
-		/* handle text input */
-		if strings.builder_len(ctx.text_input) > 0 {
-			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
+		if ctx.focus_id == id.id {
+			/* create a builder backed by the user's buffer */
+			builder := strings.builder_from_bytes(textbuf)
+			non_zero_resize(&builder.buf, textlen^)
+			ctx.textbox_state.builder = &builder
+
+			if ctx.textbox_state.id != u64(id.id) {
+				ctx.textbox_state.id = u64(id.id)
+				ctx.textbox_state.selection = {}
+			}
+
+			/* check selection bounds */
+			if ctx.textbox_state.selection[0] > textlen^ ||
+			   ctx.textbox_state.selection[1] > textlen^ {
+				ctx.textbox_state.selection = {}
+			}
+
+			/* handle text input */
+			if strings.builder_len(ctx.text_input) > 0 {
+				if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
+					textlen^ = strings.builder_len(builder)
+					// res += {.CHANGE}
+				}
+			}
+			/* handle ctrl+a */
+			if .A in ctx.key_pressed_bits &&
+			   .CTRL in ctx.key_down_bits &&
+			   .ALT not_in ctx.key_down_bits {
+				ctx.textbox_state.selection = {textlen^, 0}
+			}
+			/* handle ctrl+x */
+			if .X in ctx.key_pressed_bits &&
+			   .CTRL in ctx.key_down_bits &&
+			   .ALT not_in ctx.key_down_bits {
+				if textedit.cut(&ctx.textbox_state) {
+					textlen^ = strings.builder_len(builder)
+					// res += {.CHANGE}
+				}
+			}
+			/* handle ctrl+c */
+			if .C in ctx.key_pressed_bits &&
+			   .CTRL in ctx.key_down_bits &&
+			   .ALT not_in ctx.key_down_bits {
+				textedit.copy(&ctx.textbox_state)
+			}
+			/* handle ctrl+v */
+			if .V in ctx.key_pressed_bits &&
+			   .CTRL in ctx.key_down_bits &&
+			   .ALT not_in ctx.key_down_bits {
+				if textedit.paste(&ctx.textbox_state) {
+					textlen^ = strings.builder_len(builder)
+					// res += {.CHANGE}
+				}
+			}
+			/* handle left/right */
+			if .LEFT in ctx.key_pressed_bits {
+				move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+				if .SHIFT in ctx.key_down_bits {
+					textedit.select_to(&ctx.textbox_state, move)
+				} else {
+					textedit.move_to(&ctx.textbox_state, move)
+				}
+			}
+			if .RIGHT in ctx.key_pressed_bits {
+				move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+				if .SHIFT in ctx.key_down_bits {
+					textedit.select_to(&ctx.textbox_state, move)
+				} else {
+					textedit.move_to(&ctx.textbox_state, move)
+				}
+			}
+			/* handle home/end */
+			if .HOME in ctx.key_pressed_bits {
+				if .SHIFT in ctx.key_down_bits {
+					textedit.select_to(&ctx.textbox_state, .Start)
+				} else {
+					textedit.move_to(&ctx.textbox_state, .Start)
+				}
+			}
+			if .END in ctx.key_pressed_bits {
+				if .SHIFT in ctx.key_down_bits {
+					textedit.select_to(&ctx.textbox_state, .End)
+				} else {
+					textedit.move_to(&ctx.textbox_state, .End)
+				}
+			}
+			/* handle backspace/delete */
+			if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
+				move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
+				textedit.delete_to(&ctx.textbox_state, move)
 				textlen^ = strings.builder_len(builder)
 				// res += {.CHANGE}
 			}
-		}
-		/* handle ctrl+a */
-		if .A in ctx.key_pressed_bits &&
-		   .CTRL in ctx.key_down_bits &&
-		   .ALT not_in ctx.key_down_bits {
-			ctx.textbox_state.selection = {textlen^, 0}
-		}
-		/* handle ctrl+x */
-		if .X in ctx.key_pressed_bits &&
-		   .CTRL in ctx.key_down_bits &&
-		   .ALT not_in ctx.key_down_bits {
-			if textedit.cut(&ctx.textbox_state) {
+			if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
+				move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
+				textedit.delete_to(&ctx.textbox_state, move)
 				textlen^ = strings.builder_len(builder)
 				// res += {.CHANGE}
 			}
-		}
-		/* handle ctrl+c */
-		if .C in ctx.key_pressed_bits &&
-		   .CTRL in ctx.key_down_bits &&
-		   .ALT not_in ctx.key_down_bits {
-			textedit.copy(&ctx.textbox_state)
-		}
-		/* handle ctrl+v */
-		if .V in ctx.key_pressed_bits &&
-		   .CTRL in ctx.key_down_bits &&
-		   .ALT not_in ctx.key_down_bits {
-			if textedit.paste(&ctx.textbox_state) {
-				textlen^ = strings.builder_len(builder)
-				// res += {.CHANGE}
+			/* handle return */
+			if .RETURN in ctx.key_pressed_bits {
+				set_focus(ctx, 0)
 			}
-		}
-		/* handle left/right */
-		if .LEFT in ctx.key_pressed_bits {
-			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
-			if .SHIFT in ctx.key_down_bits {
-				textedit.select_to(&ctx.textbox_state, move)
-			} else {
-				textedit.move_to(&ctx.textbox_state, move)
-			}
-		}
-		if .RIGHT in ctx.key_pressed_bits {
-			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
-			if .SHIFT in ctx.key_down_bits {
-				textedit.select_to(&ctx.textbox_state, move)
-			} else {
-				textedit.move_to(&ctx.textbox_state, move)
-			}
-		}
-		/* handle home/end */
-		if .HOME in ctx.key_pressed_bits {
-			if .SHIFT in ctx.key_down_bits {
-				textedit.select_to(&ctx.textbox_state, .Start)
-			} else {
-				textedit.move_to(&ctx.textbox_state, .Start)
-			}
-		}
-		if .END in ctx.key_pressed_bits {
-			if .SHIFT in ctx.key_down_bits {
-				textedit.select_to(&ctx.textbox_state, .End)
-			} else {
-				textedit.move_to(&ctx.textbox_state, .End)
-			}
-		}
-		/* handle backspace/delete */
-		if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
-			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
-			textedit.delete_to(&ctx.textbox_state, move)
-			textlen^ = strings.builder_len(builder)
-			// res += {.CHANGE}
-		}
-		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
-			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
-			textedit.delete_to(&ctx.textbox_state, move)
-			textlen^ = strings.builder_len(builder)
-			// res += {.CHANGE}
-		}
-		/* handle return */
-		if .RETURN in ctx.key_pressed_bits {
-			set_focus(ctx, 0)
-		}
 
-		/* handle click/drag */
-		// if .LEFT in ctx.mouse_down_bits {
-		// 	idx := textlen^
-		// 	for i in 0 ..< textlen^ {
-		// 		/* skip continuation bytes */
-		// 		if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
-		// 			continue
-		// 		}
-		// 		if ctx.mouse_pos.x <
-		// 		   r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
-		// 			idx = i
-		// 			break
-		// 		}
-		// 	}
-		// 	ctx.textbox_state.selection[0] = idx
-		// 	if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
-		// 		ctx.textbox_state.selection[1] = idx
-		// 	}
-		// }
+			/* handle click/drag */
+			// if .LEFT in ctx.mouse_down_bits {
+			// 	idx := textlen^
+			// 	for i in 0 ..< textlen^ {
+			// 		/* skip continuation bytes */
+			// 		if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
+			// 			continue
+			// 		}
+			// 		if ctx.mouse_pos.x <
+			// 		   r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
+			// 			idx = i
+			// 			break
+			// 		}
+			// 	}
+			// 	ctx.textbox_state.selection[0] = idx
+			// 	if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+			// 		ctx.textbox_state.selection[1] = idx
+			// 	}
+			// }
+		}
 	}
 
 	textstr := string(textbuf[:textlen^])
 
-	if clay.UI(id)(
+	if clay.UI()(
 		config = clay.ElementDeclaration {
 			layout = clay.LayoutConfig {
 				layoutDirection = .TopToBottom,
@@ -568,7 +587,15 @@ layout_textbox_immediate2 :: proc(
 	) {
 		layout_dynamic_text_entry(textstr)
 
-		clay.OnHover(on_hover_update_control_hold_focus, ctx)
+		text_box_data := new(Text_Box_Data, context.allocator)
+		text_box_data.ctx = ctx
+		text_box_data.textbuf = textbuf
+		text_box_data.textlen = textlen
+
+
+		// TODO: Ach, the temp allocator is wiped at the end of the frame.
+
+		clay.OnHover(on_hover, text_box_data)
 	}
 
 
@@ -599,7 +626,7 @@ layout_textbox_immediate2 :: proc(
 	// 	draw_control_text(ctx, textstr, r, .TEXT, opt)
 	// }
 
-	return
+	// return
 }
 
 layout_button_immediate :: proc(
