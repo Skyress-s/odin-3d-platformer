@@ -45,19 +45,19 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		{
-			fmt.println("FRAME START")
+			// fmt.println("FRAME START")
 			// UI Layout
-			fmt.println("update_input")
+			// fmt.println("update_input")
 			ui.update_input(&ui_context)
 
-			fmt.println("update_state")
+			// fmt.println("update_state")
 			layout.update_state()
 			// fmt.printfln("focus id {}", ui_context.focus_id)
 
-			fmt.println("clay.BeginLayout")
+			// fmt.println("clay.BeginLayout")
 			clay.BeginLayout()
 
-			fmt.println("layout_tiling_windows")
+			// fmt.println("layout_tiling_windows")
 			layout_updated := layout.layout_tiling_windows(
 				&ui_context.root_node,
 				rl.IsKeyDown(rl.KeyboardKey.C),
@@ -76,7 +76,14 @@ main :: proc() {
 			// fmt.println(ui_context)
 
 		}
+
+		if ui_context.focus_id != 0 {
+			fmt.printfln("FOCUS ID {}", ui_context.focus_id)
+		}
+
 		ui.end_frame(&ui_context)
+
+
 		free_all(context.temp_allocator)
 	}
 

@@ -687,8 +687,13 @@ layout_checkbox_immediate :: proc(
 			context = runtime.default_context()
 			ctx := cast(^Context)userData
 			// ctx.focus_id = id.id
-			fmt.printfln("id {}, mouse_pressed {}", id.id, mouse_pressed(ctx))
+			// fmt.printfln("id {}, mouse_pressed {}", id.id, mouse_pressed(ctx))
 			update_control(ctx, id.id)
+			if ctx.focus_id != 0 {
+				fmt.printfln("FOCUS ID {}", ctx.focus_id)
+			}
+			fmt.printfln("Hover? {} {}", clay.Hovered(), pointerData.state == .Released)
+
 		}
 
 		clay.OnHover(on_hoover, ctx)
