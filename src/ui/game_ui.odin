@@ -46,10 +46,33 @@ DEFAULT_COLOR_CONFIG :: Color_Configuration {
 	hover  = layout.COLOR_GREY,
 }
 
-mouse_pressed :: proc(ctx: ^Context) -> bool {
+on_hover_update_control :: proc "c" (
+	id: clay.ElementId,
+	pointerData: clay.PointerData,
+	userData: rawptr,
+) {
+	context = runtime.default_context()
+	ctx := cast(^Context)userData
+
+	update_control_2(ctx, id.id, pointerData.state)
+}
+
+on_hover_update_control_hold_focus :: proc "c" (
+	id: clay.ElementId,
+	pointerData: clay.PointerData,
+	userData: rawptr,
+) {
+	context = runtime.default_context()
+	ctx := cast(^Context)userData
+
+	update_control_2(ctx, id.id, pointerData.state, true)
+}
+
+
+is_mouse_pressed :: proc(ctx: ^Context) -> bool {
 	return Mouse.LEFT in ctx.mouse_pressed_bits
 }
-mouse_down :: proc(ctx: ^Context) -> bool {
+is_mouse_down :: proc(ctx: ^Context) -> bool {
 	return Mouse.LEFT in ctx.mouse_down_bits
 }
 
@@ -126,11 +149,16 @@ end_frame :: proc(ctx: ^Context) {
 	/* unset focus if focus id was not touched this frame */
 	// microui.end()
 	// microui.textbox_raw
+
 	if !ctx.updated_focus {
 		ctx.focus_id = 0
 	}
 	ctx.updated_focus = false
 
+	if !ctx.updated_hover {
+		ctx.hover_id = 0
+	}
+	ctx.updated_hover = false
 
 	/* bring hover root to front if mouse was pressed */
 	// if mouse_pressed(ctx) && ctx.next_hover_root != nil &&
@@ -200,8 +228,11 @@ Mouse :: enum u32 {
 Mouse_Set :: distinct bit_set[Mouse;u32]
 Context :: struct {
 	focus_id:                        u32,
-	hover_id:                        u32,
 	updated_focus:                   bool,
+	hover_id:                        u32,
+	updated_hover:                   bool,
+
+	// hold_focus:                      bool,
 	textbox_state:                   textedit.State,
 	text_input:                      strings.Builder,
 	key_down_bits, key_pressed_bits: Key_Set,
@@ -314,6 +345,35 @@ set_focus :: proc(ctx: ^Context, id: u32) {
 	ctx.updated_focus = true
 }
 
+
+set_focus_2 :: proc(ctx: ^Context, id: u32) {
+	ctx.focus_id = id
+	ctx.updated_focus = true
+	// ctx.hold_focus = hold_focus
+}
+
+update_control_2 :: proc(
+	ctx: ^Context,
+	id: u32,
+	pointer_state: clay.PointerDataInteractionState,
+	hold_focus: bool = false,
+	/*, rect: Rect, opt := Options{}*/
+) {
+
+	if pointer_state == .Pressed {
+		set_focus_2(ctx, id)
+		ctx.focus_id = id
+	}
+
+	if ctx.focus_id == id && hold_focus {
+		ctx.updated_focus = true
+	}
+
+	ctx.hover_id = id
+	ctx.updated_hover = true
+
+}
+
 update_control :: proc(
 	ctx: ^Context,
 	id: u32,
@@ -329,17 +389,17 @@ update_control :: proc(
 	// if .NO_INTERACT in opt {
 	// 	return
 	// }
-	if clay.Hovered() && !mouse_down(ctx) {
+	if clay.Hovered() && !is_mouse_down(ctx) {
 		ctx.hover_id = id
 	}
 	//
 	//
 	if ctx.focus_id == id {
-		if mouse_pressed(ctx) && !clay.Hovered() {
+		if is_mouse_pressed(ctx) && !clay.Hovered() {
 			// if mouse_pressed(ctx) && !mouseover {
 			set_focus(ctx, 0)
 		}
-		if !mouse_down(ctx) && !hold_focus {
+		if !is_mouse_down(ctx) && !hold_focus {
 			// if !mouse_down(ctx) && .HOLD_FOCUS not_in opt {
 			set_focus(ctx, 0)
 		}
@@ -347,7 +407,7 @@ update_control :: proc(
 
 
 	if ctx.hover_id == id {
-		if mouse_pressed(ctx) {
+		if is_mouse_pressed(ctx) {
 			set_focus(ctx, id)
 		} else if !clay.Hovered() {
 			ctx.hover_id = 0
@@ -506,27 +566,9 @@ layout_textbox_immediate2 :: proc(
 			backgroundColor = layout.COLOR_BLUE_DARK,
 		},
 	) {
-		update_control(ctx, id.id, true)
-		// layout_dynamic_text_entry(fmt.tprint("hej"))
 		layout_dynamic_text_entry(textstr)
 
-		on_hover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			context = runtime.default_context()
-
-			ctx := cast(^Context)userData
-			// update_control(ctx, id.id)
-			assert_contextless(ctx != nil)
-			// if pointerData.state == .Pressed {
-			// 	set_focus(ctx, id.id)
-			// }
-
-
-		}
-		clay.OnHover(on_hover, ctx)
+		clay.OnHover(on_hover_update_control_hold_focus, ctx)
 	}
 
 
@@ -565,8 +607,8 @@ layout_button_immediate :: proc(
 	text: string,
 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
 ) -> bool {
-	id := clay.ID_LOCAL("layout_button_immediate")
-	if clay.UI(id)(
+	// id := clay.ID_LOCAL("layout_button_immediate")
+	if clay.UI()(
 		config = clay.ElementDeclaration {
 			layout = {
 				layoutDirection = .LeftToRight,
@@ -577,78 +619,11 @@ layout_button_immediate :: proc(
 	) {
 		layout_dynamic_text_entry(text)
 
-		update_control(ctx, id.id)
-		return clay.Hovered() && mouse_pressed(ctx)
+		clay.OnHover(on_hover_update_control, ctx)
+
+		return clay.Hovered() && is_mouse_pressed(ctx)
 	}
 	return false
-}
-
-layout_button :: proc {
-	layout_button_bool,
-	layout_button_proc,
-}
-
-// Important that the memory of 'clicked' exitsts until 'EndLayout' is called
-layout_button_bool :: proc(
-	text: string,
-	clicked: ^bool,
-	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
-) {
-	if clay.UI()(
-		config = clay.ElementDeclaration {
-			layout = {
-				layoutDirection = .LeftToRight,
-				sizing = {clay.SizingGrow(), clay.SizingFit()},
-			},
-			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
-		},
-	) {
-
-		on_hoover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			clicked := cast(^bool)userData
-			clicked^ = pointerData.state == .PressedThisFrame
-		}
-		clay.OnHover(on_hoover, clicked)
-
-		layout_dynamic_text_entry(text)
-	}
-}
-
-layout_button_proc :: proc(
-	text: string,
-	on_click: proc(),
-	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
-) {
-	if clay.UI()(
-		config = clay.ElementDeclaration {
-			layout = {
-				layoutDirection = .LeftToRight,
-				sizing = {clay.SizingGrow(), clay.SizingFit()},
-			},
-			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
-		},
-	) {
-
-		on_hoover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			context = runtime.default_context()
-			on_click := cast(proc())userData
-			if pointerData.state == .PressedThisFrame {
-				on_click()
-			}
-		}
-		clay.OnHover(on_hoover, cast(rawptr)on_click)
-
-		layout_dynamic_text_entry(text)
-	}
-
 }
 
 // note: I'm not sure why this is not exposed by default (is pressed). I assume its to resolve only the outermost press.
@@ -662,6 +637,7 @@ layout_checkbox_immediate :: proc(
 	inactive: rune = ' ',
 	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
 ) -> bool {
+
 
 	// id := clay.ID_LOCAL("layout_checkbox_immediate")
 	if clay.UI()(
@@ -679,26 +655,12 @@ layout_checkbox_immediate :: proc(
 		// microui.button()
 
 
-		on_hoover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			context = runtime.default_context()
-			ctx := cast(^Context)userData
-			// ctx.focus_id = id.id
-			// fmt.printfln("id {}, mouse_pressed {}", id.id, mouse_pressed(ctx))
-			update_control(ctx, id.id)
-			if ctx.focus_id != 0 {
-				fmt.printfln("FOCUS ID {}", ctx.focus_id)
-			}
-			fmt.printfln("Hover? {} {}", clay.Hovered(), pointerData.state == .Released)
+		// update_control(ctx, id.id)
+		clay.OnHover(on_hover_update_control, ctx)
+		//
+		// update_control(ctx, id.id)
 
-		}
-
-		clay.OnHover(on_hoover, ctx)
-
-		if clay.Hovered() && mouse_pressed(ctx) {
+		if clay.Hovered() && is_mouse_pressed(ctx) {
 			checked_on^ = !checked_on^
 			return true
 		}

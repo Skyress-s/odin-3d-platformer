@@ -20,6 +20,7 @@ main :: proc() {
 	rl.InitWindow(1000, 1000, "Window Test")
 
 	rl.SetTargetFPS(180)
+	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 
 	ui_context := ui.init_input_context()
 	defer ui.deinit_input_context(&ui_context)
