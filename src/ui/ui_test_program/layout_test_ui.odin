@@ -5,7 +5,6 @@ import layout "../layout/"
 import "core:fmt"
 
 layout_window_1 :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
-
 	ctx := cast(^ui.Context)node.userdata
 	assert(ctx != nil)
 
@@ -34,8 +33,6 @@ layout_window_1 :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_
 
 		ui.layout_dynamic_text_entry(fmt.tprintf("some text 1"))
 	}
-
-
 }
 
 layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
@@ -47,7 +44,12 @@ layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Act
 	ui.layout_dynamic_text_entry(fmt.tprintf("hover_id {}", ctx.hover_id))
 	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_down_bits {}", ctx.mouse_down_bits))
 	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_pressed_bits {}", ctx.mouse_pressed_bits))
+	ui.layout_dynamic_text_entry(fmt.tprintf("key_pressed_bits {}", ctx.key_pressed_bits))
+	ui.layout_dynamic_text_entry(fmt.tprintf("key_down_bits {}", ctx.key_down_bits))
 
 
-	ui.layout_dynamic_text_entry(fmt.tprintf("textedit {}", ctx.textbox_state.id))
+	ui.layout_dynamic_text_entry(fmt.tprintf("textedit id: {}", ctx.textbox_state.id))
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("textedit selectiion: {}", ctx.textbox_state.selection),
+	)
 }

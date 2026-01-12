@@ -161,6 +161,9 @@ end_frame :: proc(ctx: ^Context) {
 		ctx.hover_id = 0
 	}
 	ctx.updated_hover = false
+	// microui.textbox_raw()
+
+	// textedit.end(&ctx.textbox_state)
 
 	/* bring hover root to front if mouse was pressed */
 	// if mouse_pressed(ctx) && ctx.next_hover_root != nil &&
@@ -550,6 +553,31 @@ layout_textbox_immediate2 :: proc(
 			/* handle return */
 			if .RETURN in ctx.key_pressed_bits {
 				set_focus(ctx, 0)
+			}
+			/* handle click/drag */
+			if .LEFT in ctx.mouse_down_bits {
+				idx := textlen^
+				for i in 0 ..< textlen^ {
+					/* skip continuation bytes */
+					if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
+						continue
+					}
+					// if ctx.mouse_pos.x <
+					//    r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
+					// 	idx = i
+					// 	break
+					// }
+				}
+				ctx.textbox_state.selection[0] = idx
+				// TODO: Left click not pressed? why
+				fmt.printfln(
+					"mouse_pressed_bits {}, shift? {}",
+					ctx.mouse_pressed_bits,
+					.SHIFT not_in ctx.key_down_bits,
+				)
+				if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+					ctx.textbox_state.selection[1] = idx
+				}
 			}
 
 			/* handle click/drag */

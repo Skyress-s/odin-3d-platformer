@@ -25,7 +25,6 @@ main :: proc() {
 	ui_context := ui.init_input_context()
 	defer ui.deinit_input_context(&ui_context)
 
-
 	ui_active_elems := layout.Active_Elements{}
 	defer delete(ui_active_elems.elems)
 
@@ -78,9 +77,9 @@ main :: proc() {
 
 		}
 
-		if ui_context.focus_id != 0 {
-			fmt.printfln("FOCUS ID {}", ui_context.focus_id)
-		}
+		// if ui_context.focus_id != 0 {
+		// 	fmt.printfln("FOCUS ID {}", ui_context.focus_id)
+		// }
 
 		ui.end_frame(&ui_context)
 
