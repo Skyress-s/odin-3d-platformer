@@ -1,7 +1,7 @@
 package layout
 import clay "../clay-odin"
-import "core:fmt"
 import "core:c"
+import "core:fmt"
 import "core:strings"
 import rr "raylib"
 import raylib "vendor:raylib"
@@ -66,8 +66,8 @@ init :: proc(
 		text: clay.StringSlice,
 		config: ^clay.TextElementConfig,
 		userData: rawptr,
-	) -> (clay.Dimensions)
-) -> (clay.Arena){
+	) -> clay.Dimensions,
+) -> clay.Arena {
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
@@ -85,57 +85,17 @@ init :: proc(
 	// raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
 	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
 
-	loadFont(
-		FONT_ID_TITLE_56,
-		56,
-			 "resources/Calistoga-Regular.ttf",
-	)
-	loadFont(
-		FONT_ID_TITLE_52,
-		52,
-			 "resources/Calistoga-Regular.ttf",
-	)
-	loadFont(
-		FONT_ID_TITLE_48,
-		48,
-			 "resources/Calistoga-Regular.ttf",
-	)
-	loadFont(
-		FONT_ID_TITLE_36,
-		36,
-			 "resources/Calistoga-Regular.ttf",
-	)
-	loadFont(
-		FONT_ID_TITLE_32,
-		32,
-			 "resources/Calistoga-Regular.ttf",
-	)
-	loadFont(
-		FONT_ID_BODY_36,
-		36,
-			 "resources/Quicksand-Semibold.ttf",
-	)
-	loadFont(
-		FONT_ID_BODY_30,
-		30,
-			 "resources/Quicksand-Semibold.ttf",
-	)
-	loadFont(
-		FONT_ID_BODY_28,
-		28,
-			 "resources/Quicksand-Semibold.ttf",
-	)
-	loadFont(
-		FONT_ID_BODY_24,
-		24,
-			"resources/Quicksand-Semibold.ttf",
-	)
+	loadFont(FONT_ID_TITLE_56, 56, "resources/Calistoga-Regular.ttf")
+	loadFont(FONT_ID_TITLE_52, 52, "resources/Calistoga-Regular.ttf")
+	loadFont(FONT_ID_TITLE_48, 48, "resources/Calistoga-Regular.ttf")
+	loadFont(FONT_ID_TITLE_36, 36, "resources/Calistoga-Regular.ttf")
+	loadFont(FONT_ID_TITLE_32, 32, "resources/Calistoga-Regular.ttf")
+	loadFont(FONT_ID_BODY_36, 36, "resources/Quicksand-Semibold.ttf")
+	loadFont(FONT_ID_BODY_30, 30, "resources/Quicksand-Semibold.ttf")
+	loadFont(FONT_ID_BODY_28, 28, "resources/Quicksand-Semibold.ttf")
+	loadFont(FONT_ID_BODY_24, 24, "resources/Quicksand-Semibold.ttf")
 
-	loadFont(
-		FONT_ID_BODY_16,
-		16,
-			"resources/Quicksand-Semibold.ttf",
-	)
+	loadFont(FONT_ID_BODY_16, 16, "resources/Quicksand-Semibold.ttf")
 
 
 	// syntaxImage = raylib.LoadTexture(

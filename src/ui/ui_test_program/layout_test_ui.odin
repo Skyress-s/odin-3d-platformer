@@ -43,7 +43,11 @@ layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Act
 
 	if clay.UI()(
 		config = clay.ElementDeclaration {
-			clip = clay.ClipElementConfig{horizontal = true, childOffset = clay.GetScrollOffset()},
+			clip = clay.ClipElementConfig{vertical = true, childOffset = clay.GetScrollOffset()},
+			layout = {
+				sizing = {clay.SizingGrow(), clay.SizingGrow()},
+				layoutDirection = .TopToBottom,
+			},
 		},
 	) {
 		ui.layout_dynamic_text_entry(fmt.tprintf("focus_id {}", ctx.focus_id))
