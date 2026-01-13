@@ -57,15 +57,15 @@ layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Act
 		ui.layout_dynamic_text_entry(fmt.tprintf("key_pressed_bits {}", ctx.key_pressed_bits))
 		ui.layout_dynamic_text_entry(fmt.tprintf("key_down_bits {}", ctx.key_down_bits))
 
-		for i in 0 ..< 100 {
-			ui.layout_dynamic_text_entry(fmt.tprintf("some text {}", i))
-		}
-
 
 		ui.layout_dynamic_text_entry(fmt.tprintf("textedit id: {}", ctx.textbox_state.id))
 		ui.layout_dynamic_text_entry(
 			fmt.tprintf("textedit selectiion: {}", ctx.textbox_state.selection),
 		)
+
+		for i in 0 ..< 100 {
+			ui.layout_dynamic_text_entry(fmt.tprintf("some text {}", i))
+		}
 
 	}
 

@@ -430,8 +430,6 @@ layout_textbox_immediate2 :: proc(
 ) // res: Result_Set,
 {
 	// update_control(ctx, id, r, opt | {.HOLD_FOCUS})
-
-	// microui.textbox_raw()
 	// font := ctx.style.font
 
 	Text_Box_Data :: struct {

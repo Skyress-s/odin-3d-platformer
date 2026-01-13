@@ -41,31 +41,23 @@ main :: proc() {
 			&ui_context,
 		),
 	)
-	// todo unregister node?
+	// TODO: unregister node?
 
 	for !rl.WindowShouldClose() {
+		ui.update_input(&ui_context)
+
+		layout.update_state()
+
+		clay.BeginLayout()
+
+		layout_updated := layout.layout_tiling_windows(
+			&ui_context.root_node,
+			rl.IsKeyDown(rl.KeyboardKey.C),
+			&ui_active_elems,
+		)
+		ui_render_commands := clay.EndLayout()
+
 		{
-			// fmt.println("FRAME START")
-			// UI Layout
-			// fmt.println("update_input")
-			ui.update_input(&ui_context)
-
-			// fmt.println("update_state")
-			layout.update_state()
-			// fmt.printfln("focus id {}", ui_context.focus_id)
-
-			// fmt.println("clay.BeginLayout")
-			clay.BeginLayout()
-
-			// fmt.println("layout_tiling_windows")
-			layout_updated := layout.layout_tiling_windows(
-				&ui_context.root_node,
-				rl.IsKeyDown(rl.KeyboardKey.C),
-				&ui_active_elems,
-			)
-			ui_render_commands := clay.EndLayout()
-
-			// Drawing Step
 			scoped_drawing()
 
 			rl.ClearBackground(rl.DARKGRAY)
@@ -73,13 +65,7 @@ main :: proc() {
 
 			layout.render(&ui_render_commands)
 
-			// fmt.println(ui_context)
-
 		}
-
-		// if ui_context.focus_id != 0 {
-		// 	fmt.printfln("FOCUS ID {}", ui_context.focus_id)
-		// }
 
 		ui.end_frame(&ui_context)
 
