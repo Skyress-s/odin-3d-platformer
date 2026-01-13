@@ -1,6 +1,7 @@
 package ui
 
 import "base:runtime"
+import "core:crypto/shake"
 import "core:fmt"
 import "core:strings"
 import textedit "core:text/edit"
@@ -149,8 +150,6 @@ end_frame :: proc(ctx: ^Context) {
 	// }
 
 	/* unset focus if focus id was not touched this frame */
-	// microui.end()
-	// microui.textbox_raw
 
 	if !ctx.updated_focus {
 		ctx.focus_id = 0
@@ -240,6 +239,7 @@ Context :: struct {
 	// hold_focus:                      bool,
 	textbox_state:                   textedit.State,
 	text_input:                      strings.Builder,
+	// textbox_offset:
 	key_down_bits, key_pressed_bits: Key_Set,
 	mouse_down_bits:                 Mouse_Set,
 	mouse_pressed_bits:              Mouse_Set,
@@ -365,7 +365,7 @@ update_control_2 :: proc(
 	/*, rect: Rect, opt := Options{}*/
 ) {
 
-	if pointer_state == .Pressed {
+	if pointer_state == .Pressed || pointer_state == .PressedThisFrame {
 		set_focus_2(ctx, id)
 		ctx.focus_id = id
 	}
@@ -557,25 +557,21 @@ layout_textbox_immediate2 :: proc(
 			/* handle click/drag */
 			if .LEFT in ctx.mouse_down_bits {
 				idx := textlen^
-				for i in 0 ..< textlen^ {
-					/* skip continuation bytes */
-					if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
-						continue
-					}
-					// if ctx.mouse_pos.x <
-					//    r.x + ctx.textbox_offset + ctx.text_width(font, string(textbuf[:i])) {
-					// 	idx = i
-					// 	break
-					// }
-				}
+				// element_data := clay.GetElementData(id).boundingBox
+				// for i in 0 ..< textlen^ {
+				// 	/* skip continuation bytes */
+				// 	if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
+				// 		continue
+				// 	}
+				// 	if ctx.mouse_pos.x <
+				// 	   element_data.x + ctx.text_width(font, string(textbuf[:i])) { 	// ctx.textbox_offset +
+				// 		idx = i
+				// 		break
+				// 	}
+				// }
 				ctx.textbox_state.selection[0] = idx
-				// TODO: Left click not pressed? why
-				fmt.printfln(
-					"mouse_pressed_bits {}, shift? {}",
-					ctx.mouse_pressed_bits,
-					.SHIFT not_in ctx.key_down_bits,
-				)
-				if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+				// if .LEFT in ctx.mouse_pressed_bits && .SHIFT not_in ctx.key_down_bits {
+				if pointerData.state == .PressedThisFrame {
 					ctx.textbox_state.selection[1] = idx
 				}
 			}
@@ -615,7 +611,7 @@ layout_textbox_immediate2 :: proc(
 	) {
 		layout_dynamic_text_entry(textstr)
 
-		text_box_data := new(Text_Box_Data, context.allocator)
+		text_box_data := new(Text_Box_Data, context.allocator) // TODO: Memory leak
 		text_box_data.ctx = ctx
 		text_box_data.textbuf = textbuf
 		text_box_data.textlen = textlen
