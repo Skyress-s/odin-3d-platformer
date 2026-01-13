@@ -10,10 +10,6 @@ auto_hightlight_color :: proc() -> clay.Color {
 	return clay.Hovered() ? COLOR_TOP_BORDER_3 : COLOR_BLUE_DARK
 }
 
-Node_Leaf :: distinct struct{}
-
-Node_Branch :: distinct struct{}
-
 
 Tiling_Node :: distinct struct {
 	sub_nodes:    [dynamic]Tiling_Node,
