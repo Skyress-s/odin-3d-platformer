@@ -19,6 +19,7 @@ import rl "vendor:raylib"
 main :: proc() {
 
 	rl.InitWindow(1000, 1000, "Window Test")
+	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
@@ -64,11 +65,7 @@ main :: proc() {
 			rl.EndDrawing()
 		}
 
-		// ui.end_frame(&ui_context)
-
-
 		free_all(context.temp_allocator)
 	}
 
-	rl.CloseWindow()
 }
