@@ -201,7 +201,6 @@ update_state :: proc() {
 		raylib.GetFrameTime(),
 	)
 	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
-
 }
 
 

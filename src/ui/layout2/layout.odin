@@ -147,3 +147,21 @@ add_layout_node :: proc(
 is_valid_tree :: proc(lic: ^Layout_Item_Container) -> bool {
 	panic("Not implemented!")
 }
+
+leaf_distance :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle, dist: i32) -> i32 {
+	assert(hms.valid(lic^, handle))
+	layout_item := hms.get(lic, handle)
+
+	if len(layout_item.child_nodes) == 0 do return dist
+	dist := dist + 1
+
+	min_dist := max(i32)
+	for child_handle in layout_item.child_nodes {
+		found_dist := leaf_distance(lic, child_handle, dist)
+		if found_dist < min_dist {
+			min_dist = found_dist
+		}
+	}
+
+	return min_dist
+}
