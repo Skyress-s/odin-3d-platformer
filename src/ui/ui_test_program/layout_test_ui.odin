@@ -66,7 +66,5 @@ layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Act
 		for i in 0 ..< 100 {
 			ui.layout_dynamic_text_entry(fmt.tprintf("some text {}", i))
 		}
-
 	}
-
 }
