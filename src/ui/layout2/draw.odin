@@ -6,12 +6,10 @@ import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
 
 DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
-	// textColor     = clay.Color{1, 1, 1, 1},
-	// fontId        = DEBUG_FONT_ID,
 	// fontSize      = 48,
-	// letterSpacing = 2,
+	// letterSpacing = 4,
 	// lineHeight    = 48,
-	// wrapMode      = .Words,
+	wrapMode  = .Words,
 	// textAlignment = .Left,
 	fontId    = DEBUG_FONT_ID,
 	fontSize  = 24,
@@ -31,10 +29,10 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 
 	should_draw_debug_background :=
 		ctx.debug_settings.draw_if_no_content &&
-		leaf_distance(&ctx.lic, item_handle, 0) == 0 &&
+		is_leaf(&ctx.lic, item_handle) &&
 		item.layout_proc == nil
 
-	if clay.UI()(
+	if clay.UI(clay.ID(item.id))(
 	{
 		layout = {
 			layoutDirection = item.layout_dir,
@@ -42,11 +40,13 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 				clay.SizingPercent(item.size_percent.x),
 				clay.SizingPercent(item.size_percent.y),
 			},
+			padding = clay.PaddingAll(8),
+			childGap = 4,
 		},
 		backgroundColor = should_draw_debug_background ? clay.Color{0, 0, 0, 255} : clay.Color{},
 	},
 	) {
-		if ctx.debug_settings.draw_ids {
+		if ctx.debug_settings.draw_ids && is_leaf(&ctx.lic, item_handle) {
 			clay.TextDynamic(
 				fmt.tprintf("id_{}", item.id),
 				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),

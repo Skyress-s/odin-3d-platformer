@@ -1,4 +1,5 @@
 package layout
+import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin"
 import "core:c"
 import "core:fmt"
@@ -26,13 +27,15 @@ init :: proc(
 		config: ^clay.TextElementConfig,
 		userData: rawptr,
 	) -> clay.Dimensions,
-) -> clay.Arena {
+) -> (
+	ctx: Context,
+) {
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
-	arena: clay.Arena = clay.CreateArenaWithCapacityAndMemory(minMemorySize, memory)
+	ctx.clay_arena = clay.CreateArenaWithCapacityAndMemory(minMemorySize, memory)
 	clay.Initialize(
-		arena,
+		ctx.clay_arena,
 		{cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()},
 		{handler = errorHandler},
 	)
@@ -46,14 +49,25 @@ init :: proc(
 
 	loadFont(DEBUG_FONT_ID, 56, "resources/Calistoga-Regular.ttf")
 
+	// root node
+	{
+		root := Layout_Item{}
+		root.id = "Root"
+		root.size_percent = {1, 1}
+		root.layout_dir = .LeftToRight
+		handle, _ := hms.add(&ctx.lic, root)
 
-	return arena
+		ctx.root = handle
+	}
+
+	return ctx
 }
 
 
-deinit :: proc(arena: clay.Arena) {
-	free(arena.memory)
+deinit :: proc(ctx: ^Context) {
+	free(ctx.clay_arena.memory)
 
+	hms.clear(&ctx.lic)
 }
 
 // Updated cursor / pointer states and such

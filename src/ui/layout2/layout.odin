@@ -11,7 +11,7 @@ Debug_Settings :: struct {
 }
 
 Context :: struct {
-	arena:          vmem.Arena,
+	clay_arena:     clay.Arena,
 	lic:            Layout_Item_Container,
 	root:           Layout_Item_Handle,
 	debug_settings: Debug_Settings,
@@ -164,4 +164,9 @@ leaf_distance :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle, d
 	}
 
 	return min_dist
+}
+
+is_leaf :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> bool {
+	return leaf_distance(lic, handle, 0) == 0
+
 }

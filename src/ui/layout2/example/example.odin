@@ -23,64 +23,45 @@ main :: proc() {
 	rl.SetTargetFPS(180)
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 
-	ctx := layout.Context{}
-	ctx.debug_settings = {
+	layout_ctx := layout.init(rr.measure_text)
+	layout_ctx.debug_settings = {
 		draw_ids           = true,
 		draw_if_no_content = true,
 	}
 
-	arena := layout.init(rr.measure_text)
-	defer layout.deinit(arena)
-
-
-	{
-		root := layout.Layout_Item{}
-		root.id = "Root"
-		root.size_percent = {1, 1}
-		root.layout_dir = .LeftToRight
-		handle, _ := hms.add(&ctx.lic, root)
-
-		ctx.root = handle
-	}
+	defer layout.deinit(&layout_ctx)
 
 	{
 		node := layout.Layout_Item{}
 		node.id = "Node 1"
 		node.size_percent = {0.5, 1}
 
-		layout.add_layout_node(&ctx.lic, ctx.root, 0, node)
+		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
 	}
 	{
 		node := layout.Layout_Item{}
 		node.id = "Node 2"
 		node.size_percent = {0.5, 1}
 
-		layout.add_layout_node(&ctx.lic, ctx.root, 0, node)
+		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
 	}
 
 	// TODO: unregister node?
 
 	for !rl.WindowShouldClose() {
-		// ui.update_input(&ui_context)
-
 		layout.update_state()
 
 		clay.BeginLayout()
-		layout.layout(&ctx)
-
-		// layout_updated := layout.layout_tiling_windows(
-		// 	&ui_context.root_node,
-		// 	rl.IsKeyDown(rl.KeyboardKey.C),
-		// 	&ui_active_elems,
-		// )
+		layout.layout(&layout_ctx)
 		ui_render_commands := clay.EndLayout()
 
 		{
-			scoped_drawing()
+			rl.BeginDrawing()
 
 			rl.ClearBackground(rl.DARKGRAY)
 
 			layout.render(&ui_render_commands)
+			rl.EndDrawing()
 		}
 
 		// ui.end_frame(&ui_context)
@@ -90,15 +71,4 @@ main :: proc() {
 	}
 
 	rl.CloseWindow()
-}
-
-@(deferred_none = scoped_drawing_end)
-scoped_drawing :: proc() {
-	rl.BeginDrawing()
-
-}
-
-scoped_drawing_end :: proc() {
-	rl.EndDrawing()
-
 }
