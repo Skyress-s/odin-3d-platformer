@@ -1,6 +1,11 @@
 package layout
 
+import "core:c"
+import "core:fmt"
+import "core:strings"
+import "vendor:raylib"
 
+import mem "core:mem"
 import vmem "core:mem/virtual"
 
 import hms "../../handle_map/handle_map_static/"
@@ -11,10 +16,16 @@ Debug_Settings :: struct {
 }
 
 Context :: struct {
-	clay_arena:     clay.Arena,
-	lic:            Layout_Item_Container,
-	root:           Layout_Item_Handle,
-	debug_settings: Debug_Settings,
+	arena:                                 vmem.Arena,
+	arena_allocator:                       mem.Allocator,
+	clay_arena:                            clay.Arena,
+	lic:                                   Layout_Item_Container,
+	root:                                  Layout_Item_Handle,
+	debug_settings:                        Debug_Settings,
+	remove_click, add_click, resize_click: clay.PointerDataInteractionState,
+
+	// Not exposed by clay. So need to cache them here too
+	mouse_pos:                             raylib.Vector2,
 }
 
 Layout_Item :: struct {
@@ -36,6 +47,52 @@ Layout_Item :: struct {
 Layout_Item_Handle :: hms.Handle
 
 Layout_Item_Container :: hms.Handle_Map(Layout_Item, hms.Handle, 1024)
+
+// TODO: no nil? #no_nil
+Edge :: enum {
+	Left,
+	Right,
+	Top,
+	Bottom,
+}
+
+Corner :: enum {
+	TopLeft,
+	TopRight,
+	BottomRight,
+	BottomLeft,
+}
+
+get_item_checked :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> ^Layout_Item {
+	assert(hms.valid(lic^, handle))
+	return hms.get(lic, handle)
+}
+
+@(private)
+make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
+
+	@(static) debug_gen_id: u32 = 0
+	layout_item := make_layout_item(ctx, fmt.tprintf("gen_these_nuts_{}", debug_gen_id))
+	layout_item.size_percent = {0.5, 0.5}
+	debug_gen_id += 1
+	return layout_item
+}
+
+make_layout_item :: proc(
+	ctx: ^Context,
+	id: string,
+	user_data: rawptr = nil,
+	layout_proc: proc(parent_node: ^Layout_Item, active_elems: ^Active_Elements) = nil,
+) -> (
+	layout_item: Layout_Item,
+) {
+
+	layout_item.id = strings.clone(id, ctx.arena_allocator)
+	layout_item.layout_proc = layout_proc
+	layout_item.userdata = user_data
+
+	return
+}
 
 // deletes item.
 delete_layout_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) {
@@ -126,15 +183,38 @@ delete_layout_item_and_children :: proc(lic: ^Layout_Item_Container, handle: Lay
 	delete_layout_item(lic, handle)
 }
 
+
+get_parent_layout_item :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+) -> ^Layout_Item {
+	assert(hms.valid(lic^, item_handle))
+	layout_item := hms.get(lic, item_handle)
+
+	assert(hms.valid(lic^, layout_item.parent_handle))
+	return hms.get(lic, layout_item.parent_handle)
+
+}
+
+get_index_in_parent :: proc(lic: ^Layout_Item_Container, item_handle: Layout_Item_Handle) -> u8 {
+	parent_layout_item := get_parent_layout_item(lic, item_handle)
+
+
+	for &handle, i in parent_layout_item.child_nodes {
+		if handle == item_handle do return u8(i)
+	}
+
+	panic("parent's child_nodes does not have the layout item that has it as its parent!")
+}
+
 add_layout_node :: proc(
 	lic: ^Layout_Item_Container,
 	parent_handle: Layout_Item_Handle,
 	index: u8,
 	layout_item_to_add: Layout_Item,
-) {
-	if !hms.valid(lic^, parent_handle) do return
+) -> Layout_Item_Handle {
+	parent_layout_item := get_item_checked(lic, parent_handle)
 
-	parent_layout_item := hms.get(lic, parent_handle)
 	new_handle, add_ok := hms.add(lic, layout_item_to_add)
 	assert(add_ok)
 	new_layout_item := hms.get(lic, new_handle)
@@ -142,6 +222,9 @@ add_layout_node :: proc(
 
 	// setup state
 	new_layout_item.parent_handle = parent_handle
+	new_layout_item.layout_dir =
+		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
+	return new_handle
 }
 
 is_valid_tree :: proc(lic: ^Layout_Item_Container) -> bool {
@@ -169,4 +252,172 @@ leaf_distance :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle, d
 is_leaf :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> bool {
 	return leaf_distance(lic, handle, 0) == 0
 
+}
+
+get_average_size :: proc(
+	lic: ^Layout_Item_Container,
+	layout_item_handle: Layout_Item_Handle,
+) -> (
+	avg_size: clay.Vector2,
+) {
+	layout_item := get_item_checked(lic, layout_item_handle)
+	for &handle in layout_item.child_nodes {
+		child_layout_item := get_item_checked(lic, handle)
+
+		avg_size += child_layout_item.size_percent
+	}
+
+	avg_size /= f32(len(layout_item.child_nodes))
+
+	return
+}
+
+// TODO: Add handles that should retain its percent
+normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_Item_Handle) {
+	layout_item := get_item_checked(lic, layout_item_handle)
+
+	item_handles := layout_item.child_nodes
+	total: clay.Vector2 = {}
+	for &handle in item_handles {
+		assert(hms.valid(lic^, handle))
+		layout_item := hms.get(lic, handle)
+		total += layout_item.size_percent
+	}
+
+
+	for &handle in item_handles {
+		assert(hms.valid(lic^, handle))
+		child_layout_item := hms.get(lic, handle)
+
+		if layout_item.layout_dir == .LeftToRight {
+			// child_layout_item.layout_dir = .TopToBottom
+			child_layout_item.size_percent.x /= total.x
+			child_layout_item.size_percent.y = 1
+		} else {
+			// child_layout_item.layout_dir = .LeftToRight
+			child_layout_item.size_percent.y /= total.y
+			child_layout_item.size_percent.x = 1
+		}
+	}
+}
+
+insert_same_level :: proc(
+	ctx: ^Context,
+	avg_size: clay.Vector2,
+	index_in_parent: u8,
+	edge: Edge,
+	parent_layout_item, hovered_layout_item: ^Layout_Item,
+) {
+
+	insert_after := edge == .Bottom || edge == .Right
+
+	added_item_handle := add_layout_node(
+		&ctx.lic,
+		hovered_layout_item.parent_handle,
+		index_in_parent + u8(insert_after),
+		make_parent_layout_item(ctx),
+	)
+
+	added_item := get_item_checked(&ctx.lic, added_item_handle)
+	added_item.size_percent = avg_size
+	normalize_sizes(&ctx.lic, hovered_layout_item.parent_handle)
+}
+
+@(private)
+instert_new_level :: proc(
+	ctx: ^Context,
+	avg_size: clay.Vector2,
+	index_in_parent: u8,
+	parent_layout_item, hovered_layout_item: ^Layout_Item,
+) {
+	new_parent_handle := hms.add(&ctx.lic, make_parent_layout_item(ctx))
+	new_parent := hms.get(&ctx.lic, new_parent_handle)
+	new_parent.size_percent = avg_size
+	new_parent.layout_dir =
+		parent_layout_item.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
+
+	parent_layout_item.child_nodes[index_in_parent] = new_parent_handle
+	new_parent.parent_handle = parent_layout_item.handle
+
+	append(&new_parent.child_nodes, hovered_layout_item.handle)
+	hovered_layout_item.parent_handle = new_parent_handle
+	hovered_layout_item.size_percent = avg_size
+	hovered_layout_item.layout_dir = .TopToBottom
+
+	added_item_handle := add_layout_node(
+		&ctx.lic,
+		new_parent_handle,
+		0,
+		make_parent_layout_item(ctx),
+	)
+
+	added_item := get_item_checked(&ctx.lic, added_item_handle)
+	added_item.size_percent = avg_size
+	added_item.layout_dir = .TopToBottom
+
+	normalize_sizes(&ctx.lic, new_parent_handle)
+	normalize_sizes(&ctx.lic, parent_layout_item.handle)
+
+}
+
+closest_edge :: proc(bounding_box: clay.BoundingBox, pos: clay.Vector2) -> Edge {
+	direction :=
+		pos -
+		clay.Vector2 {
+				bounding_box.x + bounding_box.width / 2,
+				bounding_box.y + bounding_box.height / 2,
+			}
+	aspect := bounding_box.width / bounding_box.height
+	scaled_direction := direction
+	scaled_direction.y = scaled_direction.y * aspect
+
+	if abs(scaled_direction.x) > abs(scaled_direction.y) {
+		return scaled_direction.x >= 0 ? .Right : .Left
+	} else {
+
+		return scaled_direction.y >= 0 ? .Bottom : .Top
+	}
+}
+
+closest_corner :: proc(bounding_box: clay.BoundingBox, pos: clay.Vector2) -> Corner {
+
+	tile_center := [2]c.float {
+		bounding_box.x + bounding_box.width / 2,
+		bounding_box.y + bounding_box.height / 2,
+	}
+
+	dir := pos - tile_center
+
+	if dir.x > 0 { 	// Right
+		if dir.y > 0 { 	// Lower
+			return .BottomRight
+		} else { 	// Upper
+			return .TopRight
+		}
+	} else { 	// Left
+		if dir.y > 0 { 	// Lower
+			return .BottomLeft
+		} else { 	// Upper
+			return .TopLeft
+		}
+	}
+}
+
+
+is_horizontal_edge :: proc(edge: Edge) -> bool {
+	return edge == .Left || edge == .Right
+}
+
+is_vertical_edge :: proc(edge: Edge) -> bool {
+	return !is_horizontal_edge(edge) // might be slower? But I think compiler might compansate. Need to test.
+}
+
+get_scalers_x_y :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+) -> (
+	x, y: ^Layout_Item,
+) {
+
+	return
 }

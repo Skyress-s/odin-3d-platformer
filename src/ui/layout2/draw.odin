@@ -40,7 +40,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 				clay.SizingPercent(item.size_percent.x),
 				clay.SizingPercent(item.size_percent.y),
 			},
-			padding = clay.PaddingAll(8),
+			padding = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(8) : clay.PaddingAll(0),
 			childGap = 4,
 		},
 		backgroundColor = should_draw_debug_background ? clay.Color{0, 0, 0, 255} : clay.Color{},
@@ -49,6 +49,14 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		if ctx.debug_settings.draw_ids && is_leaf(&ctx.lic, item_handle) {
 			clay.TextDynamic(
 				fmt.tprintf("id_{}", item.id),
+				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+			)
+			clay.TextDynamic(
+				fmt.tprintf("layout_dir {}", item.layout_dir),
+				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+			)
+			clay.TextDynamic(
+				fmt.tprintf("size {}", item.size_percent),
 				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
 			)
 		}

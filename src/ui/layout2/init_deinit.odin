@@ -3,6 +3,7 @@ import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin"
 import "core:c"
 import "core:fmt"
+import vmem "core:mem/virtual"
 import "core:strings"
 import rr "raylib"
 import raylib "vendor:raylib"
@@ -30,6 +31,12 @@ init :: proc(
 ) -> (
 	ctx: Context,
 ) {
+
+	arena_init_err := vmem.arena_init_growing(&ctx.arena)
+	assert(arena_init_err == nil)
+
+	ctx.arena_allocator = vmem.arena_allocator(&ctx.arena)
+
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
@@ -60,18 +67,23 @@ init :: proc(
 		ctx.root = handle
 	}
 
+	ctx.add_click = .Released
+	ctx.remove_click = .Released
+	ctx.resize_click = .Released
+
 	return ctx
 }
 
 
 deinit :: proc(ctx: ^Context) {
+	vmem.arena_destroy(&ctx.arena)
 	free(ctx.clay_arena.memory)
 
 	hms.clear(&ctx.lic)
 }
 
 // Updated cursor / pointer states and such
-update_state :: proc() {
+update_state :: proc(ctx: ^Context) {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
 	if (raylib.IsKeyPressed(.U)) {
@@ -79,8 +91,11 @@ update_state :: proc() {
 		debugModeEnabled = !debugModeEnabled
 		clay.SetDebugModeEnabled(debugModeEnabled)
 	}
+
+	ctx.mouse_pos = raylib.GetMousePosition()
+
 	clay.SetPointerState(
-		transmute(clay.Vector2)raylib.GetMousePosition(),
+		transmute(clay.Vector2)ctx.mouse_pos,
 		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
 	)
 	clay.UpdateScrollContainers(
@@ -90,6 +105,43 @@ update_state :: proc() {
 	)
 	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
 
+	ctx.remove_click = to_pointer_state(
+		raylib.IsMouseButtonPressed(.LEFT),
+		raylib.IsMouseButtonPressed(.LEFT),
+		ctx.remove_click,
+	)
+	ctx.add_click = to_pointer_state(
+		raylib.IsMouseButtonPressed(.RIGHT),
+		raylib.IsMouseButtonPressed(.RIGHT),
+		ctx.remove_click,
+	)
+	ctx.resize_click = to_pointer_state(
+		raylib.IsMouseButtonPressed(.MIDDLE),
+		raylib.IsMouseButtonPressed(.MIDDLE),
+		ctx.remove_click,
+	)
+}
+
+to_pointer_state :: proc(
+	down_this_frame, up_this_frame: bool,
+	previous_state: clay.PointerDataInteractionState,
+) -> clay.PointerDataInteractionState {
+	if down_this_frame do return .PressedThisFrame
+
+	if up_this_frame do return .ReleasedThisFrame
+
+	if previous_state == .PressedThisFrame || previous_state == .Pressed do return .Pressed
+
+	if previous_state == .ReleasedThisFrame || previous_state == .Released do return .Released
+
+	panic(
+		fmt.tprintf(
+			"pointer state could not update down_this_frame: {}, up_this_frame: {}, previous_state: {}",
+			down_this_frame,
+			up_this_frame,
+			previous_state,
+		),
+	)
 }
 
 

@@ -18,7 +18,7 @@ import rl "vendor:raylib"
 
 main :: proc() {
 
-	rl.InitWindow(1000, 1000, "Window Test")
+	rl.InitWindow(2000, 1200, "Window Test")
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
@@ -33,15 +33,13 @@ main :: proc() {
 	defer layout.deinit(&layout_ctx)
 
 	{
-		node := layout.Layout_Item{}
-		node.id = "Node 1"
+		node := layout.make_layout_item(&layout_ctx, "Node 1")
 		node.size_percent = {0.5, 1}
 
 		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
 	}
 	{
-		node := layout.Layout_Item{}
-		node.id = "Node 2"
+		node := layout.make_layout_item(&layout_ctx, "Node 2")
 		node.size_percent = {0.5, 1}
 
 		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
@@ -50,11 +48,13 @@ main :: proc() {
 	// TODO: unregister node?
 
 	for !rl.WindowShouldClose() {
-		layout.update_state()
+		layout.update_state(&layout_ctx)
 
 		clay.BeginLayout()
 		layout.layout(&layout_ctx)
 		ui_render_commands := clay.EndLayout()
+
+		layout.interaction(&layout_ctx)
 
 		{
 			rl.BeginDrawing()

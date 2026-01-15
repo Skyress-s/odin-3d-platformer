@@ -10,7 +10,7 @@ import raylib "vendor:raylib"
 layout_tiling_windows :: proc(
 	root_node: ^Tiling_Node,
 	allow_edit_layout: bool,
-	active_elems: ^Active_Elements
+	active_elems: ^Active_Elements,
 ) -> (
 	layout_updated: bool,
 ) {
