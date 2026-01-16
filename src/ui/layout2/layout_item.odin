@@ -142,7 +142,7 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	update_layout_dir(&ctx.lic, parent_handle)
 	normalize_sizes_recursive(&ctx.lic, parent_handle)
 
-	// todo male recursive
+	// TODO: make recursive
 	if len(parent_layout_item.child_nodes) == 0 {
 		grand_parent_handle := parent_layout_item.parent_handle
 		if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
