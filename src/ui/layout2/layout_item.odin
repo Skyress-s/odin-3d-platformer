@@ -72,7 +72,17 @@ get_item_checked :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle
 make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 
 	@(static) debug_gen_id: u32 = 0
-	layout_item := make_layout_item(ctx, fmt.tprintf("gen_{}", debug_gen_id))
+	layout_item := make_layout_item(ctx, fmt.tprintf("parent_{}", debug_gen_id))
+	layout_item.size_percent = {0.5, 0.5}
+	debug_gen_id += 1
+	return layout_item
+}
+
+@(private)
+make_debug_leaf_layout_item :: proc(ctx: ^Context) -> Layout_Item {
+
+	@(static) debug_gen_id: u32 = 0
+	layout_item := make_layout_item(ctx, fmt.tprintf("leaf_{}", debug_gen_id))
 	layout_item.size_percent = {0.5, 0.5}
 	debug_gen_id += 1
 	return layout_item
@@ -142,13 +152,13 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	update_layout_dir(&ctx.lic, parent_handle)
 	normalize_sizes_recursive(&ctx.lic, parent_handle)
 
-	// TODO: make recursive
-	if len(parent_layout_item.child_nodes) == 0 {
-		grand_parent_handle := parent_layout_item.parent_handle
-		if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
-		delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
-		delete_layout_item(ctx, parent_handle)
-	}
+	// TODO: make recursive TODO: Make work
+	// if len(parent_layout_item.child_nodes) == 0 {
+	// 	grand_parent_handle := parent_layout_item.parent_handle
+	// 	if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
+	// 	delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
+	// 	delete_layout_item(ctx, parent_handle)
+	// }
 
 	// if true do return
 	// parent only has one child, reduce it
@@ -266,8 +276,33 @@ add_layout_node :: proc(
 is_valid_tree :: proc(lic: ^Layout_Item_Container) -> bool {
 	panic("Not implemented!")
 }
+max_leaf_distance :: proc(
+	lic: ^Layout_Item_Container,
+	handle: Layout_Item_Handle,
+	dist: i32 = 0,
+) -> i32 {
+	assert(hms.valid(lic^, handle))
+	layout_item := hms.get(lic, handle)
 
-leaf_distance :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle, dist: i32) -> i32 {
+	if len(layout_item.child_nodes) == 0 do return dist
+	dist := dist + 1
+
+	max_dist := min(i32)
+	for child_handle in layout_item.child_nodes {
+		found_dist := max_leaf_distance(lic, child_handle, dist)
+		if found_dist > max_dist {
+			max_dist = found_dist
+		}
+	}
+
+	return max_dist
+}
+
+leaf_distance :: proc(
+	lic: ^Layout_Item_Container,
+	handle: Layout_Item_Handle,
+	dist: i32 = 0,
+) -> i32 {
 	assert(hms.valid(lic^, handle))
 	layout_item := hms.get(lic, handle)
 
@@ -404,7 +439,7 @@ instert_new_level :: proc(
 		&ctx.lic,
 		new_parent_handle,
 		0,
-		make_parent_layout_item(ctx),
+		make_debug_leaf_layout_item(ctx),
 	)
 
 	added_item := get_item_checked(&ctx.lic, added_item_handle)
