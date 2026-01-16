@@ -72,7 +72,7 @@ get_item_checked :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle
 make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 
 	@(static) debug_gen_id: u32 = 0
-	layout_item := make_layout_item(ctx, fmt.tprintf("gen_these_nuts_{}", debug_gen_id))
+	layout_item := make_layout_item(ctx, fmt.tprintf("gen_{}", debug_gen_id))
 	layout_item.size_percent = {0.5, 0.5}
 	debug_gen_id += 1
 	return layout_item
@@ -90,27 +90,27 @@ make_layout_item :: proc(
 	layout_item.id = strings.clone(id, ctx.arena_allocator)
 	layout_item.layout_proc = layout_proc
 	layout_item.userdata = user_data
+	layout_item.child_nodes = make([dynamic]hms.Handle, ctx.arena_allocator)
 
 	return
 }
 
 // deletes item.
-delete_layout_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) {
-	if !hms.valid(lic^, handle) do return
-	layout_item := hms.get(lic, handle)
+delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
+	if !hms.valid(ctx.lic, handle) do return
+	layout_item := hms.get(&ctx.lic, handle)
 
-	delete(layout_item.id)
-	delete(layout_item.child_nodes)
+	delete(layout_item.id, ctx.arena_allocator)
+	delete_dynamic_array(layout_item.child_nodes)
 
-	hms.remove(lic, handle)
+	hms.remove(&ctx.lic, handle)
 }
 
 delete_handle_from_node :: proc(
 	lic: ^Layout_Item_Container,
-	handle_to_delete, item_handle: Layout_Item_Handle,
+	item_handle, handle_to_delete: Layout_Item_Handle,
 ) {
-	assert(hms.valid(lic^, item_handle))
-	layout_item := hms.get(lic, item_handle)
+	layout_item := get_item_checked(lic, item_handle)
 
 	for &handle, i in layout_item.child_nodes {
 		if handle == handle_to_delete {
@@ -120,35 +120,57 @@ delete_handle_from_node :: proc(
 	}
 }
 
-cut_layout_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) {
-	if hms.valid(lic^, handle) do return
-
-	layout_item_to_delete := hms.get(lic, handle)
+cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
+	layout_item_to_delete := get_item_checked(&ctx.lic, handle)
 	assert(
 		len(layout_item_to_delete.child_nodes) == 0,
 		"don't support cutting nodes with children.",
 	)
 
 	parent_handle := layout_item_to_delete.parent_handle
-	assert(hms.valid(lic^, parent_handle), "are you trying to delete the root?")
+	assert(hms.valid(ctx.lic, parent_handle), "are you trying to delete the root?")
 
-	parent_layout_item := hms.get(lic, parent_handle)
+	parent_layout_item := hms.get(&ctx.lic, parent_handle)
 
-	delete_handle_from_node(lic, parent_handle, handle)
-	delete_layout_item(lic, handle)
+	delete_handle_from_node(&ctx.lic, parent_handle, handle)
+	delete_layout_item(ctx, handle)
+	normalize_sizes(&ctx.lic, parent_handle)
 
+	// if true do return
 	// parent only has one child, reduce it
 	if len(parent_layout_item.child_nodes) == 1 {
 		grand_parent_handle := parent_layout_item.parent_handle
-		if !hms.valid(lic^, grand_parent_handle) do return // root node
+		if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
 
-		grand_parent := hms.get(lic, grand_parent_handle)
+		grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
 		for &h in grand_parent.child_nodes {
 			if h == parent_handle {
 				h = parent_layout_item.child_nodes[0]
-				delete_layout_item(lic, parent_handle)
+				single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
+				single_child.parent_handle = grand_parent_handle
+				single_child.size_percent = parent_layout_item.size_percent
+				delete_layout_item(ctx, parent_handle)
 				break
 			}
+		}
+
+		normalize_sizes(&ctx.lic, grand_parent_handle)
+		update_layout_dir(&ctx.lic, grand_parent_handle)
+	}
+}
+
+
+update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layout_Item_Handle) {
+	layout_item := get_item_checked(lic, current_item_handle)
+	for &child_item_handle in layout_item.child_nodes {
+		child_item := get_item_checked(lic, child_item_handle)
+		if (is_leaf(lic, child_item_handle)) {
+			child_item.layout_dir = .TopToBottom
+		} else {
+			child_item.layout_dir =
+				layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
+
+			update_layout_dir(lic, child_item_handle)
 		}
 	}
 }
@@ -172,15 +194,15 @@ cut_layout_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle)
 // }
 
 // delete item and potential children
-delete_layout_item_and_children :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) {
-	if !hms.valid(lic^, handle) do return
+delete_layout_item_and_children :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
+	if !hms.valid(ctx.lic, handle) do return
 
-	layout_item := hms.get(lic, handle)
+	layout_item := hms.get(&ctx.lic, handle)
 	for child_handle in layout_item.child_nodes {
-		delete_layout_item(lic, child_handle)
+		delete_layout_item(ctx, child_handle)
 	}
 
-	delete_layout_item(lic, handle)
+	delete_layout_item(ctx, handle)
 }
 
 
@@ -342,7 +364,13 @@ instert_new_level :: proc(
 	append(&new_parent.child_nodes, hovered_layout_item.handle)
 	hovered_layout_item.parent_handle = new_parent_handle
 	hovered_layout_item.size_percent = avg_size
-	hovered_layout_item.layout_dir = .TopToBottom
+	if (is_leaf(&ctx.lic, hovered_layout_item.handle)) {
+		hovered_layout_item.layout_dir = .TopToBottom
+	} else {
+		hovered_layout_item.layout_dir =
+			new_parent.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
+
+	}
 
 	added_item_handle := add_layout_node(
 		&ctx.lic,

@@ -1,4 +1,5 @@
 package layout
+import "core:fmt"
 
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
@@ -39,6 +40,7 @@ interaction :: proc(ctx: ^Context) {
 	corner := closest_corner(hovered_bounding_box, ctx.mouse_pos)
 	edge := closest_edge(hovered_bounding_box, ctx.mouse_pos)
 
+	// TODO: These != .Released is stupid
 	if ctx.resize_click != .Released {
 		handle_resize_click(ctx, ctx.add_click, hovered_layout_item, corner)
 
@@ -46,7 +48,7 @@ interaction :: proc(ctx: ^Context) {
 		handle_add_click(ctx, ctx.add_click, hovered_layout_item, edge)
 
 	} else if ctx.remove_click != .Released {
-
+		handle_remove_click(ctx, ctx.remove_click, hovered_layout_item)
 	}
 }
 
@@ -95,4 +97,15 @@ handle_add_click :: proc(
 		instert_new_level(ctx, avg_size, index_in_parent, parent_layout_item, hovered_layout_item)
 
 	}
+}
+
+@(private)
+handle_remove_click :: proc(
+	ctx: ^Context,
+	pointer_state: clay.PointerDataInteractionState,
+	hovered_layout_item: ^Layout_Item,
+) {
+	if pointer_state != .PressedThisFrame do return
+
+	cut_layout_item(ctx, hovered_layout_item.handle)
 }

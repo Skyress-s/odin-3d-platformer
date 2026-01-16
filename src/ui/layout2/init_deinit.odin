@@ -105,20 +105,22 @@ update_state :: proc(ctx: ^Context) {
 	)
 	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
 
-	ctx.remove_click = to_pointer_state(
-		raylib.IsMouseButtonPressed(.LEFT),
-		raylib.IsMouseButtonPressed(.LEFT),
-		ctx.remove_click,
-	)
-	ctx.add_click = to_pointer_state(
-		raylib.IsMouseButtonPressed(.RIGHT),
-		raylib.IsMouseButtonPressed(.RIGHT),
-		ctx.remove_click,
-	)
-	ctx.resize_click = to_pointer_state(
-		raylib.IsMouseButtonPressed(.MIDDLE),
-		raylib.IsMouseButtonPressed(.MIDDLE),
-		ctx.remove_click,
+
+	update_pointer_state_mouse(&ctx.remove_click, .LEFT)
+	update_pointer_state_mouse(&ctx.add_click, .RIGHT)
+	update_pointer_state_mouse(&ctx.resize_click, .MIDDLE)
+}
+
+update_pointer_state_mouse :: proc(
+	pointer_state: ^clay.PointerDataInteractionState,
+	mouse_button: raylib.MouseButton,
+) {
+	assert(pointer_state != nil)
+
+	pointer_state^ = to_pointer_state(
+		raylib.IsMouseButtonPressed(mouse_button),
+		raylib.IsMouseButtonReleased(mouse_button),
+		pointer_state^,
 	)
 }
 
