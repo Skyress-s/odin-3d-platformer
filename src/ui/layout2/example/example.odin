@@ -4,6 +4,7 @@ import layout "../"
 import hms "../../../handle_map/handle_map_static/"
 import clay "../../clay-odin/"
 import rr "../raylib"
+import "core:c"
 import "core:fmt"
 import rl "vendor:raylib"
 /*
@@ -17,6 +18,8 @@ import rl "vendor:raylib"
 */
 
 main :: proc() {
+	window_width := c.int(f64(rl.GetMonitorWidth(rl.GetCurrentMonitor())) * 0.7)
+	window_height := c.int(f64(rl.GetMonitorHeight(rl.GetCurrentMonitor())) * 0.7)
 
 	rl.InitWindow(2000, 1200, "Window Test")
 	defer rl.CloseWindow()

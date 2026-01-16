@@ -106,6 +106,10 @@ delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	hms.remove(&ctx.lic, handle)
 }
 
+delete_tail :: proc() {
+
+}
+
 delete_handle_from_node :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle, handle_to_delete: Layout_Item_Handle,
@@ -134,29 +138,39 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 
 	delete_handle_from_node(&ctx.lic, parent_handle, handle)
 	delete_layout_item(ctx, handle)
-	normalize_sizes(&ctx.lic, parent_handle)
+
+	update_layout_dir(&ctx.lic, parent_handle)
+	normalize_sizes_recursive(&ctx.lic, parent_handle)
+
+	// todo male recursive
+	if len(parent_layout_item.child_nodes) == 0 {
+		grand_parent_handle := parent_layout_item.parent_handle
+		if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
+		delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
+		delete_layout_item(ctx, parent_handle)
+	}
 
 	// if true do return
 	// parent only has one child, reduce it
-	if len(parent_layout_item.child_nodes) == 1 {
-		grand_parent_handle := parent_layout_item.parent_handle
-		if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
-
-		grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
-		for &h in grand_parent.child_nodes {
-			if h == parent_handle {
-				h = parent_layout_item.child_nodes[0]
-				single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
-				single_child.parent_handle = grand_parent_handle
-				single_child.size_percent = parent_layout_item.size_percent
-				delete_layout_item(ctx, parent_handle)
-				break
-			}
-		}
-
-		normalize_sizes(&ctx.lic, grand_parent_handle)
-		update_layout_dir(&ctx.lic, grand_parent_handle)
-	}
+	// if len(parent_layout_item.child_nodes) == 1 {
+	// 	grand_parent_handle := parent_layout_item.parent_handle
+	// 	if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
+	//
+	// 	grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
+	// 	for &h in grand_parent.child_nodes {
+	// 		if h == parent_handle {
+	// 			h = parent_layout_item.child_nodes[0]
+	// 			single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
+	// 			single_child.parent_handle = grand_parent_handle
+	// 			single_child.size_percent = parent_layout_item.size_percent
+	// 			delete_layout_item(ctx, parent_handle)
+	// 			break
+	// 		}
+	// 	}
+	//
+	// 	update_layout_dir(&ctx.lic, grand_parent_handle)
+	// 	normalize_sizes_recursive(&ctx.lic, grand_parent_handle)
+	// }
 }
 
 
@@ -321,6 +335,20 @@ normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_
 			child_layout_item.size_percent.x = 1
 		}
 	}
+}
+
+normalize_sizes_recursive :: proc(
+	lic: ^Layout_Item_Container,
+	layout_item_handle: Layout_Item_Handle,
+) {
+	layout_item := get_item_checked(lic, layout_item_handle)
+
+	normalize_sizes(lic, layout_item_handle)
+	for &handle in layout_item.child_nodes {
+		normalize_sizes(lic, handle)
+	}
+
+
 }
 
 insert_same_level :: proc(
