@@ -35,18 +35,20 @@ main :: proc() {
 	}
 
 
-	{
-		node := layout.make_layout_item(&layout_ctx, "Node 1")
-		node.size_percent = {0.5, 1}
-
-		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
-	}
-	{
-		node := layout.make_layout_item(&layout_ctx, "Node 2")
-		node.size_percent = {0.5, 1}
-
-		layout.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, node)
-	}
+	layout.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		layout.make_debug_leaf_layout_item(&layout_ctx),
+	)
+	layout.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		layout.make_debug_leaf_layout_item(&layout_ctx),
+	)
+	layout.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
+	layout.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 
 	// TODO: unregister node?
 

@@ -94,7 +94,14 @@ handle_add_click :: proc(
 			hovered_layout_item,
 		)
 	} else {
-		instert_new_level(ctx, avg_size, index_in_parent, parent_layout_item, hovered_layout_item)
+		insert_new_level(
+			ctx,
+			avg_size,
+			index_in_parent,
+			edge,
+			parent_layout_item,
+			hovered_layout_item,
+		)
 
 	}
 }

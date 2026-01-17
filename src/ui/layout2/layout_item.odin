@@ -83,7 +83,7 @@ make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 	return layout_item
 }
 
-@(private)
+// @(private)
 make_debug_leaf_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 
 	@(static) debug_gen_id: u32 = 0
@@ -179,9 +179,15 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	)
 
 	parent_handle := layout_item_to_delete.parent_handle
-	assert(hms.valid(ctx.lic, parent_handle), "are you trying to delete the root?")
-
+	if !hms.valid(ctx.lic, parent_handle) do return
 	parent_layout_item := hms.get(&ctx.lic, parent_handle)
+
+	{
+		root_item := get_item_checked(&ctx.lic, ctx.root)
+		if layout_item_to_delete.parent_handle == ctx.root && len(root_item.child_nodes) == 1 {
+			return
+		}
+	}
 
 	delete_handle_from_node(&ctx.lic, parent_handle, handle)
 	delete_layout_item(ctx, handle)
@@ -204,9 +210,11 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 		}
 	}
 
+
 	clean_tree(ctx, ctx.root)
 	update_layout_dir(&ctx.lic, ctx.root)
 	normalize_sizes_recursive(&ctx.lic, ctx.root)
+	fmt.println("hello")
 
 	// Is not the fastest. Could do something more local. But this is simpler.
 	clean_tree :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
@@ -490,7 +498,7 @@ insert_same_level :: proc(
 		&ctx.lic,
 		hovered_layout_item.parent_handle,
 		index_in_parent + u8(insert_after),
-		make_parent_layout_item(ctx),
+		make_debug_leaf_layout_item(ctx),
 	)
 
 	added_item := get_item_checked(&ctx.lic, added_item_handle)
@@ -499,10 +507,11 @@ insert_same_level :: proc(
 }
 
 @(private)
-instert_new_level :: proc(
+insert_new_level :: proc(
 	ctx: ^Context,
 	avg_size: clay.Vector2,
 	index_in_parent: u8,
+	edge: Edge,
 	parent_layout_item, hovered_layout_item: ^Layout_Item,
 ) {
 	new_parent_handle := hms.add(&ctx.lic, make_parent_layout_item(ctx))
@@ -525,10 +534,12 @@ instert_new_level :: proc(
 
 	}
 
+	b_insert_after := edge == .Right || edge == .Bottom
+
 	added_item_handle := add_layout_node(
 		&ctx.lic,
 		new_parent_handle,
-		0,
+		b_insert_after ? 1 : 0,
 		make_debug_leaf_layout_item(ctx),
 	)
 
