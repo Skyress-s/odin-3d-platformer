@@ -214,7 +214,6 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	clean_tree(ctx, ctx.root)
 	update_layout_dir(&ctx.lic, ctx.root)
 	normalize_sizes_recursive(&ctx.lic, ctx.root)
-	fmt.println("hello")
 
 	// Is not the fastest. Could do something more local. But this is simpler.
 	clean_tree :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
