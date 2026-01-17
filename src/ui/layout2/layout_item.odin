@@ -68,6 +68,11 @@ get_item_checked :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle
 	return hms.get(lic, handle)
 }
 
+get_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> (^Layout_Item, bool) {
+	if !hms.valid(lic^, handle) do return nil, false
+	return hms.get(lic, handle), true
+}
+
 @(private)
 make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 
@@ -116,8 +121,40 @@ delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	hms.remove(&ctx.lic, handle)
 }
 
-delete_tail :: proc() {
+// Returns the handle that was hit and not deleted
+delete_tail :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) -> Layout_Item_Handle {
+	item := get_item_checked(&ctx.lic, item_handle)
+	if !hms.valid(ctx.lic, item.parent_handle) do return item.handle // root node
 
+	parent := get_item_checked(&ctx.lic, item.parent_handle)
+
+	if len(parent.child_nodes) == 1 { 	// continue walking
+		delete_handle_from_node(&ctx.lic, item.parent_handle, item.handle)
+		delete_layout_item(ctx, item.handle)
+
+		return delete_tail(ctx, parent.handle)
+	} else if len(parent.child_nodes) > 1 {
+		delete_handle_from_node(&ctx.lic, item.parent_handle, item.handle)
+		delete_layout_item(ctx, item.handle)
+
+		return parent.handle
+	}
+
+	return item.handle
+}
+
+clean_upwards :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) {
+	item := get_item_checked(&ctx.lic, item_handle)
+	parent_item, parent_ok := get_item(&ctx.lic, item.parent_handle)
+	if !parent_ok do return
+	grand_parent, grandparent_ok := get_item(&ctx.lic, parent_item.parent_handle)
+	if !grandparent_ok do return
+
+	if (len(parent_item.child_nodes) == 1 && len(grand_parent.child_nodes) == 1) {
+		grand_parent.child_nodes[0] = item.handle
+		item.parent_handle = grand_parent.handle
+		delete_layout_item(ctx, parent_item.handle)
+	}
 }
 
 delete_handle_from_node :: proc(
@@ -149,8 +186,67 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	delete_handle_from_node(&ctx.lic, parent_handle, handle)
 	delete_layout_item(ctx, handle)
 
-	update_layout_dir(&ctx.lic, parent_handle)
-	normalize_sizes_recursive(&ctx.lic, parent_handle)
+
+	// delete_tail(ctx, parent_handle)
+
+
+	// if len(parent_layout_item.child_nodes) == 1 {
+	// 	grand_parent, grand_parent_ok := get_item(&ctx.lic, parent_layout_item.parent_handle)
+	// 	if grand_parent_ok {
+	// 		index_in_grand_parent := get_index_in_parent(&ctx.lic, parent_layout_item.handle)
+	// 		single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
+	//
+	// 		grand_parent.child_nodes[index_in_grand_parent] = single_child.handle
+	// 		single_child.parent_handle = grand_parent.handle
+	// 		delete_layout_item(ctx, parent_layout_item.handle)
+	// 	}
+	// }
+
+	// clean_tree(ctx, ctx.root)
+	update_layout_dir(&ctx.lic, ctx.root)
+	normalize_sizes_recursive(&ctx.lic, ctx.root)
+
+	// Is not the fastest. Could do something more local. But this is simpler.
+	clean_tree :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
+		item := get_item_checked(&ctx.lic, handle)
+
+		// child_handles_copy := make(
+		// 	[dynamic]Layout_Item_Handle,
+		// 	len(item.child_nodes),
+		// 	context.temp_allocator,
+		// )
+		// copy_slice(child_handles_copy[:], item.child_nodes[:])
+
+		#reverse for child_handle, i in item.child_nodes {
+			child := get_item_checked(&ctx.lic, child_handle) // all children
+			if len(child.child_nodes) == 1 {
+				delete_handle_from_node(&ctx.lic, item.handle, child.handle)
+				grand_child := get_item_checked(&ctx.lic, child.child_nodes[0])
+
+				for j := 0; j < len(grand_child.child_nodes); j += 1 {
+					grand_grand_child := get_item_checked(&ctx.lic, grand_child.child_nodes[j])
+					grand_grand_child.parent_handle = item.handle
+					inject_at(&item.child_nodes, i + j, grand_grand_child.handle)
+				}
+
+				delete_layout_item(ctx, child.handle)
+				delete_layout_item(ctx, grand_child.handle)
+			}
+		}
+
+		for child_handle in item.child_nodes {
+			clean_tree(ctx, child_handle)
+		}
+
+	}
+
+
+	// if len(parent_layout_item.child_nodes) == 0 {
+	// 	parent_handle = delete_tail(ctx, parent_handle)
+	// }
+	//
+	// clean_upwards(ctx, parent_handle)
+
 
 	// TODO: make recursive TODO: Make work
 	// if len(parent_layout_item.child_nodes) == 0 {
@@ -244,7 +340,6 @@ get_parent_layout_item :: proc(
 
 get_index_in_parent :: proc(lic: ^Layout_Item_Container, item_handle: Layout_Item_Handle) -> u8 {
 	parent_layout_item := get_parent_layout_item(lic, item_handle)
-
 
 	for &handle, i in parent_layout_item.child_nodes {
 		if handle == item_handle do return u8(i)

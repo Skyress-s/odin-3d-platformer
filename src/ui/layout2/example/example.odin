@@ -55,6 +55,20 @@ main :: proc() {
 
 		clay.BeginLayout()
 		layout.layout(&layout_ctx)
+		// if clay.UI()(
+		// clay.ElementDeclaration {
+		// 	layout = {
+		// 		layoutDirection = .TopToBottom,
+		// 		sizing = {clay.SizingGrow(), clay.SizingGrow()},
+		// 	},
+		// 	backgroundColor = {255, 50, 100, 255},
+		// },
+		// ) {
+		// 	clay.Text("Hello!!!", clay.TextConfig(layout.DEBUG_ID_TEXT_ELEMENT_CONFIG))
+		//
+		//
+		// }
+		//
 		ui_render_commands := clay.EndLayout()
 
 		layout.interaction(&layout_ctx)
