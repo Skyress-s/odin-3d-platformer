@@ -107,5 +107,5 @@ handle_remove_click :: proc(
 ) {
 	if pointer_state != .PressedThisFrame do return
 
-	cut_layout_item(ctx, hovered_layout_item.handle)
+	remove_leaf_item(ctx, hovered_layout_item.handle)
 }

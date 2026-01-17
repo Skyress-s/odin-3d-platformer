@@ -67,6 +67,11 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 				fmt.tprintf("size {}", item.size_percent),
 				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
 			)
+			parent_item := get_item_checked(&ctx.lic, item.parent_handle)
+			clay.TextDynamic(
+				fmt.tprintf("parent_layout_dir {}", parent_item.layout_dir),
+				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+			)
 		}
 
 		for child_item_handle in item.child_nodes {

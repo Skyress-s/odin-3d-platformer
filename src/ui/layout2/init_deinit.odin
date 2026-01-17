@@ -55,6 +55,7 @@ init :: proc(
 	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
 
 	loadFont(DEBUG_FONT_ID, 56, "resources/Calistoga-Regular.ttf")
+	loadFont(DEBUG_FONT_ID_2, 56, "resources/Calistoga-Regular.ttf") // Need to have something with ID = 0 for debug to work
 
 	// root node
 	{
@@ -92,8 +93,6 @@ update_state :: proc(ctx: ^Context) {
 		clay.SetDebugModeEnabled(debugModeEnabled)
 	}
 
-	ctx.mouse_pos = raylib.GetMousePosition()
-
 	clay.SetPointerState(
 		transmute(clay.Vector2)ctx.mouse_pos,
 		raylib.IsMouseButtonDown(raylib.MouseButton.LEFT),
@@ -105,6 +104,8 @@ update_state :: proc(ctx: ^Context) {
 	)
 	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
 
+
+	ctx.mouse_pos = raylib.GetMousePosition()
 
 	update_pointer_state_mouse(&ctx.remove_click, .LEFT)
 	update_pointer_state_mouse(&ctx.add_click, .RIGHT)

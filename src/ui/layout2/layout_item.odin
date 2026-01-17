@@ -171,7 +171,7 @@ delete_handle_from_node :: proc(
 	}
 }
 
-cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
+remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	layout_item_to_delete := get_item_checked(&ctx.lic, handle)
 	assert(
 		len(layout_item_to_delete.child_nodes) == 0,
@@ -190,19 +190,21 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	// delete_tail(ctx, parent_handle)
 
 
-	// if len(parent_layout_item.child_nodes) == 1 {
-	// 	grand_parent, grand_parent_ok := get_item(&ctx.lic, parent_layout_item.parent_handle)
-	// 	if grand_parent_ok {
-	// 		index_in_grand_parent := get_index_in_parent(&ctx.lic, parent_layout_item.handle)
-	// 		single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
-	//
-	// 		grand_parent.child_nodes[index_in_grand_parent] = single_child.handle
-	// 		single_child.parent_handle = grand_parent.handle
-	// 		delete_layout_item(ctx, parent_layout_item.handle)
-	// 	}
-	// }
+	if len(parent_layout_item.child_nodes) == 1 {
+		single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
+		grand_parent, grand_parent_ok := get_item(&ctx.lic, parent_layout_item.parent_handle)
+		if grand_parent_ok && len(single_child.child_nodes) == 0 {
+			index_in_grand_parent := get_index_in_parent(&ctx.lic, parent_layout_item.handle)
 
-	// clean_tree(ctx, ctx.root)
+			grand_parent.child_nodes[index_in_grand_parent] = single_child.handle
+			single_child.parent_handle = grand_parent.handle
+			single_child.size_percent = parent_layout_item.size_percent
+
+			delete_layout_item(ctx, parent_layout_item.handle)
+		}
+	}
+
+	clean_tree(ctx, ctx.root)
 	update_layout_dir(&ctx.lic, ctx.root)
 	normalize_sizes_recursive(&ctx.lic, ctx.root)
 
@@ -210,22 +212,19 @@ cut_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	clean_tree :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 		item := get_item_checked(&ctx.lic, handle)
 
-		// child_handles_copy := make(
-		// 	[dynamic]Layout_Item_Handle,
-		// 	len(item.child_nodes),
-		// 	context.temp_allocator,
-		// )
-		// copy_slice(child_handles_copy[:], item.child_nodes[:])
-
 		#reverse for child_handle, i in item.child_nodes {
 			child := get_item_checked(&ctx.lic, child_handle) // all children
 			if len(child.child_nodes) == 1 {
 				delete_handle_from_node(&ctx.lic, item.handle, child.handle)
 				grand_child := get_item_checked(&ctx.lic, child.child_nodes[0])
 
-				for j := 0; j < len(grand_child.child_nodes); j += 1 {
+				size_percent := child.size_percent
+
+				num_grand_grand_children := len(grand_child.child_nodes)
+				for j := 0; j < num_grand_grand_children; j += 1 {
 					grand_grand_child := get_item_checked(&ctx.lic, grand_child.child_nodes[j])
 					grand_grand_child.parent_handle = item.handle
+					grand_grand_child.size_percent *= size_percent // / f32(num_grand_grand_children) //
 					inject_at(&item.child_nodes, i + j, grand_grand_child.handle)
 				}
 
@@ -456,13 +455,11 @@ normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_
 		child_layout_item := hms.get(lic, handle)
 
 		if layout_item.layout_dir == .LeftToRight {
-			// child_layout_item.layout_dir = .TopToBottom
 			child_layout_item.size_percent.x /= total.x
 			child_layout_item.size_percent.y = 1
 		} else {
-			// child_layout_item.layout_dir = .LeftToRight
-			child_layout_item.size_percent.y /= total.y
 			child_layout_item.size_percent.x = 1
+			child_layout_item.size_percent.y /= total.y
 		}
 	}
 }
@@ -475,10 +472,8 @@ normalize_sizes_recursive :: proc(
 
 	normalize_sizes(lic, layout_item_handle)
 	for &handle in layout_item.child_nodes {
-		normalize_sizes(lic, handle)
+		normalize_sizes_recursive(lic, handle)
 	}
-
-
 }
 
 insert_same_level :: proc(

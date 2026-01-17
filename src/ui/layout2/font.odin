@@ -4,6 +4,7 @@ import rr "raylib"
 import "vendor:raylib"
 
 DEBUG_FONT_ID :: 1
+DEBUG_FONT_ID_2 :: 0
 
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
 	assign_at(

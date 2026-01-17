@@ -28,12 +28,12 @@ main :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 
 	layout_ctx := layout.init(rr.measure_text)
+	defer layout.deinit(&layout_ctx)
 	layout_ctx.debug_settings = {
 		draw_ids           = true,
 		draw_if_no_content = true,
 	}
 
-	defer layout.deinit(&layout_ctx)
 
 	{
 		node := layout.make_layout_item(&layout_ctx, "Node 1")
@@ -55,29 +55,13 @@ main :: proc() {
 
 		clay.BeginLayout()
 		layout.layout(&layout_ctx)
-		// if clay.UI()(
-		// clay.ElementDeclaration {
-		// 	layout = {
-		// 		layoutDirection = .TopToBottom,
-		// 		sizing = {clay.SizingGrow(), clay.SizingGrow()},
-		// 	},
-		// 	backgroundColor = {255, 50, 100, 255},
-		// },
-		// ) {
-		// 	clay.Text("Hello!!!", clay.TextConfig(layout.DEBUG_ID_TEXT_ELEMENT_CONFIG))
-		//
-		//
-		// }
-		//
 		ui_render_commands := clay.EndLayout()
 
 		layout.interaction(&layout_ctx)
 
 		{
 			rl.BeginDrawing()
-
 			rl.ClearBackground(rl.DARKGRAY)
-
 			layout.render(&ui_render_commands)
 			rl.EndDrawing()
 		}
