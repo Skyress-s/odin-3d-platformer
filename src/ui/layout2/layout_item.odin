@@ -26,6 +26,7 @@ Context :: struct {
 
 	// Not exposed by clay. So need to cache them here too
 	mouse_pos:                             raylib.Vector2,
+	mouse_pos_last_frame:                  raylib.Vector2,
 }
 
 Layout_Item :: struct {
@@ -341,7 +342,6 @@ get_parent_layout_item :: proc(
 
 	assert(hms.valid(lic^, layout_item.parent_handle))
 	return hms.get(lic, layout_item.parent_handle)
-
 }
 
 get_index_in_parent :: proc(lic: ^Layout_Item_Container, item_handle: Layout_Item_Handle) -> u8 {
@@ -603,12 +603,66 @@ is_vertical_edge :: proc(edge: Edge) -> bool {
 	return !is_horizontal_edge(edge) // might be slower? But I think compiler might compansate. Need to test.
 }
 
+is_up :: proc(corner: Corner) -> bool {
+	return corner == .TopLeft || corner == .TopRight
+}
+
+is_down :: proc(corner: Corner) -> bool {
+	return !is_up(corner)
+}
+
+is_right :: proc(corner: Corner) -> bool {
+	return corner == .TopRight || corner == .BottomRight
+}
+
+is_left :: proc(corner: Corner) -> bool {
+	return !is_right(corner)
+}
+
 get_scalers_x_y :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
+	right, up: bool,
 ) -> (
 	x, y: ^Layout_Item,
 ) {
+	item := get_item_checked(lic, item_handle)
+	parent, parent_ok := get_item(lic, item.parent_handle)
+	if !parent_ok do return item, nil
+	index_in_parent := get_index_in_parent(lic, item.handle)
+
+	if right {
+		if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
+		   parent.layout_dir == .LeftToRight {
+
+			x = item
+		} else {
+			x, y = get_scalers_x_y(lic, parent.handle, right, up)
+		}
+	} else { 	// left
+		if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) {
+
+			x = item
+		} else {
+			x, y = get_scalers_x_y(lic, parent.handle, right, up)
+		}
+	}
+
 
 	return
+}
+
+get_neighbour :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	after: bool,
+) -> Layout_Item_Handle {
+	item := get_item_checked(lic, item_handle)
+	parent := get_item_checked(lic, item.parent_handle)
+
+	index_in_parent := get_index_in_parent(lic, item.handle)
+	neighbour_index_in_parent := index_in_parent + (after ? 1 : -1)
+	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) do return {}
+
+	return parent.child_nodes[neighbour_index_in_parent]
 }

@@ -42,7 +42,7 @@ interaction :: proc(ctx: ^Context) {
 
 	// TODO: These != .Released is stupid
 	if ctx.resize_click != .Released {
-		handle_resize_click(ctx, ctx.add_click, hovered_layout_item, corner)
+		handle_resize_click(ctx, ctx.resize_click, hovered_layout_item, corner)
 
 	} else if ctx.add_click != .Released {
 		handle_add_click(ctx, ctx.add_click, hovered_layout_item, edge)
@@ -60,10 +60,33 @@ handle_resize_click :: proc(
 	corner: Corner,
 ) {
 
-	if pointer_state == .PressedThisFrame {
+	// TODO: should probaby store what state / hovered node and corner etc.
 
 
-	} else if pointer_state == .Pressed {
+	if pointer_state == .Pressed {
+		delta_mouse_move := ctx.mouse_pos - ctx.mouse_pos_last_frame
+		delta_mouse_move /= 1000
+
+		x_scalar_item, y_scalar_item := get_scalers_x_y(
+			&ctx.lic,
+			hovered_layout_item.handle,
+			is_right(corner),
+			is_up(corner),
+		)
+
+		if x_scalar_item != nil {
+			parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
+			if !ok_parent_scalar_x do return
+			neighbour_handle := get_neighbour(&ctx.lic, x_scalar_item.handle, is_right(corner))
+			neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
+			if !neighbour_ok do return
+
+
+			input_flip_flop: f32 = is_right(corner) ? 1 : -1
+			x_scalar_item.size_percent.x += delta_mouse_move.x * input_flip_flop
+			neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
+			normalize_sizes_recursive(&ctx.lic, ctx.root)
+		}
 
 	}
 

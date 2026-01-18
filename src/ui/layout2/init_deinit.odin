@@ -105,6 +105,7 @@ update_state :: proc(ctx: ^Context) {
 	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
 
 
+	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = raylib.GetMousePosition()
 
 	update_pointer_state_mouse(&ctx.remove_click, .LEFT)
