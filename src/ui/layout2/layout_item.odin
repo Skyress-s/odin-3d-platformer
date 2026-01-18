@@ -11,6 +11,8 @@ import vmem "core:mem/virtual"
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
 
+MIN_WINDOW_SIZE :: 50 // in pixels TODO: Move to Context or settings
+
 Debug_Settings :: struct {
 	draw_if_no_content, draw_ids: bool,
 }
@@ -631,16 +633,24 @@ get_scalers_x_y :: proc(
 	if !parent_ok do return item, nil
 	index_in_parent := get_index_in_parent(lic, item.handle)
 
+	// TODO: Need to pass a dragging direction. To either include or exclude min-size neighbours
+	// TODO: Make sure that the children are also above min size augh.
+	// TODO: Mabe a function like is_item_with_children_valid_size.
+
+	neighbour_handle := get_neighbour_with_min_size(lic, item.handle, right)
+	neighbour_ok := hms.valid(lic^, neighbour_handle)
 	if right {
 		if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
-		   parent.layout_dir == .LeftToRight {
+		   parent.layout_dir == .LeftToRight &&
+		   neighbour_ok {
+
 
 			x = item
 		} else {
 			x, y = get_scalers_x_y(lic, parent.handle, right, up)
 		}
 	} else { 	// left
-		if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) {
+		if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) && neighbour_ok {
 
 			x = item
 		} else {
@@ -650,6 +660,33 @@ get_scalers_x_y :: proc(
 
 
 	return
+}
+
+get_neighbour_with_min_size :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	after: bool,
+) -> Layout_Item_Handle {
+	item := get_item_checked(lic, item_handle)
+	parent := get_item_checked(lic, item.parent_handle)
+
+	item_handle := item_handle
+
+	for {
+		neighour_handle := get_neighbour(lic, item_handle, after)
+		neighour, neighour_ok := get_item(lic, neighour_handle)
+		if !neighour_ok do return {} // item is last of first
+
+		clay_element_id := clay.GetElementId(clay.MakeString(neighour.id))
+		element_data := clay.GetElementData(clay_element_id)
+		assert(element_data.found)
+		if element_data.boundingBox.width <= MIN_WINDOW_SIZE {
+			item_handle = neighour.handle
+			continue
+		}
+
+		return neighour.handle
+	}
 }
 
 get_neighbour :: proc(
