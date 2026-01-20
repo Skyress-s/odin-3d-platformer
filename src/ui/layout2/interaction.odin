@@ -87,10 +87,17 @@ handle_resize_click :: proc(
 			neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
 			if !neighbour_ok do return
 
-
 			input_flip_flop: f32 = is_right(corner) ? 1 : -1
 
-			x_scalar_item.size_percent.x += delta_mouse_move.x * input_flip_flop
+			scalar_x_bounding_box := get_clay_bounding_box(x_scalar_item.id)
+			neighbour_x_bounding_box := get_clay_bounding_box(neighbour.id)
+
+			// TODO: in parent!
+			// x_scalar_item.size_percent.x += delta_mouse_move.x * input_flip_flop
+			// neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
+			percent_change_x_scalar := delta_mouse_move.x / scalar_x_bounding_box.width
+			x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
+			percent_change_x_neighbour := delta_mouse_move.x / neighbour_x_bounding_box.width
 			neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
 
 			normalize_sizes_recursive(&ctx.lic, ctx.root)
