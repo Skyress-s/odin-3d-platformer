@@ -625,6 +625,7 @@ get_scalers_x_y :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
 	right, up: bool,
+	delta_mouse_move: raylib.Vector2,
 ) -> (
 	x, y: ^Layout_Item,
 ) {
@@ -637,24 +638,27 @@ get_scalers_x_y :: proc(
 	// TODO: Make sure that the children are also above min size augh.
 	// TODO: Mabe a function like is_item_with_children_valid_size.
 
-	neighbour_handle := get_neighbour_with_min_size(lic, item.handle, right)
+	neighbour_handle := get_neighbour_with_min_size(
+		lic,
+		item.handle,
+		right,
+		delta_mouse_move.x > 0,
+	) // TODO: right
 	neighbour_ok := hms.valid(lic^, neighbour_handle)
 	if right {
 		if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
 		   parent.layout_dir == .LeftToRight &&
 		   neighbour_ok {
-
-
 			x = item
 		} else {
-			x, y = get_scalers_x_y(lic, parent.handle, right, up)
+			x, y = get_scalers_x_y(lic, parent.handle, right, up, delta_mouse_move)
 		}
 	} else { 	// left
 		if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) && neighbour_ok {
 
 			x = item
 		} else {
-			x, y = get_scalers_x_y(lic, parent.handle, right, up)
+			x, y = get_scalers_x_y(lic, parent.handle, right, up, delta_mouse_move)
 		}
 	}
 
@@ -666,6 +670,7 @@ get_neighbour_with_min_size :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
 	after: bool,
+	dragging_towards_after: bool,
 ) -> Layout_Item_Handle {
 	item := get_item_checked(lic, item_handle)
 	parent := get_item_checked(lic, item.parent_handle)
@@ -677,10 +682,9 @@ get_neighbour_with_min_size :: proc(
 		neighour, neighour_ok := get_item(lic, neighour_handle)
 		if !neighour_ok do return {} // item is last of first
 
-		clay_element_id := clay.GetElementId(clay.MakeString(neighour.id))
-		element_data := clay.GetElementData(clay_element_id)
-		assert(element_data.found)
-		if element_data.boundingBox.width <= MIN_WINDOW_SIZE {
+		element_bounding_box := get_clay_bounding_box(neighour.id)
+
+		if after == dragging_towards_after && element_bounding_box.width <= MIN_WINDOW_SIZE {
 			item_handle = neighour.handle
 			continue
 		}
@@ -702,4 +706,11 @@ get_neighbour :: proc(
 	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) do return {}
 
 	return parent.child_nodes[neighbour_index_in_parent]
+}
+
+get_clay_bounding_box :: proc(id: string) -> clay.BoundingBox {
+	clay_element_id := clay.GetElementId(clay.MakeString(id))
+	element_data := clay.GetElementData(clay_element_id)
+	assert(element_data.found)
+	return element_data.boundingBox
 }

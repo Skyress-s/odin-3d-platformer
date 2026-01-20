@@ -108,9 +108,14 @@ update_state :: proc(ctx: ^Context) {
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = raylib.GetMousePosition()
 
-	update_pointer_state_mouse(&ctx.remove_click, .LEFT)
-	update_pointer_state_mouse(&ctx.add_click, .RIGHT)
-	update_pointer_state_mouse(&ctx.resize_click, .MIDDLE)
+	update_pointer_state(&ctx.remove_click, raylib.MouseButton.MIDDLE)
+	update_pointer_state(&ctx.add_click, raylib.MouseButton.RIGHT)
+	update_pointer_state(&ctx.resize_click, raylib.MouseButton.LEFT)
+}
+
+update_pointer_state :: proc {
+	update_pointer_state_mouse,
+	update_pointer_state_key,
 }
 
 update_pointer_state_mouse :: proc(
@@ -122,6 +127,19 @@ update_pointer_state_mouse :: proc(
 	pointer_state^ = to_pointer_state(
 		raylib.IsMouseButtonPressed(mouse_button),
 		raylib.IsMouseButtonReleased(mouse_button),
+		pointer_state^,
+	)
+}
+
+update_pointer_state_key :: proc(
+	pointer_state: ^clay.PointerDataInteractionState,
+	key: raylib.KeyboardKey,
+) {
+	assert(pointer_state != nil)
+
+	pointer_state^ = to_pointer_state(
+		raylib.IsKeyPressed(key),
+		raylib.IsKeyReleased(key),
 		pointer_state^,
 	)
 }

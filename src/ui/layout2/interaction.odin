@@ -72,19 +72,27 @@ handle_resize_click :: proc(
 			hovered_layout_item.handle,
 			is_right(corner),
 			is_up(corner),
+			delta_mouse_move,
 		)
 
 		if x_scalar_item != nil {
 			parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
 			if !ok_parent_scalar_x do return
-			neighbour_handle := get_neighbour(&ctx.lic, x_scalar_item.handle, is_right(corner))
+			neighbour_handle := get_neighbour_with_min_size(
+				&ctx.lic,
+				x_scalar_item.handle,
+				is_right(corner),
+				delta_mouse_move.x > 0,
+			)
 			neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
 			if !neighbour_ok do return
 
 
 			input_flip_flop: f32 = is_right(corner) ? 1 : -1
+
 			x_scalar_item.size_percent.x += delta_mouse_move.x * input_flip_flop
 			neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
+
 			normalize_sizes_recursive(&ctx.lic, ctx.root)
 		}
 
