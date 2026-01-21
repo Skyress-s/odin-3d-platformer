@@ -458,7 +458,6 @@ normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_
 		total += layout_item.size_percent
 	}
 
-
 	for &handle in item_handles {
 		assert(hms.valid(lic^, handle))
 		child_layout_item := hms.get(lic, handle)
@@ -483,6 +482,37 @@ normalize_sizes_recursive :: proc(
 	for &handle in layout_item.child_nodes {
 		normalize_sizes_recursive(lic, handle)
 	}
+}
+
+update_min_size_elements :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	try_change: raylib.Vector2,
+) -> (
+	wanted_change: raylib.Vector2,
+) {
+	item := get_item_checked(lic, item_handle)
+
+	item_bounding_box := get_clay_bounding_box(item.id)
+
+	child_wanted_change: raylib.Vector2
+	for &handle in item.child_nodes {
+		child_wanted_change = update_min_size_elements(lic, handle, child_wanted_change)
+	}
+
+	item.size_percent.x -= try_change.x / item_bounding_box.width
+	item.size_percent.y -= try_change.y / item_bounding_box.height
+	item_bounding_box.width -= try_change.x
+	item_bounding_box.height -= try_change.y
+
+	if item_bounding_box.height < MIN_WINDOW_SIZE {
+		wanted_change.y = MIN_WINDOW_SIZE - item_bounding_box.height
+	}
+	if item_bounding_box.width < MIN_WINDOW_SIZE {
+		wanted_change.x = MIN_WINDOW_SIZE - item_bounding_box.width
+	}
+
+	return wanted_change
 }
 
 insert_same_level :: proc(
@@ -630,42 +660,12 @@ get_scalers_x_y :: proc(
 	x, y: Layout_Item_Handle,
 ) {
 	item := get_item_checked(lic, item_handle)
-	// parent, parent_ok := get_item(lic, item.parent_handle)
-	// if !parent_ok do return item, nil
-	// index_in_parent := get_index_in_parent(lic, item.handle)
 
 	x_handle := find_scalar_layout_item(lic, item.handle, true, right, delta_mouse_move.x)
 	y_handle := find_scalar_layout_item(lic, item.handle, false, down, delta_mouse_move.y)
 
 	return x_handle, y_handle
 
-	// neighbour_handle := get_neighbour_with_min_size(
-	// 	lic,
-	// 	item.handle,
-	// 	right,
-	// 	delta_mouse_move.x > 0,
-	// )
-	//
-	// neighbour_ok := hms.valid(lic^, neighbour_handle)
-	// if right {
-	// 	if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
-	// 	   parent.layout_dir == .LeftToRight &&
-	// 	   neighbour_ok {
-	// 		x = item
-	// 	} else {
-	// 		x, y = get_scalers_x_y(lic, parent.handle, right, down, delta_mouse_move)
-	// 	}
-	// } else { 	// left
-	// 	if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) && neighbour_ok {
-	//
-	// 		x = item
-	// 	} else {
-	// 		x, y = get_scalers_x_y(lic, parent.handle, right, down, delta_mouse_move)
-	// 	}
-	// }
-	//
-	//
-	// return
 }
 
 find_scalar_layout_item :: proc(
@@ -734,16 +734,41 @@ get_neighbour_with_min_size :: proc(
 		element_bounding_box := get_clay_bounding_box(neighour.id)
 
 		if after == dragging_towards_after {
-			// TODO: CONTINUE HERE
-			if element_bounding_box.width <= MIN_WINDOW_SIZE {
-				item_handle = neighour.handle
-				continue
+			if horizontal {
+				if element_bounding_box.width <= MIN_WINDOW_SIZE {
+					item_handle = neighour.handle
+					continue
+				}
+			} else {
+				if element_bounding_box.height <= MIN_WINDOW_SIZE {
+					item_handle = neighour.handle
+					continue
+				}
+
 
 			}
 		}
 
+
 		return neighour.handle
 	}
+}
+
+get_min_size :: proc(
+	lic: ^Layout_Item_Container,
+	horizontal: bool,
+	item: Layout_Item_Handle,
+) -> f32 {
+	item := get_item_checked(lic, item)
+	item_bounding_box := get_clay_bounding_box(item.id)
+
+	total_children_size: f32
+	for &child_item_handle in item.child_nodes {
+		total_children_size += get_min_size(lic, horizontal, child_item_handle)
+	}
+
+	size := horizontal ? item_bounding_box.width : item_bounding_box.height
+	return max(MIN_WINDOW_SIZE, size)
 }
 
 get_neighbour :: proc(

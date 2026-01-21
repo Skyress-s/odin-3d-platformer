@@ -1,5 +1,4 @@
 package layout
-import "core:fmt"
 
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
@@ -63,7 +62,6 @@ handle_resize_click :: proc(
 	// TODO: should probaby store what state / hovered node and corner etc.
 	// TODO: resize to min size when under min size
 
-
 	if pointer_state == .Pressed {
 		delta_mouse_move := ctx.mouse_pos - ctx.mouse_pos_last_frame
 
@@ -94,36 +92,7 @@ handle_resize_click :: proc(
 				is_down(corner),
 				delta_mouse_move.y,
 			)
-
 		}
-
-		// if x_scalar_item != nil {
-		// 	parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
-		// 	if !ok_parent_scalar_x do return
-		// 	neighbour_handle := get_neighbour_with_min_size(
-		// 		&ctx.lic,
-		// 		x_scalar_item.handle,
-		// 		is_right(corner),
-		// 		delta_mouse_move.x > 0,
-		// 	)
-		// 	neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
-		// 	if !neighbour_ok do return
-		//
-		// 	input_flip_flop: f32 = is_right(corner) ? 1 : -1
-		//
-		// 	scalar_x_parent_bounding_box := get_clay_bounding_box(parent_scalar_x.id)
-		// 	neighbour_x_parent_bounding_box := get_clay_bounding_box(
-		// 		get_item_checked(&ctx.lic, neighbour.parent_handle).id,
-		// 	)
-		//
-		// 	percent_change_x_scalar := delta_mouse_move.x / scalar_x_parent_bounding_box.width
-		// 	x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
-		// 	percent_change_x_neighbour :=
-		// 		delta_mouse_move.x / neighbour_x_parent_bounding_box.width
-		// 	neighbour.size_percent.x -= percent_change_x_neighbour * input_flip_flop
-		//
-		// 	normalize_sizes_recursive(&ctx.lic, ctx.root)
-		// }
 	}
 }
 
@@ -158,7 +127,6 @@ scale_layout_item :: proc(
 			get_item_checked(&ctx.lic, neighbour.parent_handle).id,
 		)
 
-
 		if horizontal {
 			percent_change_x_scalar := delta_mouse_move / scalar_x_parent_bounding_box.width
 			x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
@@ -174,6 +142,9 @@ scale_layout_item :: proc(
 		}
 
 		normalize_sizes_recursive(&ctx.lic, ctx.root)
+
+		// update_min_size_elements(&ctx.lic, ctx.root, {})
+
 	}
 
 }
