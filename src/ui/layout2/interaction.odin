@@ -61,48 +61,119 @@ handle_resize_click :: proc(
 ) {
 
 	// TODO: should probaby store what state / hovered node and corner etc.
+	// TODO: resize to min size when under min size
 
 
 	if pointer_state == .Pressed {
 		delta_mouse_move := ctx.mouse_pos - ctx.mouse_pos_last_frame
-		delta_mouse_move /= 1000
 
-		x_scalar_item, y_scalar_item := get_scalers_x_y(
+		x_scalar_item_handle, y_scalar_item_handle := get_scalers_x_y(
 			&ctx.lic,
 			hovered_layout_item.handle,
 			is_right(corner),
-			is_up(corner),
+			is_down(corner),
 			delta_mouse_move,
 		)
 
-		if x_scalar_item != nil {
-			parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
-			if !ok_parent_scalar_x do return
-			neighbour_handle := get_neighbour_with_min_size(
-				&ctx.lic,
-				x_scalar_item.handle,
+		if hms.valid(ctx.lic, x_scalar_item_handle) {
+			scale_layout_item(
+				ctx,
+				x_scalar_item_handle,
+				true,
 				is_right(corner),
-				delta_mouse_move.x > 0,
+				delta_mouse_move.x,
 			)
-			neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
-			if !neighbour_ok do return
 
-			input_flip_flop: f32 = is_right(corner) ? 1 : -1
+		}
+		if hms.valid(ctx.lic, y_scalar_item_handle) {
 
-			scalar_x_bounding_box := get_clay_bounding_box(x_scalar_item.id)
-			neighbour_x_bounding_box := get_clay_bounding_box(neighbour.id)
+			scale_layout_item(
+				ctx,
+				y_scalar_item_handle,
+				false,
+				is_down(corner),
+				delta_mouse_move.y,
+			)
 
-			// TODO: in parent!
-			// x_scalar_item.size_percent.x += delta_mouse_move.x * input_flip_flop
-			// neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
-			percent_change_x_scalar := delta_mouse_move.x / scalar_x_bounding_box.width
-			x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
-			percent_change_x_neighbour := delta_mouse_move.x / neighbour_x_bounding_box.width
-			neighbour.size_percent.x -= delta_mouse_move.x * input_flip_flop
-
-			normalize_sizes_recursive(&ctx.lic, ctx.root)
 		}
 
+		// if x_scalar_item != nil {
+		// 	parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
+		// 	if !ok_parent_scalar_x do return
+		// 	neighbour_handle := get_neighbour_with_min_size(
+		// 		&ctx.lic,
+		// 		x_scalar_item.handle,
+		// 		is_right(corner),
+		// 		delta_mouse_move.x > 0,
+		// 	)
+		// 	neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
+		// 	if !neighbour_ok do return
+		//
+		// 	input_flip_flop: f32 = is_right(corner) ? 1 : -1
+		//
+		// 	scalar_x_parent_bounding_box := get_clay_bounding_box(parent_scalar_x.id)
+		// 	neighbour_x_parent_bounding_box := get_clay_bounding_box(
+		// 		get_item_checked(&ctx.lic, neighbour.parent_handle).id,
+		// 	)
+		//
+		// 	percent_change_x_scalar := delta_mouse_move.x / scalar_x_parent_bounding_box.width
+		// 	x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
+		// 	percent_change_x_neighbour :=
+		// 		delta_mouse_move.x / neighbour_x_parent_bounding_box.width
+		// 	neighbour.size_percent.x -= percent_change_x_neighbour * input_flip_flop
+		//
+		// 	normalize_sizes_recursive(&ctx.lic, ctx.root)
+		// }
+	}
+}
+
+@(private)
+scale_layout_item :: proc(
+	ctx: ^Context,
+	x_scalar_handle: Layout_Item_Handle,
+	horizontal: bool,
+	after: bool,
+	delta_mouse_move: f32,
+) {
+	x_scalar_item := get_item_checked(&ctx.lic, x_scalar_handle)
+
+	if x_scalar_item != nil {
+		parent_scalar_x, ok_parent_scalar_x := get_item(&ctx.lic, x_scalar_item.parent_handle)
+		if !ok_parent_scalar_x do return
+		neighbour_handle := get_neighbour_with_min_size(
+			&ctx.lic,
+			x_scalar_item.handle,
+			horizontal,
+			// is_right(corner),
+			after,
+			delta_mouse_move > 0,
+		)
+		neighbour, neighbour_ok := get_item(&ctx.lic, neighbour_handle)
+		if !neighbour_ok do return
+
+		input_flip_flop: f32 = after ? 1 : -1
+
+		scalar_x_parent_bounding_box := get_clay_bounding_box(parent_scalar_x.id)
+		neighbour_x_parent_bounding_box := get_clay_bounding_box(
+			get_item_checked(&ctx.lic, neighbour.parent_handle).id,
+		)
+
+
+		if horizontal {
+			percent_change_x_scalar := delta_mouse_move / scalar_x_parent_bounding_box.width
+			x_scalar_item.size_percent.x += percent_change_x_scalar * input_flip_flop
+			percent_change_x_neighbour := delta_mouse_move / neighbour_x_parent_bounding_box.width
+			neighbour.size_percent.x -= percent_change_x_neighbour * input_flip_flop
+
+		} else {
+			percent_change_x_scalar := delta_mouse_move / scalar_x_parent_bounding_box.height
+			x_scalar_item.size_percent.y += percent_change_x_scalar * input_flip_flop
+			percent_change_x_neighbour := delta_mouse_move / neighbour_x_parent_bounding_box.height
+			neighbour.size_percent.y -= percent_change_x_neighbour * input_flip_flop
+
+		}
+
+		normalize_sizes_recursive(&ctx.lic, ctx.root)
 	}
 
 }

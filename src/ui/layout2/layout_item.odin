@@ -624,51 +624,100 @@ is_left :: proc(corner: Corner) -> bool {
 get_scalers_x_y :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
-	right, up: bool,
+	right, down: bool,
 	delta_mouse_move: raylib.Vector2,
 ) -> (
-	x, y: ^Layout_Item,
+	x, y: Layout_Item_Handle,
 ) {
 	item := get_item_checked(lic, item_handle)
-	parent, parent_ok := get_item(lic, item.parent_handle)
-	if !parent_ok do return item, nil
-	index_in_parent := get_index_in_parent(lic, item.handle)
+	// parent, parent_ok := get_item(lic, item.parent_handle)
+	// if !parent_ok do return item, nil
+	// index_in_parent := get_index_in_parent(lic, item.handle)
 
-	// TODO: Need to pass a dragging direction. To either include or exclude min-size neighbours
-	// TODO: Make sure that the children are also above min size augh.
-	// TODO: Mabe a function like is_item_with_children_valid_size.
+	x_handle := find_scalar_layout_item(lic, item.handle, true, right, delta_mouse_move.x)
+	y_handle := find_scalar_layout_item(lic, item.handle, false, down, delta_mouse_move.y)
+
+	return x_handle, y_handle
+
+	// neighbour_handle := get_neighbour_with_min_size(
+	// 	lic,
+	// 	item.handle,
+	// 	right,
+	// 	delta_mouse_move.x > 0,
+	// )
+	//
+	// neighbour_ok := hms.valid(lic^, neighbour_handle)
+	// if right {
+	// 	if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
+	// 	   parent.layout_dir == .LeftToRight &&
+	// 	   neighbour_ok {
+	// 		x = item
+	// 	} else {
+	// 		x, y = get_scalers_x_y(lic, parent.handle, right, down, delta_mouse_move)
+	// 	}
+	// } else { 	// left
+	// 	if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) && neighbour_ok {
+	//
+	// 		x = item
+	// 	} else {
+	// 		x, y = get_scalers_x_y(lic, parent.handle, right, down, delta_mouse_move)
+	// 	}
+	// }
+	//
+	//
+	// return
+}
+
+find_scalar_layout_item :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	horizontal: bool,
+	after: bool,
+	delta_mouse_move: f32,
+) -> Layout_Item_Handle {
+	item := get_item_checked(lic, item_handle)
+	parent, parent_ok := get_item(lic, item.parent_handle)
+	if !parent_ok do return {}
+
+	target_layout_direction: clay.LayoutDirection = horizontal ? .LeftToRight : .TopToBottom
+
+	x: Layout_Item_Handle
+
+	index_in_parent := get_index_in_parent(lic, item.handle)
 
 	neighbour_handle := get_neighbour_with_min_size(
 		lic,
 		item.handle,
-		right,
-		delta_mouse_move.x > 0,
-	) // TODO: right
+		horizontal,
+		after,
+		delta_mouse_move > 0,
+	)
+
 	neighbour_ok := hms.valid(lic^, neighbour_handle)
-	if right {
+	if after {
 		if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
-		   parent.layout_dir == .LeftToRight &&
+		   parent.layout_dir == target_layout_direction &&
 		   neighbour_ok {
-			x = item
+			x = item.handle
 		} else {
-			x, y = get_scalers_x_y(lic, parent.handle, right, up, delta_mouse_move)
+			x = find_scalar_layout_item(lic, parent.handle, horizontal, after, delta_mouse_move)
 		}
 	} else { 	// left
-		if (index_in_parent != 0 && parent.layout_dir == .LeftToRight) && neighbour_ok {
+		if (index_in_parent != 0 && parent.layout_dir == target_layout_direction) && neighbour_ok {
 
-			x = item
+			x = item.handle
 		} else {
-			x, y = get_scalers_x_y(lic, parent.handle, right, up, delta_mouse_move)
+			x = find_scalar_layout_item(lic, parent.handle, horizontal, after, delta_mouse_move)
 		}
 	}
 
-
-	return
+	return x
 }
 
 get_neighbour_with_min_size :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
+	horizontal: bool,
 	after: bool,
 	dragging_towards_after: bool,
 ) -> Layout_Item_Handle {
@@ -684,9 +733,13 @@ get_neighbour_with_min_size :: proc(
 
 		element_bounding_box := get_clay_bounding_box(neighour.id)
 
-		if after == dragging_towards_after && element_bounding_box.width <= MIN_WINDOW_SIZE {
-			item_handle = neighour.handle
-			continue
+		if after == dragging_towards_after {
+			// TODO: CONTINUE HERE
+			if element_bounding_box.width <= MIN_WINDOW_SIZE {
+				item_handle = neighour.handle
+				continue
+
+			}
 		}
 
 		return neighour.handle
