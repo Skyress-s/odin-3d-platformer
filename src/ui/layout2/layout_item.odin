@@ -484,37 +484,6 @@ normalize_sizes_recursive :: proc(
 	}
 }
 
-update_min_size_elements :: proc(
-	lic: ^Layout_Item_Container,
-	item_handle: Layout_Item_Handle,
-	try_change: raylib.Vector2,
-) -> (
-	wanted_change: raylib.Vector2,
-) {
-	item := get_item_checked(lic, item_handle)
-
-	item_bounding_box := get_clay_bounding_box(item.id)
-
-	child_wanted_change: raylib.Vector2
-	for &handle in item.child_nodes {
-		child_wanted_change = update_min_size_elements(lic, handle, child_wanted_change)
-	}
-
-	item.size_percent.x -= try_change.x / item_bounding_box.width
-	item.size_percent.y -= try_change.y / item_bounding_box.height
-	item_bounding_box.width -= try_change.x
-	item_bounding_box.height -= try_change.y
-
-	if item_bounding_box.height < MIN_WINDOW_SIZE {
-		wanted_change.y = MIN_WINDOW_SIZE - item_bounding_box.height
-	}
-	if item_bounding_box.width < MIN_WINDOW_SIZE {
-		wanted_change.x = MIN_WINDOW_SIZE - item_bounding_box.width
-	}
-
-	return wanted_change
-}
-
 insert_same_level :: proc(
 	ctx: ^Context,
 	avg_size: clay.Vector2,
@@ -752,23 +721,6 @@ get_neighbour_with_min_size :: proc(
 
 		return neighour.handle
 	}
-}
-
-get_min_size :: proc(
-	lic: ^Layout_Item_Container,
-	horizontal: bool,
-	item: Layout_Item_Handle,
-) -> f32 {
-	item := get_item_checked(lic, item)
-	item_bounding_box := get_clay_bounding_box(item.id)
-
-	total_children_size: f32
-	for &child_item_handle in item.child_nodes {
-		total_children_size += get_min_size(lic, horizontal, child_item_handle)
-	}
-
-	size := horizontal ? item_bounding_box.width : item_bounding_box.height
-	return max(MIN_WINDOW_SIZE, size)
 }
 
 get_neighbour :: proc(

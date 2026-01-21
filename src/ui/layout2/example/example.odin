@@ -5,7 +5,7 @@ import hms "../../../handle_map/handle_map_static/"
 import clay "../../clay-odin/"
 import rr "../raylib"
 import "core:c"
-import "core:fmt"
+import "core:testing"
 import rl "vendor:raylib"
 /*
 * Rework Tiling Nodes to use a handle map instead? Easier to serialize?
@@ -71,4 +71,9 @@ main :: proc() {
 		free_all(context.temp_allocator)
 	}
 
+}
+
+@(test)
+test_main :: proc(t: ^testing.T) {
+	main()
 }
