@@ -42,7 +42,6 @@ interaction :: proc(ctx: ^Context) {
 	// TODO: These != .Released is stupid
 	if ctx.resize_click != .Released {
 		handle_resize_click(ctx, ctx.resize_click, hovered_layout_item, corner)
-
 	} else if ctx.add_click != .Released {
 		handle_add_click(ctx, ctx.add_click, hovered_layout_item, edge)
 

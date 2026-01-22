@@ -723,6 +723,30 @@ get_neighbour_with_min_size :: proc(
 	}
 }
 
+// TODO: write desk. Can walk to neibghours, and up the tree.
+get_next :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	after: bool,
+) -> Layout_Item_Handle {
+	item := get_item_checked(lic, item_handle)
+	parent := get_item_checked(lic, item.parent_handle)
+
+	index_in_parent := get_index_in_parent(lic, item.handle)
+	neighbour_index_in_parent := index_in_parent + (after ? 1 : -1)
+	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) {
+		grand_parent, grand_parent_ok := get_item(lic, parent.parent_handle)
+		if !grand_parent_ok do return {}
+		// grand2_parent, grand2_parent_ok := get_item(lic, grand_parent.parent_handle)
+		// if !grand2_parent_ok do return {}
+
+		found_next_item_handle := get_next(lic, grand_parent.handle, after)
+		return found_next_item_handle
+	}
+
+	return parent.child_nodes[neighbour_index_in_parent]
+}
+
 get_neighbour :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
@@ -743,4 +767,66 @@ get_clay_bounding_box :: proc(id: string) -> clay.BoundingBox {
 	element_data := clay.GetElementData(clay_element_id)
 	assert(element_data.found)
 	return element_data.boundingBox
+}
+
+// TODO: Can implement later if wanted
+scale_with_min_size :: proc(
+	ctx: ^Context,
+	item_handle: Layout_Item_Handle,
+	delta_mouse: raylib.Vector2,
+	corner: Corner,
+) {
+
+	wanted_px_change := delta_mouse.x
+
+	px_change_remaining := wanted_px_change
+
+	item := get_item_checked(&ctx.lic, item_handle)
+	parent := get_item_checked(&ctx.lic, item.parent_handle)
+
+	item_bounds := get_clay_bounding_box(item.id)
+	parent_bounds := get_clay_bounding_box(parent.id)
+
+
+	after := is_right(corner)
+
+	for {
+
+		next_neighbour, next_neighbour_ok := get_item(
+			&ctx.lic,
+			get_next(&ctx.lic, item.handle, after),
+		)
+
+		if !next_neighbour_ok {
+			return
+		}
+
+		px_changed := try_resize(&ctx.lic, next_neighbour.handle, px_change_remaining, after)
+		px_change_remaining -= px_changed
+
+		if px_change_remaining <= 0 {
+			return
+		}
+	}
+
+	percent_change := (wanted_px_change - px_change_remaining) / parent_bounds.width
+	item.size_percent.x += percent_change
+	// scale the original box last.
+}
+
+try_resize :: proc(
+	lic: ^Layout_Item_Container,
+	item_handle: Layout_Item_Handle,
+	px_change: f32,
+	after: bool,
+) -> (
+	changed: f32,
+) {
+	item := get_item_checked(lic, item_handle)
+	parent, parent_ok := get_item(lic, item.parent_handle)
+	if !parent_ok do return px_change
+
+	// TODO: Can implement later if wanted
+
+	return
 }
