@@ -29,6 +29,7 @@ Context :: struct {
 	// Not exposed by clay. So need to cache them here too
 	mouse_pos:                                         raylib.Vector2,
 	mouse_pos_last_frame:                              raylib.Vector2,
+	screen_dimensions:                                 clay.Dimensions,
 }
 
 Layout_Item :: struct {
@@ -529,28 +530,6 @@ insert_item_same_level :: proc(
 	normalize_sizes(&ctx.lic, parent.handle)
 }
 
-insert_same_level :: proc(
-	ctx: ^Context,
-	avg_size: clay.Vector2,
-	index_in_parent: u8,
-	edge: Edge,
-	parent_layout_item, hovered_layout_item: ^Layout_Item,
-) {
-
-	insert_after := edge == .Bottom || edge == .Right
-
-	added_item_handle := add_layout_node(
-		&ctx.lic,
-		hovered_layout_item.parent_handle,
-		index_in_parent + u8(insert_after),
-		make_debug_leaf_layout_item(ctx),
-	)
-
-	added_item := get_item_checked(&ctx.lic, added_item_handle)
-	added_item.size_percent = avg_size
-	normalize_sizes(&ctx.lic, hovered_layout_item.parent_handle)
-}
-
 @(private)
 insert_item_new_level :: proc(
 	ctx: ^Context,
@@ -595,52 +574,6 @@ insert_item_new_level :: proc(
 
 	normalize_sizes(&ctx.lic, new_parent_handle)
 	normalize_sizes(&ctx.lic, parent.handle)
-}
-
-@(private)
-insert_new_level :: proc(
-	ctx: ^Context,
-	avg_size: clay.Vector2,
-	index_in_parent: u8,
-	edge: Edge,
-	parent_layout_item, hovered_layout_item: ^Layout_Item,
-) {
-	new_parent_handle := hms.add(&ctx.lic, make_parent_layout_item(ctx))
-	new_parent := hms.get(&ctx.lic, new_parent_handle)
-	new_parent.size_percent = avg_size
-	new_parent.layout_dir =
-		parent_layout_item.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
-
-	parent_layout_item.child_nodes[index_in_parent] = new_parent_handle
-	new_parent.parent_handle = parent_layout_item.handle
-
-	append(&new_parent.child_nodes, hovered_layout_item.handle)
-	hovered_layout_item.parent_handle = new_parent_handle
-	hovered_layout_item.size_percent = avg_size
-	if (is_leaf(&ctx.lic, hovered_layout_item.handle)) {
-		hovered_layout_item.layout_dir = .TopToBottom
-	} else {
-		hovered_layout_item.layout_dir =
-			new_parent.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
-
-	}
-
-	b_insert_after := edge == .Right || edge == .Bottom
-
-	added_item_handle := add_layout_node(
-		&ctx.lic,
-		new_parent_handle,
-		b_insert_after ? 1 : 0,
-		make_debug_leaf_layout_item(ctx),
-	)
-
-	added_item := get_item_checked(&ctx.lic, added_item_handle)
-	added_item.size_percent = avg_size
-	added_item.layout_dir = .TopToBottom
-
-	normalize_sizes(&ctx.lic, new_parent_handle)
-	normalize_sizes(&ctx.lic, parent_layout_item.handle)
-
 }
 
 closest_edge :: proc(bounding_box: clay.BoundingBox, pos: clay.Vector2) -> Edge {

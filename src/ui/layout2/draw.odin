@@ -5,6 +5,15 @@ import "core:fmt"
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
 
+COLOR_LEAF_OUTLINE := clay.Color{72, 100, 150, 255}
+COLOR_BACKGROUND := clay.Color{3, 4, 43, 255}
+COLOR_ITEM_BODY := clay.Color{14, 21, 33, 255}
+
+OUTLINE_WIDTH :: 5
+LEAF_CORNER_RADIUS :: 24
+
+BODY_PADDING :: 24
+
 DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
 	// fontSize      = 48,
 	// letterSpacing = 4,
@@ -38,22 +47,45 @@ layout_floating_item :: proc(ctx: ^Context) {
 	dragging_item, dragging_item_ok := get_item(&ctx.lic, ctx.dragging_handle)
 	if !dragging_item_ok do return
 
-	bounds := get_clay_bounding_box(dragging_item.id)
+	target_floating_dimensions := ctx.screen_dimensions
+	target_floating_dimensions.height *= 0.2
+	target_floating_dimensions.width *= 0.2
 
 	if clay.UI(clay.ID(dragging_item.id))(
 		config = clay.ElementDeclaration {
+			cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
 			layout = clay.LayoutConfig {
 				layoutDirection = .TopToBottom,
-				sizing = {clay.SizingPercent(0.25), clay.SizingPercent(0.25)},
+				sizing = {
+					clay.SizingFixed(target_floating_dimensions.width),
+					clay.SizingFixed(target_floating_dimensions.height),
+				},
+				padding = clay.PaddingAll(OUTLINE_WIDTH),
 			},
 			floating = clay.FloatingElementConfig {
 				pointerCaptureMode = .Passthrough,
 				attachTo = clay.FloatingAttachToElement.Parent,
-				offset = ctx.mouse_pos - {bounds.width / 2, bounds.height / 2},
+				offset = ctx.mouse_pos -
+				{target_floating_dimensions.width / 2, target_floating_dimensions.height / 2},
 			},
-			backgroundColor = clay.Color{0, 255, 255, 255},
+			backgroundColor = COLOR_LEAF_OUTLINE,
 		},
 	) {
+
+		if clay.UI()(
+		{
+			cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
+			layout = {
+				layoutDirection = .TopToBottom,
+				sizing = {clay.SizingGrow(), clay.SizingGrow()},
+				padding = clay.PaddingAll(BODY_PADDING),
+			},
+			backgroundColor = COLOR_ITEM_BODY,
+		},
+		) {
+			layout_debug_leaf_data(ctx, dragging_item)
+
+		}
 
 	}
 }
@@ -63,6 +95,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 	assert(hms.valid(ctx.lic, item_handle))
 	item := hms.get(&ctx.lic, item_handle)
 
+
 	should_draw_debug_background :=
 		ctx.debug_settings.draw_if_no_content &&
 		is_leaf(&ctx.lic, item_handle) &&
@@ -70,44 +103,45 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 
 	if clay.UI(clay.ID(item.id))(
 	{
+		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
+		// clip = clay.ClipElementConfig{true, true, clay.GetScrollOffset()},
 		layout = {
 			layoutDirection = item.layout_dir,
 			sizing          = {
 				clay.SizingPercent(item.size_percent.x),
 				clay.SizingPercent(item.size_percent.y),
 			},
-			padding         = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(8) : clay.PaddingAll(0),
+			padding         = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(OUTLINE_WIDTH) : clay.PaddingAll(0),
 			childGap        = 4,
 			// padding         = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(16) : clay.PaddingAll(16),
 			// childGap        = 8,
 		},
-		backgroundColor = clay.Color {
-			f32(max_leaf_distance(&ctx.lic, item_handle)) * 50,
-			0,
-			0,
-			255,
-		},
-		// backgroundColor = should_draw_debug_background ? clay.Color{0, 0,0, 255} : clay.Color{},
+		// backgroundColor = clay.Color {
+		// 	f32(max_leaf_distance(&ctx.lic, item_handle)) * 50,
+		// 	0,
+		// 	0,
+		// 	255,
+		// },
+		backgroundColor = is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND,
 	},
 	) {
-		if ctx.debug_settings.draw_ids && is_leaf(&ctx.lic, item_handle) {
-			clay.TextDynamic(
-				fmt.tprintf("id_{}", item.id),
-				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
-			)
-			clay.TextDynamic(
-				fmt.tprintf("layout_dir {}", item.layout_dir),
-				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
-			)
-			clay.TextDynamic(
-				fmt.tprintf("size {}", item.size_percent),
-				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
-			)
-			parent_item := get_item_checked(&ctx.lic, item.parent_handle)
-			clay.TextDynamic(
-				fmt.tprintf("parent_layout_dir {}", parent_item.layout_dir),
-				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
-			)
+
+		if is_leaf(&ctx.lic, item_handle) {
+			if clay.UI()(
+			{
+				cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
+				layout = {
+					padding = clay.PaddingAll(BODY_PADDING),
+					layoutDirection = .TopToBottom,
+					sizing = {clay.SizingGrow(), clay.SizingGrow()},
+				},
+				backgroundColor = COLOR_ITEM_BODY,
+			},
+			) {
+				layout_debug_leaf_data(ctx, item)
+
+			}
+
 		}
 
 		for child_item_handle in item.child_nodes {
@@ -115,4 +149,30 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		}
 
 	}
+}
+
+layout_debug_leaf_data :: proc(ctx: ^Context, item: ^Layout_Item) {
+	if ctx.debug_settings.draw_ids {
+		clay.TextDynamic(
+			fmt.tprintf("id_{}", item.id),
+			clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+		)
+		clay.TextDynamic(
+			fmt.tprintf("layout_dir {}", item.layout_dir),
+			clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+		)
+		clay.TextDynamic(
+			fmt.tprintf("size {}", item.size_percent),
+			clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+		)
+		parent_item, parent_item_ok := get_item(&ctx.lic, item.parent_handle)
+		if parent_item_ok {
+			clay.TextDynamic(
+				fmt.tprintf("parent_layout_dir {}", parent_item.layout_dir),
+				clay.TextConfig(DEBUG_ID_TEXT_ELEMENT_CONFIG),
+			)
+
+		}
+	}
+
 }

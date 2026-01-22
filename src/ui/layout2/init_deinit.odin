@@ -105,7 +105,8 @@ update_state :: proc(ctx: ^Context) {
 		transmute(clay.Vector2)raylib.GetMouseWheelMoveV() * 5,
 		raylib.GetFrameTime(),
 	)
-	clay.SetLayoutDimensions({cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()})
+	ctx.screen_dimensions = {cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()}
+	clay.SetLayoutDimensions(ctx.screen_dimensions)
 
 
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
