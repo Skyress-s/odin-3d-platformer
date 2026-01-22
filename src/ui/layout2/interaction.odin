@@ -2,6 +2,7 @@ package layout
 
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
+import "core:fmt"
 
 interaction :: proc(ctx: ^Context) {
 
@@ -12,6 +13,8 @@ interaction :: proc(ctx: ^Context) {
 		if hms.skip(layout_item) do continue
 
 		if !is_leaf(&ctx.lic, layout_item.handle) do continue
+
+		if layout_item.handle == ctx.dragging_handle do continue
 
 		layout_clay_id := clay.GetElementId(clay.MakeString(layout_item.id))
 
@@ -38,6 +41,7 @@ interaction :: proc(ctx: ^Context) {
 	// priority: Resize, add, remove
 	corner := closest_corner(hovered_bounding_box, ctx.mouse_pos)
 	edge := closest_edge(hovered_bounding_box, ctx.mouse_pos)
+
 
 	// TODO: These != .Released is stupid
 	if ctx.resize_click != .Released {
@@ -163,26 +167,27 @@ handle_add_click :: proc(
 	avg_size := get_average_size(&ctx.lic, hovered_layout_item.parent_handle)
 	index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
 
+	new_item_handle := hms.add(&ctx.lic, make_debug_leaf_layout_item(ctx))
 	if (is_horizontal_edge(edge) && parent_layout_item.layout_dir == .LeftToRight) ||
 	   (is_vertical_edge(edge) && parent_layout_item.layout_dir == .TopToBottom) {
-		insert_same_level(
+
+		insert_item_same_level(
 			ctx,
 			avg_size,
 			index_in_parent,
 			edge,
-			parent_layout_item,
-			hovered_layout_item,
+			hovered_layout_item.handle,
+			new_item_handle,
 		)
 	} else {
-		insert_new_level(
+		insert_item_new_level(
 			ctx,
 			avg_size,
 			index_in_parent,
 			edge,
-			parent_layout_item,
-			hovered_layout_item,
+			hovered_layout_item.handle,
+			new_item_handle,
 		)
-
 	}
 }
 
@@ -194,7 +199,7 @@ handle_remove_click :: proc(
 ) {
 	if pointer_state != .PressedThisFrame do return
 
-	remove_leaf_item(ctx, hovered_layout_item.handle)
+	remove_leaf_item(ctx, hovered_layout_item.handle, true)
 }
 
 handle_move_click :: proc(
@@ -204,50 +209,42 @@ handle_move_click :: proc(
 	edge: Edge,
 	hovered_layout_item: ^Layout_Item,
 ) {
-
 	parent := get_item_checked(&ctx.lic, hovered_layout_item.parent_handle)
 
-	if pointer_state == .PressedThisFrame {
-		index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
-		// detatch from parent
-		delete_handle_from_node(&ctx.lic, parent.handle, hovered_layout_item.handle)
-		// ordered_remove(&parent.child_nodes, index_in_parent)
-		hovered_layout_item.parent_handle = ctx.root
-		ctx.dragging_handle = hovered_layout_item.handle
+	if pointer_state == .PressedThisFrame && ctx.dragging_handle == {} {
+		remove_leaf_item(ctx, hovered_layout_item.handle, false)
 
+		ctx.dragging_handle = hovered_layout_item.handle
 		normalize_sizes_recursive(&ctx.lic, ctx.root)
-	} else if pointer_state == .ReleasedThisFrame {
-		// dragging_item := get_item_checked(&ctx.lic, ctx.dragging_handle)
-		//
-		// avg_size := get_average_size(&ctx.lic, hovered_layout_item.parent_handle)
-		// index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
-		//
-		// if (is_horizontal_edge(edge) && parent.layout_dir == .LeftToRight) ||
-		//    (is_vertical_edge(edge) && parent.layout_dir == .TopToBottom) {
-		// 	insert_same_level(
-		// 		ctx,
-		// 		avg_size,
-		// 		index_in_parent,
-		// 		edge,
-		// 		parent,
-		// 		hovered_layout_item,
-		// 		dragging_item^,
-		// 	)
-		// } else {
-		// 	insert_new_level(
-		// 		ctx,
-		// 		avg_size,
-		// 		index_in_parent,
-		// 		edge,
-		// 		parent,
-		// 		hovered_layout_item,
-		// 		dragging_item^,
-		// 	)
-		// }
+	} else if pointer_state == .ReleasedThisFrame && ctx.dragging_handle != {} {
+		dragging_item := get_item_checked(&ctx.lic, ctx.dragging_handle)
+
+		avg_size := get_average_size(&ctx.lic, hovered_layout_item.parent_handle)
+		index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
+
+		if (is_horizontal_edge(edge) && parent.layout_dir == .LeftToRight) ||
+		   (is_vertical_edge(edge) && parent.layout_dir == .TopToBottom) {
+			insert_item_same_level(
+				ctx,
+				avg_size,
+				index_in_parent,
+				edge,
+				hovered_layout_item.handle,
+				dragging_item.handle,
+			)
+		} else {
+			insert_item_new_level(
+				ctx,
+				avg_size,
+				index_in_parent,
+				edge,
+				hovered_layout_item.handle,
+				dragging_item.handle,
+			)
+		}
 
 		ctx.dragging_handle = {}
 
 		normalize_sizes_recursive(&ctx.lic, ctx.root)
 	}
-
 }

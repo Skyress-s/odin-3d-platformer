@@ -174,26 +174,30 @@ delete_handle_from_node :: proc(
 	}
 }
 
-remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
-	layout_item_to_delete := get_item_checked(&ctx.lic, handle)
+remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node: bool) {
+	layout_item_to_remove := get_item_checked(&ctx.lic, handle)
 	assert(
-		len(layout_item_to_delete.child_nodes) == 0,
+		len(layout_item_to_remove.child_nodes) == 0,
 		"don't support cutting nodes with children.",
 	)
 
-	parent_handle := layout_item_to_delete.parent_handle
+	parent_handle := layout_item_to_remove.parent_handle
 	if !hms.valid(ctx.lic, parent_handle) do return
 	parent_layout_item := hms.get(&ctx.lic, parent_handle)
 
 	{
 		root_item := get_item_checked(&ctx.lic, ctx.root)
-		if layout_item_to_delete.parent_handle == ctx.root && len(root_item.child_nodes) == 1 {
+		if layout_item_to_remove.parent_handle == ctx.root && len(root_item.child_nodes) == 1 {
 			return
 		}
 	}
 
 	delete_handle_from_node(&ctx.lic, parent_handle, handle)
-	delete_layout_item(ctx, handle)
+	if delete_node {
+		delete_layout_item(ctx, handle)
+	} else {
+		layout_item_to_remove.parent_handle = {}
+	}
 
 
 	// delete_tail(ctx, parent_handle)
@@ -376,6 +380,23 @@ add_layout_node :: proc(
 	return new_handle
 }
 
+add_layout_item_node :: proc(
+	lic: ^Layout_Item_Container,
+	parent_handle: Layout_Item_Handle,
+	index: u8,
+	homeless_item_handle: Layout_Item_Handle,
+) {
+	homeless_item := get_item_checked(lic, homeless_item_handle)
+	parent_layout_item := get_item_checked(lic, parent_handle)
+
+	inject_at(&parent_layout_item.child_nodes, index, homeless_item_handle)
+
+	// setup state
+	homeless_item.parent_handle = parent_handle
+	homeless_item.layout_dir =
+		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
+}
+
 is_valid_tree :: proc(lic: ^Layout_Item_Container) -> bool {
 	panic("Not implemented!")
 }
@@ -484,6 +505,30 @@ normalize_sizes_recursive :: proc(
 	}
 }
 
+insert_item_same_level :: proc(
+	ctx: ^Context,
+	avg_size: clay.Vector2,
+	index_in_parent: u8,
+	edge: Edge,
+	item_handle, item_to_insert_handle: Layout_Item_Handle,
+) {
+	item := get_item_checked(&ctx.lic, item_handle)
+	parent := get_item_checked(&ctx.lic, item.parent_handle)
+
+	insert_after := edge == .Bottom || edge == .Right
+
+	add_layout_item_node(
+		&ctx.lic,
+		parent.handle,
+		index_in_parent + u8(insert_after),
+		item_to_insert_handle,
+	)
+
+	added_item := get_item_checked(&ctx.lic, item_to_insert_handle)
+	added_item.size_percent = avg_size
+	normalize_sizes(&ctx.lic, parent.handle)
+}
+
 insert_same_level :: proc(
 	ctx: ^Context,
 	avg_size: clay.Vector2,
@@ -504,6 +549,52 @@ insert_same_level :: proc(
 	added_item := get_item_checked(&ctx.lic, added_item_handle)
 	added_item.size_percent = avg_size
 	normalize_sizes(&ctx.lic, hovered_layout_item.parent_handle)
+}
+
+@(private)
+insert_item_new_level :: proc(
+	ctx: ^Context,
+	avg_size: clay.Vector2,
+	index_in_parent: u8,
+	edge: Edge,
+	item_handle, item_to_insert_handle: Layout_Item_Handle,
+) {
+	item := get_item_checked(&ctx.lic, item_handle)
+	parent := get_item_checked(&ctx.lic, item.parent_handle)
+
+	new_parent_handle := hms.add(&ctx.lic, make_parent_layout_item(ctx))
+	new_parent := hms.get(&ctx.lic, new_parent_handle)
+	new_parent.size_percent = avg_size
+	new_parent.layout_dir = parent.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
+
+	parent.child_nodes[index_in_parent] = new_parent_handle
+	new_parent.parent_handle = parent.handle
+
+	append(&new_parent.child_nodes, item.handle)
+	item.parent_handle = new_parent_handle
+	item.size_percent = avg_size
+	if (is_leaf(&ctx.lic, item.handle)) {
+		item.layout_dir = .TopToBottom
+	} else {
+		item.layout_dir = new_parent.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
+	}
+
+	b_insert_after := edge == .Right || edge == .Bottom
+
+
+	add_layout_item_node(
+		&ctx.lic,
+		new_parent.handle,
+		b_insert_after ? 1 : 0,
+		item_to_insert_handle,
+	)
+
+	added_item := get_item_checked(&ctx.lic, item_to_insert_handle)
+	added_item.size_percent = avg_size
+	added_item.layout_dir = .TopToBottom
+
+	normalize_sizes(&ctx.lic, new_parent_handle)
+	normalize_sizes(&ctx.lic, parent.handle)
 }
 
 @(private)

@@ -47,6 +47,7 @@ layout_floating_item :: proc(ctx: ^Context) {
 				sizing = {clay.SizingPercent(0.25), clay.SizingPercent(0.25)},
 			},
 			floating = clay.FloatingElementConfig {
+				pointerCaptureMode = .Passthrough,
 				attachTo = clay.FloatingAttachToElement.Parent,
 				offset = ctx.mouse_pos - {bounds.width / 2, bounds.height / 2},
 			},

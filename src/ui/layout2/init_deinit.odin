@@ -11,6 +11,8 @@ import raylib "vendor:raylib"
 windowWidth: i32 = 1024
 windowHeight: i32 = 768
 
+MODIFIER_KEYS: []raylib.KeyboardKey : {.LEFT_SHIFT, .LEFT_CONTROL, .LEFT_ALT, .LEFT_SUPER}
+
 
 LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
 
@@ -109,50 +111,48 @@ update_state :: proc(ctx: ^Context) {
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = raylib.GetMousePosition()
 
-	// update_pointer_state(&ctx.remove_click, raylib.MouseButton.MIDDLE)
-	update_pointer_state(&ctx.add_click, raylib.MouseButton.RIGHT)
-	// update_pointer_state(&ctx.resize_click, raylib.MouseButton.LEFT)
-	update_pointer_state(&ctx.move_click, raylib.MouseButton.LEFT)
-}
-
-update_pointer_state :: proc {
-	update_pointer_state_mouse,
-	update_pointer_state_key,
+	update_pointer_state_mouse(&ctx.remove_click, .LEFT, .LEFT_SHIFT)
+	update_pointer_state_mouse(&ctx.add_click, .LEFT, {})
+	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_SHIFT)
+	update_pointer_state_mouse(&ctx.move_click, .RIGHT, {})
 }
 
 update_pointer_state_mouse :: proc(
 	pointer_state: ^clay.PointerDataInteractionState,
 	mouse_button: raylib.MouseButton,
+	modifier_key: raylib.KeyboardKey,
 ) {
 	assert(pointer_state != nil)
+
+	modifier_down :=
+		(modifier_key == nil && !any_modifier_key_down_or_pressed()) ||
+		(raylib.IsKeyPressed(modifier_key) || raylib.IsKeyDown(modifier_key))
 
 	pointer_state^ = to_pointer_state(
 		raylib.IsMouseButtonPressed(mouse_button),
 		raylib.IsMouseButtonReleased(mouse_button),
+		modifier_down,
 		pointer_state^,
 	)
 }
 
-update_pointer_state_key :: proc(
-	pointer_state: ^clay.PointerDataInteractionState,
-	key: raylib.KeyboardKey,
-) {
-	assert(pointer_state != nil)
+any_modifier_key_down_or_pressed :: proc() -> bool {
+	for &key in MODIFIER_KEYS {
+		if raylib.IsKeyPressed(key) || raylib.IsKeyDown(key) do return true
+	}
 
-	pointer_state^ = to_pointer_state(
-		raylib.IsKeyPressed(key),
-		raylib.IsKeyReleased(key),
-		pointer_state^,
-	)
+	return false
+
 }
+
 
 to_pointer_state :: proc(
-	down_this_frame, up_this_frame: bool,
+	down_this_frame, up_this_frame, modifier_down: bool,
 	previous_state: clay.PointerDataInteractionState,
 ) -> clay.PointerDataInteractionState {
-	if down_this_frame do return .PressedThisFrame
+	if down_this_frame && modifier_down do return .PressedThisFrame
 
-	if up_this_frame do return .ReleasedThisFrame
+	if up_this_frame && previous_state == .Pressed do return .ReleasedThisFrame
 
 	if previous_state == .PressedThisFrame || previous_state == .Pressed do return .Pressed
 
