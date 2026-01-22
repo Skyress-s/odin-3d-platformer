@@ -44,9 +44,10 @@ interaction :: proc(ctx: ^Context) {
 		handle_resize_click(ctx, ctx.resize_click, hovered_layout_item, corner)
 	} else if ctx.add_click != .Released {
 		handle_add_click(ctx, ctx.add_click, hovered_layout_item, edge)
-
 	} else if ctx.remove_click != .Released {
 		handle_remove_click(ctx, ctx.remove_click, hovered_layout_item)
+	} else if ctx.move_click != .Released {
+		handle_move_click(ctx, ctx.move_click, corner, edge, hovered_layout_item)
 	}
 }
 
@@ -194,4 +195,59 @@ handle_remove_click :: proc(
 	if pointer_state != .PressedThisFrame do return
 
 	remove_leaf_item(ctx, hovered_layout_item.handle)
+}
+
+handle_move_click :: proc(
+	ctx: ^Context,
+	pointer_state: clay.PointerDataInteractionState,
+	corner: Corner,
+	edge: Edge,
+	hovered_layout_item: ^Layout_Item,
+) {
+
+	parent := get_item_checked(&ctx.lic, hovered_layout_item.parent_handle)
+
+	if pointer_state == .PressedThisFrame {
+		index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
+		// detatch from parent
+		delete_handle_from_node(&ctx.lic, parent.handle, hovered_layout_item.handle)
+		// ordered_remove(&parent.child_nodes, index_in_parent)
+		hovered_layout_item.parent_handle = ctx.root
+		ctx.dragging_handle = hovered_layout_item.handle
+
+		normalize_sizes_recursive(&ctx.lic, ctx.root)
+	} else if pointer_state == .ReleasedThisFrame {
+		// dragging_item := get_item_checked(&ctx.lic, ctx.dragging_handle)
+		//
+		// avg_size := get_average_size(&ctx.lic, hovered_layout_item.parent_handle)
+		// index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
+		//
+		// if (is_horizontal_edge(edge) && parent.layout_dir == .LeftToRight) ||
+		//    (is_vertical_edge(edge) && parent.layout_dir == .TopToBottom) {
+		// 	insert_same_level(
+		// 		ctx,
+		// 		avg_size,
+		// 		index_in_parent,
+		// 		edge,
+		// 		parent,
+		// 		hovered_layout_item,
+		// 		dragging_item^,
+		// 	)
+		// } else {
+		// 	insert_new_level(
+		// 		ctx,
+		// 		avg_size,
+		// 		index_in_parent,
+		// 		edge,
+		// 		parent,
+		// 		hovered_layout_item,
+		// 		dragging_item^,
+		// 	)
+		// }
+
+		ctx.dragging_handle = {}
+
+		normalize_sizes_recursive(&ctx.lic, ctx.root)
+	}
+
 }

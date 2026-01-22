@@ -19,7 +19,42 @@ DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
 layout :: proc(ctx: ^Context) {
 	assert(hms.valid(ctx.lic, ctx.root))
 
-	layout_tiling_layout_item(ctx, ctx.root)
+	if clay.UI(clay.ID("main"))(
+	{
+		layout = clay.LayoutConfig {
+			sizing = {clay.SizingGrow(), clay.SizingGrow()},
+			layoutDirection = .TopToBottom,
+		},
+	},
+	) {
+		layout_tiling_layout_item(ctx, ctx.root)
+		layout_floating_item(ctx)
+	}
+
+
+}
+
+layout_floating_item :: proc(ctx: ^Context) {
+	dragging_item, dragging_item_ok := get_item(&ctx.lic, ctx.dragging_handle)
+	if !dragging_item_ok do return
+
+	bounds := get_clay_bounding_box(dragging_item.id)
+
+	if clay.UI(clay.ID(dragging_item.id))(
+		config = clay.ElementDeclaration {
+			layout = clay.LayoutConfig {
+				layoutDirection = .TopToBottom,
+				sizing = {clay.SizingPercent(0.25), clay.SizingPercent(0.25)},
+			},
+			floating = clay.FloatingElementConfig {
+				attachTo = clay.FloatingAttachToElement.Parent,
+				offset = ctx.mouse_pos - {bounds.width / 2, bounds.height / 2},
+			},
+			backgroundColor = clay.Color{0, 255, 255, 255},
+		},
+	) {
+
+	}
 }
 
 // TODO: Can we use non ptr?

@@ -18,17 +18,17 @@ Debug_Settings :: struct {
 }
 
 Context :: struct {
-	arena:                                 vmem.Arena,
-	arena_allocator:                       mem.Allocator,
-	clay_arena:                            clay.Arena,
-	lic:                                   Layout_Item_Container,
-	root:                                  Layout_Item_Handle,
-	debug_settings:                        Debug_Settings,
-	remove_click, add_click, resize_click: clay.PointerDataInteractionState,
+	arena:                                             vmem.Arena,
+	arena_allocator:                                   mem.Allocator,
+	clay_arena:                                        clay.Arena,
+	lic:                                               Layout_Item_Container,
+	root, dragging_handle:                             Layout_Item_Handle,
+	debug_settings:                                    Debug_Settings,
+	remove_click, add_click, resize_click, move_click: clay.PointerDataInteractionState,
 
 	// Not exposed by clay. So need to cache them here too
-	mouse_pos:                             raylib.Vector2,
-	mouse_pos_last_frame:                  raylib.Vector2,
+	mouse_pos:                                         raylib.Vector2,
+	mouse_pos_last_frame:                              raylib.Vector2,
 }
 
 Layout_Item :: struct {
@@ -825,6 +825,7 @@ try_resize :: proc(
 	item := get_item_checked(lic, item_handle)
 	parent, parent_ok := get_item(lic, item.parent_handle)
 	if !parent_ok do return px_change
+
 
 	// TODO: Can implement later if wanted
 

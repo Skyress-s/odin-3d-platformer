@@ -71,6 +71,7 @@ init :: proc(
 	ctx.add_click = .Released
 	ctx.remove_click = .Released
 	ctx.resize_click = .Released
+	ctx.move_click = .Released
 
 	return ctx
 }
@@ -108,9 +109,10 @@ update_state :: proc(ctx: ^Context) {
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = raylib.GetMousePosition()
 
-	update_pointer_state(&ctx.remove_click, raylib.MouseButton.MIDDLE)
+	// update_pointer_state(&ctx.remove_click, raylib.MouseButton.MIDDLE)
 	update_pointer_state(&ctx.add_click, raylib.MouseButton.RIGHT)
-	update_pointer_state(&ctx.resize_click, raylib.MouseButton.LEFT)
+	// update_pointer_state(&ctx.resize_click, raylib.MouseButton.LEFT)
+	update_pointer_state(&ctx.move_click, raylib.MouseButton.LEFT)
 }
 
 update_pointer_state :: proc {
