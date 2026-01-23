@@ -212,6 +212,7 @@ main :: proc() {
 		layout_updated := false
 		gc.mouse_over_game = false // todo feels kinda hacky
 
+
 		ui.mouse_pressed_this_frame = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
 		layout.update_state()
 		// todo move into ui.Context

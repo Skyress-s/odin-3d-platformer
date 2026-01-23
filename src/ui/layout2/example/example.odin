@@ -5,6 +5,7 @@ import hms "../../../handle_map/handle_map_static/"
 import clay "../../clay-odin/"
 import rr "../raylib"
 import "core:c"
+import "core:fmt"
 import "core:testing"
 import rl "vendor:raylib"
 /*
@@ -39,7 +40,7 @@ main :: proc() {
 		&layout_ctx.lic,
 		layout_ctx.root,
 		0,
-		layout.make_debug_leaf_layout_item(&layout_ctx),
+		layout.make_debug_leaf_layout_item(&layout_ctx, layout_main_window),
 	)
 	layout.add_layout_node(
 		&layout_ctx.lic,
@@ -70,6 +71,14 @@ main :: proc() {
 
 		free_all(context.temp_allocator)
 	}
+}
+
+layout_main_window :: proc(
+	parent_node: ^layout.Layout_Item,
+	active_elems: ^layout.Active_Elements,
+) {
+	clay.TextDynamic(fmt.tprint("Im here!"), clay.TextConfig(layout.DEBUG_ID_TEXT_ELEMENT_CONFIG))
+
 
 }
 

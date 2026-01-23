@@ -138,7 +138,13 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 				backgroundColor = COLOR_ITEM_BODY,
 			},
 			) {
-				layout_debug_leaf_data(ctx, item)
+				if item.layout_proc != nil {
+					parent := get_item_checked(&ctx.lic, item.handle)
+					item.layout_proc(parent, &ctx.active_elements)
+
+				} else {
+					layout_debug_leaf_data(ctx, item)
+				}
 
 			}
 

@@ -25,6 +25,7 @@ Context :: struct {
 	root, dragging_handle:                             Layout_Item_Handle,
 	debug_settings:                                    Debug_Settings,
 	remove_click, add_click, resize_click, move_click: clay.PointerDataInteractionState,
+	active_elements:                                   Active_Elements,
 
 	// Not exposed by clay. So need to cache them here too
 	mouse_pos:                                         raylib.Vector2,
@@ -88,11 +89,15 @@ make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 }
 
 // @(private)
-make_debug_leaf_layout_item :: proc(ctx: ^Context) -> Layout_Item {
+make_debug_leaf_layout_item :: proc(
+	ctx: ^Context,
+	layout_proc: proc(parent_node: ^Layout_Item, active_elems: ^Active_Elements) = nil,
+) -> Layout_Item {
 
 	@(static) debug_gen_id: u32 = 0
 	layout_item := make_layout_item(ctx, fmt.tprintf("leaf_{}", debug_gen_id))
 	layout_item.size_percent = {0.5, 0.5}
+	layout_item.layout_proc = layout_proc
 	debug_gen_id += 1
 	return layout_item
 }
