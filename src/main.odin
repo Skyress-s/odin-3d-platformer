@@ -6,7 +6,6 @@ import "core:debug/trace"
 import "core:fmt"
 import "core:log"
 import "core:mem"
-import "core:strings"
 
 import character "Character"
 import camera "camera"
@@ -21,8 +20,6 @@ import rlb "raylib_bridge"
 import "render"
 import "serialization"
 import rl "vendor:raylib"
-
-import layout "ui/layout2"
 
 
 USE_TRACESTACK :: #config(USE_TRACESTACK, false)
@@ -131,7 +128,6 @@ main :: proc() {
 			generate_camera(),
 			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 		),
-		ui_context          = nil,
 	}
 
 	defer {

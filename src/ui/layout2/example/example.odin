@@ -35,7 +35,6 @@ main :: proc() {
 		draw_if_no_content = true,
 	}
 
-
 	layout.add_layout_node(
 		&layout_ctx.lic,
 		layout_ctx.root,

@@ -2,7 +2,7 @@ package ui_test
 
 import ui "../"
 import clay "../clay-odin/"
-import layout "../layout/"
+import layout "../layout2/"
 import "core:fmt"
 import rl "vendor:raylib"
 /*
@@ -22,16 +22,11 @@ main :: proc() {
 	rl.SetTargetFPS(180)
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 
-	ui_context := ui.init_input_context()
-	defer ui.deinit_input_context(&ui_context)
+	ui_context := ui.init()
+	defer ui.deinit(&ui_context)
 
-	ui_active_elems := layout.Active_Elements{}
-	defer delete(ui_active_elems.elems)
-
-	layout.register_node(
-		&ui_context.root_node,
-		layout.make_new_node_with_draw_proc(fmt.aprint("window_1"), layout_window_1, &ui_context),
-	)
+	layout.add_layout_node(&ui_context.layout_ctx.lic, ui_context.layout_ctx.root, 0, layout.make)
+	layout.add_layout_item_node()
 
 	layout.register_node(
 		&ui_context.root_node,
@@ -46,8 +41,6 @@ main :: proc() {
 	for !rl.WindowShouldClose() {
 		ui.update_input(&ui_context)
 
-		layout.update_state()
-
 		clay.BeginLayout()
 
 		layout_updated := layout.layout_tiling_windows(
@@ -61,7 +54,6 @@ main :: proc() {
 			scoped_drawing()
 
 			rl.ClearBackground(rl.DARKGRAY)
-
 
 			layout.render(&ui_render_commands)
 

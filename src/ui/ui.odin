@@ -10,7 +10,7 @@ import rl "vendor:raylib"
 
 import ui_rr "../ui/layout/raylib/"
 import clay "clay-odin"
-import layout "layout"
+import layout "layout2"
 
 // todo this should probably not be a global. But keeping it like this for now.
 mouse_buttons_map := [Mouse]rl.MouseButton {
@@ -117,21 +117,15 @@ layout_textbox_immediate :: proc(text_buf: []string, text_buf_length: ^int) {
 
 // todo move to a better place
 
-init_input_context :: proc() -> Context {
-	ctx: Context
+init :: proc() -> (ctx: Context) {
 	strings.builder_init(&ctx.text_input)
-	ctx.clay_context_data.arena = layout.init(ui_rr.measure_text)
-
-	ctx.root_node = layout.create_root_node()
+	ctx.layout_ctx = layout.init(ui_rr.measure_text)
 
 	return ctx
 }
-deinit_input_context :: proc(ctx: ^Context) {
+deinit :: proc(ctx: ^Context) {
 	strings.builder_destroy(&ctx.text_input)
-
-	layout.deinit(ctx.clay_context_data.arena)
-
-	// layout.delete_node2(&root_node, &root_node) // TODO: crashes program
+	layout.deinit(&ctx.layout_ctx)
 }
 
 end_frame :: proc(ctx: ^Context) {
@@ -247,8 +241,9 @@ Context :: struct {
 	mouse_delta, scroll_delta:       Vec2,
 
 	// ui
-	clay_context_data:               Clay_Context_Data,
-	root_node:                       layout.Tiling_Node, // TODO: should these really be in the same context?
+	layout_ctx:                      layout.Context,
+	// clay_context_data:               Clay_Context_Data,
+	// root_node:                       layout.Tiling_Node, // TODO: should these really be in the same context?
 }
 
 Clay_Context_Data :: struct {
@@ -344,6 +339,8 @@ update_input :: proc(ctx: ^Context) {
 	update_mouse_input(ctx)
 	update_key_input(ctx)
 	update_text_input(ctx)
+
+	layout.update_state(&ctx.layout_ctx)
 }
 
 set_focus :: proc(ctx: ^Context, id: u32) {
