@@ -22,6 +22,8 @@ import "render"
 import "serialization"
 import rl "vendor:raylib"
 
+import layout "ui/layout2"
+
 
 USE_TRACESTACK :: #config(USE_TRACESTACK, false)
 
@@ -139,8 +141,15 @@ main :: proc() {
 	render_targets := render.render_targets_init({0, 0})
 	defer render.render_targets_deinit(render_targets)
 
+	// layout_ctx := layout.init(rr.measure_text)
+	// defer layout.deinit(&layout_ctx)
+	// layout_ctx.debug_settings = {
+	// 	draw_ids           = true,
+	// 	draw_if_no_content = true,
+	// }
+
 	game_rt_needs_update := true
-	
+
 	for !rl.WindowShouldClose() {
 		gc.mouse_over_game = true
 

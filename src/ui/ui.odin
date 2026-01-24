@@ -1,12 +1,10 @@
 package ui
 
 import "base:runtime"
-import "core:crypto/shake"
 import "core:fmt"
 import "core:strings"
 import textedit "core:text/edit"
 import "core:unicode/utf8"
-import "vendor:microui"
 
 import rl "vendor:raylib"
 
@@ -230,6 +228,7 @@ Mouse :: enum u32 {
 	MIDDLE,
 }
 Mouse_Set :: distinct bit_set[Mouse;u32]
+
 Context :: struct {
 	focus_id:                        u32,
 	updated_focus:                   bool,
@@ -246,6 +245,8 @@ Context :: struct {
 	mouse_released_bits:             Mouse_Set,
 	mouse_pos, last_mouse_pos:       Vec2,
 	mouse_delta, scroll_delta:       Vec2,
+
+	// ui
 	clay_context_data:               Clay_Context_Data,
 	root_node:                       layout.Tiling_Node, // TODO: should these really be in the same context?
 }
