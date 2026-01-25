@@ -673,6 +673,39 @@ layout_button_immediate :: proc(
 	return false
 }
 
+// Simple checkbox that doesn't require context - uses OnHover callback instead
+layout_checkbox :: proc(
+	text: string,
+	checked_on: ^bool,
+	active: rune = 'x',
+	inactive: rune = ' ',
+	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
+) {
+	if clay.UI()(
+		config = clay.ElementDeclaration {
+			layout = {
+				layoutDirection = .LeftToRight,
+				sizing = {clay.SizingGrow(), clay.SizingFit()},
+			},
+			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
+		},
+	) {
+		on_hover :: proc "c" (
+			id: clay.ElementId,
+			pointerData: clay.PointerData,
+			userData: rawptr,
+		) {
+			checked_on := cast(^bool)userData
+			if pointerData.state == .PressedThisFrame do checked_on^ = !checked_on^
+		}
+		clay.OnHover(on_hover, checked_on)
+
+		checked_rune := checked_on^ ? active : inactive
+		layout_dynamic_text_entry(fmt.tprintf("[{}] ", checked_rune))
+		layout_dynamic_text_entry(text)
+	}
+}
+
 // note: I'm not sure why this is not exposed by default (is pressed). I assume its to resolve only the outermost press.
 // (If both the parent element and child element has clicking functionality). But lets add it so I can use this and be aware of it.
 // Returns on change

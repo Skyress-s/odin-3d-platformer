@@ -19,6 +19,10 @@ import plrs "players"
 import rlb "raylib_bridge"
 import "render"
 import "serialization"
+import ui "ui"
+import clay "ui/clay-odin"
+import game_ui "ui/game_ui"
+import layout2 "ui/layout2"
 import rl "vendor:raylib"
 
 
@@ -119,12 +123,16 @@ main :: proc() {
 
 	rl.SetTraceLogLevel(rl.TraceLogLevel.ERROR)
 
+	// Initialize UI system
+	ui_context := ui.init()
+	defer ui.deinit(&ui_context)
+
 	gc: gctx.Global_Context = {
-		players             = &players,
-		game_state          = &game_state,
-		current_level       = &current_level,
-		root_node_tiling_ui = nil,
-		camera_state        = camera.init(
+		players       = &players,
+		game_state    = &game_state,
+		current_level = &current_level,
+		ui_context    = &ui_context,
+		camera_state  = camera.init(
 			generate_camera(),
 			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 		),
@@ -137,25 +145,51 @@ main :: proc() {
 	render_targets := render.render_targets_init({0, 0})
 	defer render.render_targets_deinit(render_targets)
 
-	// layout_ctx := layout.init(rr.measure_text)
-	// defer layout.deinit(&layout_ctx)
-	// layout_ctx.debug_settings = {
-	// 	draw_ids           = true,
-	// 	draw_if_no_content = true,
-	// }
+	// Add game window as a Layout_Item in the layout2 system
+	layout_ctx := &ui_context.layout_ctx
+	game_window_item := game_ui.make_game_window_node(layout_ctx, &gc)
+	game_window_handle := layout2.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		game_window_item,
+	)
+	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
+	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 
 	game_rt_needs_update := true
 
 	for !rl.WindowShouldClose() {
-		gc.mouse_over_game = true
+		gc.mouse_over_game = false // Will be set to true by layout_game_ui if hovered
+
+		// Update UI state (mouse, keyboard, etc.)
+		ui.update_state(&ui_context)
 
 		if rl.IsWindowResized() {
 			game_rt_needs_update = true
 		}
 
-		game_rect := rl.Rectangle{0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+		// Get game rect from layout system (after first frame, use cached bounding box)
+		game_item := layout2.get_item_checked(&layout_ctx.lic, game_window_handle)
+		game_element_data := clay.GetElementData(clay.GetElementId(clay.MakeString(game_item.id)))
 
-		if game_rt_needs_update {
+		game_rect: rl.Rectangle
+		if game_element_data.found {
+			game_rect = rl.Rectangle {
+				game_element_data.boundingBox.x,
+				game_element_data.boundingBox.y,
+				game_element_data.boundingBox.width,
+				game_element_data.boundingBox.height,
+			}
+		} else {
+			// Fallback for first frame before layout is computed
+			game_rect = rl.Rectangle{0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+		}
+
+		// Check if render target needs resize
+		if game_rt_needs_update ||
+		   (render_targets.game.texture.width != i32(game_rect.width)) ||
+		   (render_targets.game.texture.height != i32(game_rect.height)) {
 			render.resize_render_targets(&render_targets, game_rect)
 			game_rt_needs_update = false
 		}
@@ -172,10 +206,21 @@ main :: proc() {
 			&render_targets,
 		)
 
+		// Layout pass
+		clay.BeginLayout()
+		layout2.layout(layout_ctx)
+		ui_render_commands := clay.EndLayout()
+
+		// Handle layout interactions (only when not hovering game)
+		layout2.interaction(layout_ctx, true) // !gc.mouse_over_game
+
 		rl.BeginDrawing()
 		rl.ClearBackground({14, 35, 45, 255})
 
-		// draw game
+		// Draw UI overlay
+		layout2.render(&ui_render_commands)
+
+		// Draw game texture at layout-determined position
 		rl.DrawTexturePro(
 			render_targets.game.texture,
 			rl.Rectangle {
@@ -189,8 +234,10 @@ main :: proc() {
 			0,
 			rl.WHITE,
 		)
+
 		rl.EndDrawing()
 
+		ui.end_frame(&ui_context)
 		free_all(context.temp_allocator)
 	}
 }

@@ -21,13 +21,13 @@ import l "../../level/"
 import plrs "../../players/"
 import "../../serialization/"
 import clay "../clay-odin/"
-import layout "../layout/"
+import layout2 "../layout2/"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
-layout_game_ui :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -89,17 +89,17 @@ layout_game_ui :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_E
 }
 
 layout_game_cheats_window :: proc(
-	node: ^layout.Tiling_Node,
-	active_elems: ^layout.Active_Elements,
+	node: ^layout2.Layout_Item,
+	active_elems: ^layout2.Active_Elements,
 ) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_cheats_panel(gc.players, gc.game_state)
+	layout_cheats_panel(gc.ui_context, gc.players, gc.game_state)
 }
 
 
-layout_editor_details :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -108,12 +108,21 @@ layout_editor_details :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.A
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
-make_editor_details_node :: proc(gc: ^gctx.Global_Context) -> layout.Tiling_Node {
-	node := layout.make_new_node_with_draw_proc(
-		EDITOR_DETAILS_PANEL_NAME,
-		layout_editor_details,
-		gc,
-	)
+make_editor_details_node :: proc(
+	ctx: ^layout2.Context,
+	gc: ^gctx.Global_Context,
+) -> layout2.Layout_Item {
+	node := layout2.make_layout_item(ctx, EDITOR_DETAILS_PANEL_NAME, gc, layout_editor_details)
+	return node
+}
+
+GAME_WINDOW_NAME :: "Game_Window"
+make_game_window_node :: proc(
+	ctx: ^layout2.Context,
+	gc: ^gctx.Global_Context,
+) -> layout2.Layout_Item {
+	node := layout2.make_layout_item(ctx, GAME_WINDOW_NAME, gc, layout_game_ui)
+	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
 
@@ -199,7 +208,7 @@ layout_reticle :: proc(
 				attachTo = .Parent,
 				attachment = clay.FloatingAttachPoints{parent = .CenterCenter},
 			},
-			backgroundColor = layout.COLOR_GREEN,
+			backgroundColor = layout2.COLOR_GREEN,
 		},
 	) {
 
@@ -233,7 +242,7 @@ Cheats_Panel_UI_State :: struct {
 }
 
 
-layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State) {
+layout_cheats_panel :: proc(ctx: ^ui.Context, players: ^plrs.Players, game_state: ^gs.Game_State) {
 
 
 	if clay.UI(clay.ID("cheats_panel_main"))(
@@ -266,14 +275,14 @@ layout_cheats_panel :: proc(players: ^plrs.Players, game_state: ^gs.Game_State) 
 		) {
 		}
 		@(static) panel_cheats_dropdown := false
-		if ui.layout_dropdown(fmt.tprint("Cheats"), &panel_cheats_dropdown) {
+		if ui.layout_dropdown(ctx, fmt.tprint("Cheats"), &panel_cheats_dropdown) {
 
 			@(static) cheats_dropdown := false
 			@(static) controls_dropdown := false
-			if ui.layout_dropdown(fmt.tprint("Controls"), &controls_dropdown) {
+			if ui.layout_dropdown(ctx, fmt.tprint("Controls"), &controls_dropdown) {
 				layout_controls_sheet()
 			}
-			if ui.layout_dropdown(fmt.tprint("Cheats"), &cheats_dropdown) {
+			if ui.layout_dropdown(ctx, fmt.tprint("Cheats"), &cheats_dropdown) {
 
 				ui.layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
 
@@ -394,7 +403,7 @@ layout_details_panel :: proc(
 	players: ^plrs.Players,
 	game_state: ^gs.Game_State,
 	level: ^l.Level,
-	active_elems: ^layout.Active_Elements,
+	active_elems: ^layout2.Active_Elements,
 ) {
 
 
@@ -409,10 +418,10 @@ layout_details_panel :: proc(
 	@(static) object_manip_dropdown := false
 	if current_id != spat.INVALID_OBJECT_ID {
 		current_coll_obj := hms.get(&level.collision_object_map, current_id)
-		if ui.layout_dropdown(fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
+		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
 			ui.layout_dynamic_text_entry(fmt.tprint(current_id))
-			if ui.layout_button_immediate(fmt.tprint("duplicate")) {
+			if ui.layout_button_immediate(ctx, fmt.tprint("duplicate")) {
 				if current_coll_obj != nil {
 					new_id := spat.add_to_level(
 						&level.collision_object_map,
@@ -436,7 +445,7 @@ layout_details_panel :: proc(
 			{
 				_, is_kill_volume := level.kill_volumes[current_id]
 
-				if ui.layout_checkbox_immediate(fmt.tprint("Kill Volume"), &is_kill_volume) {
+				if ui.layout_checkbox_immediate(ctx, fmt.tprint("Kill Volume"), &is_kill_volume) {
 					if is_kill_volume do level.kill_volumes[current_id] = true
 					else do delete_key(&level.kill_volumes, current_id)
 				}
@@ -445,7 +454,7 @@ layout_details_panel :: proc(
 			{
 				_, grappable := level.grappable[current_id]
 
-				if ui.layout_checkbox_immediate(fmt.aprintf("Grappable"), &grappable) {
+				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Grappable"), &grappable) {
 					if grappable do level.grappable[current_id] = true
 					else do delete_key(&level.grappable, current_id)
 				}
@@ -453,7 +462,7 @@ layout_details_panel :: proc(
 
 			{
 				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
-				if ui.layout_checkbox_immediate(fmt.aprintf("Colliding"), &is_colliding) {
+				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Colliding"), &is_colliding) {
 					current_coll_obj.collision_channels =
 						is_colliding ? cc.get_blocking() : cc.get_non_blocking()
 					// TODO we should also activate kill volumes when we get a normal collision.
@@ -461,10 +470,10 @@ layout_details_panel :: proc(
 			}
 
 			{
-				if ui.layout_button_immediate(fmt.tprint("Reset Rotation")) {
+				if ui.layout_button_immediate(ctx, fmt.tprint("Reset Rotation")) {
 					current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
 				}
-				if ui.layout_button_immediate(fmt.tprint("Random Rotation")) {
+				if ui.layout_button_immediate(ctx, fmt.tprint("Random Rotation")) {
 					current_coll_obj.transform.rotation = spat.rand_rot()
 				}
 			}
@@ -474,12 +483,12 @@ layout_details_panel :: proc(
 
 
 	@(static) level_stuff_dropdown := false
-	if ui.layout_dropdown(fmt.tprint("Level Stuff"), &level_stuff_dropdown) {
+	if ui.layout_dropdown(ctx, fmt.tprint("Level Stuff"), &level_stuff_dropdown) {
 
 		@(static) buf: [128]byte
 		@(static) buf_len: int
 
-		clicked_file_path := map_directory(active_elems)
+		clicked_file_path := map_directory(ctx, active_elems)
 
 		double_click := (clicked_file_path != "" && string(buf[:buf_len]) == clicked_file_path)
 
@@ -500,7 +509,7 @@ layout_details_panel :: proc(
 		// 	fmt.println("Submit!")
 		// }
 
-		if ui.layout_button_immediate(fmt.tprint("Save Level")) {
+		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
 			level.author_time = players.game.best_time
 			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
@@ -513,7 +522,7 @@ layout_details_panel :: proc(
 		//
 		// }
 
-		if ui.layout_button_immediate(fmt.tprint("Load Level")) {
+		if ui.layout_button_immediate(ctx, fmt.tprint("Load Level")) {
 			level^ = serialization.load_from_file_level(
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 			)
@@ -526,23 +535,23 @@ layout_details_panel :: proc(
 	}
 
 	// ui.set_focus(ctx, "ui_playground")
-	if ui.layout_dropdown(fmt.tprintf("ui_playground"), &object_manip_dropdown) {
+	if ui.layout_dropdown(ctx, fmt.tprintf("ui_playground"), &object_manip_dropdown) {
 		@(static) text_buf: [512]byte = {}
 		@(static) text_buf_length: int = 0
 		ui.layout_textbox_immediate2(ctx, text_buf[:], &text_buf_length) // , clay.GetElementId(clay.MakeString("ui_playground")).id
 	}
 
 
-	layout_editor_options()
+	layout_editor_options(ctx)
 }
 
 
-layout_editor_options :: proc() {
-	ui.layout_checkbox(fmt.tprintln("Edit Objects Local"), &et.tooltip_local)
+layout_editor_options :: proc(ctx: ^ui.Context) {
+	ui.layout_checkbox("Edit Objects Local", &et.tooltip_local)
 }
 
 
-map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
+map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout2.Active_Elements) -> string {
 
 	cwd := os.get_current_directory()
 	f, err := os.open(cwd)
@@ -562,6 +571,7 @@ map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
 
 
 	return vis_dir(
+		ctx,
 		os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})},
 		active_elems,
 		true,
@@ -569,8 +579,9 @@ map_directory :: proc(active_elems: ^layout.Active_Elements) -> string {
 }
 
 vis_dir :: proc(
+	ctx: ^ui.Context,
 	file_dir: os.File_Info,
-	active_elems: ^layout.Active_Elements,
+	active_elems: ^layout2.Active_Elements,
 	force_open: bool = false,
 ) -> string {
 	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
@@ -597,18 +608,18 @@ vis_dir :: proc(
 	clicked_map_name := ""
 
 
-	active_elem := layout.active_elements_get_or_add(active_elems, current_dir_name)
-	if ui.layout_dropdown(fmt.tprintf("{}", current_dir_name), &active_elem.active) {
+	active_elem := layout2.active_elements_get_or_add(active_elems, current_dir_name)
+	if ui.layout_dropdown(ctx, fmt.tprintf("{}", current_dir_name), &active_elem.active) {
 		for fi in fis {
 			full_directory, name := filepath.split(fi.fullpath)
 
 			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
 
 			if fi.is_dir {
-				dir_name := vis_dir(fi, active_elems)
+				dir_name := vis_dir(ctx, fi, active_elems)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-				if ui.layout_button_immediate(fmt.tprint({}, name)) {
+				if ui.layout_button_immediate(ctx, fmt.tprint({}, name)) {
 					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
 				}
 			}
