@@ -1,9 +1,9 @@
 package layout
 import clay "../clay-odin"
+import rr "../raylib"
 import "core:c"
 import "core:fmt"
 import "core:strings"
-import rr "raylib"
 import raylib "vendor:raylib"
 
 windowWidth: i32 = 1024
