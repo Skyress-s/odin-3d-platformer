@@ -2,10 +2,10 @@ package ui_test
 
 import ui "../"
 import clay "../clay-odin/"
-import layout "../layout/"
+import layout "../layout2/"
 import "core:fmt"
 
-layout_window_1 :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+layout_window_1 :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 	ctx := cast(^ui.Context)node.userdata
 	assert(ctx != nil)
 
@@ -36,7 +36,7 @@ layout_window_1 :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_
 	}
 }
 
-layout_stats_window :: proc(node: ^layout.Tiling_Node, active_elems: ^layout.Active_Elements) {
+layout_stats_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 
 	ctx := cast(^ui.Context)node.userdata
 	assert(ctx != nil)

@@ -8,7 +8,7 @@ import "core:unicode/utf8"
 
 import rl "vendor:raylib"
 
-import ui_rr "../ui/layout/raylib/"
+import ui_rr "../ui/raylib/"
 import clay "clay-odin"
 import layout "layout2"
 
@@ -335,7 +335,7 @@ update_text_input :: proc(ctx: ^Context) {
 	}
 }
 
-update_input :: proc(ctx: ^Context) {
+update_state :: proc(ctx: ^Context) {
 	update_mouse_input(ctx)
 	update_key_input(ctx)
 	update_text_input(ctx)

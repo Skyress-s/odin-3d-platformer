@@ -3,6 +3,8 @@ package ui_test
 import ui "../"
 import clay "../clay-odin/"
 import layout "../layout2/"
+import ui_rr "../raylib/"
+import "core:c"
 import "core:fmt"
 import rl "vendor:raylib"
 /*
@@ -17,38 +19,53 @@ import rl "vendor:raylib"
 
 main :: proc() {
 
-	rl.InitWindow(1000, 1000, "Window Test")
+	window_width := c.int(f64(rl.GetMonitorWidth(rl.GetCurrentMonitor())) * 0.7)
+	window_height := c.int(f64(rl.GetMonitorHeight(rl.GetCurrentMonitor())) * 0.7)
+	rl.InitWindow(2000, 1200, "Window Test")
+	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(180)
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 
 	ui_context := ui.init()
 	defer ui.deinit(&ui_context)
+	layout_ctx := &ui_context.layout_ctx
+	defer layout.deinit(layout_ctx)
+	layout_ctx.debug_settings = {
+		draw_ids           = true,
+		draw_if_no_content = true,
+	}
 
-	layout.add_layout_node(&ui_context.layout_ctx.lic, ui_context.layout_ctx.root, 0, layout.make)
-	layout.add_layout_item_node()
-
-	layout.register_node(
-		&ui_context.root_node,
-		layout.make_new_node_with_draw_proc(
-			fmt.aprint("stats_window"),
-			layout_stats_window,
-			&ui_context,
-		),
+	layout.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		// layout.make_debug_leaf_layout_item(layout_ctx),
+		layout.make_layout_item(layout_ctx, "game_window", &ui_context, layout_window_1),
 	)
+	layout.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		// layout.make_debug_leaf_layout_item(layout_ctx),
+		layout.make_layout_item(layout_ctx, "stats_window", &ui_context, layout_stats_window),
+	)
+
+	layout.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
+	layout.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
+	// layout.add_layout_item_node()
+
 	// TODO: unregister node?
 
 	for !rl.WindowShouldClose() {
-		ui.update_input(&ui_context)
+
+		ui.update_state(&ui_context)
 
 		clay.BeginLayout()
-
-		layout_updated := layout.layout_tiling_windows(
-			&ui_context.root_node,
-			rl.IsKeyDown(rl.KeyboardKey.C),
-			&ui_active_elems,
-		)
+		layout.layout(layout_ctx)
 		ui_render_commands := clay.EndLayout()
+
+		layout.interaction(layout_ctx, ui_context.hover_id == 0)
 
 		{
 			scoped_drawing()
@@ -65,7 +82,6 @@ main :: proc() {
 		free_all(context.temp_allocator)
 	}
 
-	rl.CloseWindow()
 }
 
 @(deferred_none = scoped_drawing_end)

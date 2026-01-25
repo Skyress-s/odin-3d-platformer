@@ -1,6 +1,6 @@
 package layout2
 
-import rr "raylib"
+import rr "../raylib"
 import "vendor:raylib"
 
 DEBUG_FONT_ID :: 1

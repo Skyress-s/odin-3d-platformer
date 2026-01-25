@@ -3,8 +3,10 @@ package layout2
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
 import "core:fmt"
+import "core:time"
 
-interaction :: proc(ctx: ^Context) {
+interaction :: proc(ctx: ^Context, allow_interaction: bool) {
+	if !allow_interaction do return
 
 	hovered_layout_item_handle: Layout_Item_Handle
 

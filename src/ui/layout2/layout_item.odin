@@ -115,6 +115,7 @@ make_layout_item :: proc(
 	layout_item.layout_proc = layout_proc
 	layout_item.userdata = user_data
 	layout_item.child_nodes = make([dynamic]hms.Handle, ctx.arena_allocator)
+	layout_item.size_percent = {0.5, 0.5}
 
 	return
 }

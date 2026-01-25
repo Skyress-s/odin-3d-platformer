@@ -1,11 +1,11 @@
 package layout2
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin"
+import rr "../raylib"
 import "core:c"
 import "core:fmt"
 import vmem "core:mem/virtual"
 import "core:strings"
-import rr "raylib"
 import raylib "vendor:raylib"
 
 windowWidth: i32 = 1024
@@ -108,14 +108,13 @@ update_state :: proc(ctx: ^Context) {
 	ctx.screen_dimensions = {cast(f32)raylib.GetScreenWidth(), cast(f32)raylib.GetScreenHeight()}
 	clay.SetLayoutDimensions(ctx.screen_dimensions)
 
-
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = raylib.GetMousePosition()
 
 	update_pointer_state_mouse(&ctx.remove_click, .LEFT, .LEFT_SHIFT)
-	update_pointer_state_mouse(&ctx.add_click, .LEFT, {})
+	update_pointer_state_mouse(&ctx.add_click, .LEFT, .LEFT_CONTROL)
 	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_SHIFT)
-	update_pointer_state_mouse(&ctx.move_click, .RIGHT, {})
+	update_pointer_state_mouse(&ctx.move_click, .RIGHT, .LEFT_CONTROL)
 }
 
 update_pointer_state_mouse :: proc(

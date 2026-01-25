@@ -1,6 +1,6 @@
 package raylib_renderer
 
-import clay "../../clay-odin"
+import clay "/../clay-odin"
 import "core:math"
 import "core:strings"
 import rl "vendor:raylib"
