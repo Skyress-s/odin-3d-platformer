@@ -9,3 +9,13 @@ src.o
 /package_project/build/
 
 src.bin
+
+# Build artifacts
+*.exe
+*.pdb
+*.o
+*.obj
+*.bin
+build/
+dist/
+target/
