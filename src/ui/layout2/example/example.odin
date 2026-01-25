@@ -59,7 +59,7 @@ main :: proc() {
 		layout.layout(&layout_ctx)
 		ui_render_commands := clay.EndLayout()
 
-		layout.interaction(&layout_ctx)
+		layout.interaction(&layout_ctx, true)
 
 		{
 			rl.BeginDrawing()
