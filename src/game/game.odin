@@ -12,9 +12,9 @@ import "core:time"
 // import layout "../ui/layout/"
 // import game_ui "../ui/game_ui/"
 
-import camera "../camera"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import camera "../camera"
 import ddu "../debug_draw_utils/"
 import "../editor_player"
 import gs "../game_state"
@@ -46,7 +46,12 @@ update :: proc(
 
 
 	ray := rlb.convert_ray(
-		rl.GetScreenToWorldRayEx(mouse_pos, gc.camera_state.current_camera, i32(game_rect.width), i32(game_rect.height)),
+		rl.GetScreenToWorldRayEx(
+			mouse_pos,
+			gc.camera_state.current_camera,
+			i32(game_rect.width),
+			i32(game_rect.height),
+		),
 	)
 
 
@@ -128,7 +133,11 @@ update :: proc(
 
 	switch gc.players.mode {
 	case plrs.Player_Mode.Game:
-		camera.interp_fov(&gc.camera_state, linalg.length(gc.players.game.verlet_component.velocity), dt)
+		camera.interp_fov(
+			&gc.camera_state,
+			linalg.length(gc.players.game.verlet_component.velocity),
+			dt,
+		)
 
 		character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
 	case plrs.Player_Mode.Editor:
@@ -241,16 +250,21 @@ update :: proc(
 			&gc.players.game.look_angles,
 		)
 
-		camera.update_transform(&gc.camera_state, gc.players.game.verlet_component.position, forward, right)
+		camera.update_transform(
+			&gc.camera_state,
+			gc.players.game.verlet_component.position,
+			forward,
+			right,
+		)
 	case plrs.Player_Mode.Editor:
 		_, forward, right := player_data.calculate_direction_from_look(
 			&gc.players.editor.look_data,
 		)
 
 		camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
-		// gc.cam.position = gc.players.editor.position
-		// gc.cam.target = gc.cam.position + forward
-		// gc.cam.up = linalg.cross(forward, right)
+	// gc.cam.position = gc.players.editor.position
+	// gc.cam.target = gc.cam.position + forward
+	// gc.cam.up = linalg.cross(forward, right)
 	}
 
 	player_loction := gc.players.game.verlet_component.position
