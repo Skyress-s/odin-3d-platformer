@@ -1,6 +1,5 @@
 package render
 
-import "core:log"
 import spat "../Spatial"
 import col "../color"
 import gs "../game_state"
@@ -8,6 +7,7 @@ import l "../level"
 import lightray "../lightray"
 import plrs "../players/"
 import "core:c"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"

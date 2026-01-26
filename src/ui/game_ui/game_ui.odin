@@ -31,55 +31,66 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-
-	if clay.UI(clay.ID("Game_Window_For_Mouse"))(
-		config = clay.ElementDeclaration {
-			layout = clay.LayoutConfig {
-				layoutDirection = .LeftToRight,
-				sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
-				// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-			},
-			// backgroundColor = {50, 50, 50, 50},
-		},
+	if clay.UI(clay.ID("game_render_window"))(
+	{
+		layout = {sizing = {clay.SizingGrow(), clay.SizingGrow()}, layoutDirection = .TopToBottom},
+		image = {&gc.render_targets.game.texture},
+	},
 	) {
-		on_hover :: proc "c" (
-			id: clay.ElementId,
-			pointerData: clay.PointerData,
-			userData: rawptr,
-		) {
-			gc := cast(^gctx.Global_Context)userData
 
-			assert_contextless(gc != nil)
+		if clay.UI(clay.ID("game_window_for_mouse"))(
+			config = clay.ElementDeclaration {
+				layout = clay.LayoutConfig {
+					layoutDirection = .LeftToRight,
+					sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
 
-			gc.mouse_over_game = true
-		}
-
-		clay.OnHover(on_hover, gc)
-
-		if gc.players.mode == .Game {
-			layout_reticle(gc.players)
-			layout_speedrun_timer(gc.players)
-
-			if clay.UI(clay.ID("Game_Divide"))(
-				config = clay.ElementDeclaration {
-					layout = clay.LayoutConfig {
-						layoutDirection = .LeftToRight,
-						sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
-						// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-					},
-					// backgroundColor = {50, 50, 50, 50},
+					// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
 				},
+				// backgroundColor = {50, 50, 50, 50},
+			},
+		) {
+			on_hover :: proc "c" (
+				id: clay.ElementId,
+				pointerData: clay.PointerData,
+				userData: rawptr,
 			) {
+				gc := cast(^gctx.Global_Context)userData
 
-				layout_stats(gc.players, gc.current_level)
+				assert_contextless(gc != nil)
+
+				gc.mouse_over_game = true
 			}
-		} else {
-			// Might want to have something here?
+
+			clay.OnHover(on_hover, gc)
+
+			if gc.players.mode == .Game {
+				layout_reticle(gc.players)
+				layout_speedrun_timer(gc.players)
+
+				if clay.UI(clay.ID("Game_Divide"))(
+					config = clay.ElementDeclaration {
+						layout = clay.LayoutConfig {
+							layoutDirection = .LeftToRight,
+							sizing = {
+								width = clay.SizingPercent(1),
+								height = clay.SizingPercent(1),
+							},
+							// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
+						},
+						// backgroundColor = {50, 50, 50, 50},
+					},
+				) {
+
+					layout_stats(gc.players, gc.current_level)
+				}
+			} else {
+				// Might want to have something here?
 
 
-			layout_reticle(gc.players)
+				layout_reticle(gc.players)
+			}
+
 		}
-
 	}
 
 

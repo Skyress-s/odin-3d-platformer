@@ -128,22 +128,22 @@ main :: proc() {
 	defer ui.deinit(&ui_context)
 
 	gc: gctx.Global_Context = {
-		players       = &players,
-		game_state    = &game_state,
-		current_level = &current_level,
-		ui_context    = &ui_context,
-		camera_state  = camera.init(
+		players        = &players,
+		game_state     = &game_state,
+		current_level  = &current_level,
+		ui_context     = &ui_context,
+		camera_state   = camera.init(
 			generate_camera(),
 			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 		),
+		render_targets = render.render_targets_init({0, 0}),
 	}
 
 	defer {
 		l.delete_level(gc.current_level)
+		render.render_targets_deinit(gc.render_targets)
 	}
 
-	render_targets := render.render_targets_init({0, 0})
-	defer render.render_targets_deinit(render_targets)
 
 	// Add game window as a Layout_Item in the layout2 system
 	layout_ctx := &ui_context.layout_ctx
@@ -188,9 +188,9 @@ main :: proc() {
 
 		// Check if render target needs resize
 		if game_rt_needs_update ||
-		   (render_targets.game.texture.width != i32(game_rect.width)) ||
-		   (render_targets.game.texture.height != i32(game_rect.height)) {
-			render.resize_render_targets(&render_targets, game_rect)
+		   (gc.render_targets.game.texture.width != i32(game_rect.width)) ||
+		   (gc.render_targets.game.texture.height != i32(game_rect.height)) {
+			render.resize_render_targets(&gc.render_targets, game_rect)
 			game_rt_needs_update = false
 		}
 
@@ -203,7 +203,7 @@ main :: proc() {
 			&debug_draw_data,
 			gc.game_state,
 			game_rect,
-			&render_targets,
+			&gc.render_targets,
 		)
 
 		// Layout pass
@@ -212,6 +212,8 @@ main :: proc() {
 		ui_render_commands := clay.EndLayout()
 
 		// Handle layout interactions (only when not hovering game)
+		// TODO: Wwhn in editor mode. Game should not grab mouse (move to center) when clicking the screen
+		// with the intent to change the layout
 		layout2.interaction(layout_ctx, true) // !gc.mouse_over_game
 
 		rl.BeginDrawing()
@@ -221,19 +223,19 @@ main :: proc() {
 		layout2.render(&ui_render_commands)
 
 		// Draw game texture at layout-determined position
-		rl.DrawTexturePro(
-			render_targets.game.texture,
-			rl.Rectangle {
-				0,
-				0,
-				f32(render_targets.game.texture.width),
-				f32(-render_targets.game.texture.height),
-			},
-			game_rect,
-			{},
-			0,
-			rl.WHITE,
-		)
+		// rl.DrawTexturePro(
+		// 	render_targets.game.texture,
+		// 	rl.Rectangle {
+		// 		0,
+		// 		0,
+		// 		f32(render_targets.game.texture.width),
+		// 		f32(-render_targets.game.texture.height),
+		// 	},
+		// 	game_rect,
+		// 	{},
+		// 	0,
+		// 	rl.WHITE,
+		// )
 
 		rl.EndDrawing()
 
