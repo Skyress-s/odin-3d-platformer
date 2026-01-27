@@ -43,6 +43,8 @@ layout :: proc(ctx: ^Context) {
 
 }
 
+// todo same style as the normal items
+
 layout_floating_item :: proc(ctx: ^Context) {
 	dragging_item, dragging_item_ok := get_item(&ctx.lic, ctx.dragging_handle)
 	if !dragging_item_ok do return
@@ -101,7 +103,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		is_leaf(&ctx.lic, item_handle) &&
 		item.layout_proc == nil
 
-	if clay.UI(clay.ID(fmt.tprintf("{}_outline", item.id)))(
+	if clay.UI(clay.ID(fmt.tprintf("{}", item.id)))(
 	{
 		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
 		// clip = clay.ClipElementConfig{true, true, clay.GetScrollOffset()},
@@ -119,7 +121,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 	) {
 
 		if is_leaf(&ctx.lic, item_handle) {
-			if clay.UI(clay.ID(item.id))(
+			if clay.UI(clay.ID(fmt.tprintf("{}_body", item.id)))(
 			{
 				cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
 				layout = {
@@ -140,12 +142,12 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 
 			}
 
-		}
+		} else {
+			for child_item_handle in item.child_nodes {
+				layout_tiling_layout_item(ctx, child_item_handle)
+			}
 
-		for child_item_handle in item.child_nodes {
-			layout_tiling_layout_item(ctx, child_item_handle)
 		}
-
 	}
 }
 
