@@ -22,6 +22,7 @@ import plrs "../../players/"
 import "../../serialization/"
 import clay "../clay-odin/"
 import layout2 "../layout2/"
+import ui_rr "../raylib/"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
@@ -34,7 +35,12 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 	if clay.UI(clay.ID("game_render_window"))(
 	{
 		layout = {sizing = {clay.SizingGrow(), clay.SizingGrow()}, layoutDirection = .TopToBottom},
-		image = {&gc.render_targets.game.texture},
+		// image = {&gc.render_targets.game.texture},
+		custom = clay.CustomElementConfig {
+			ui_rr.Custom_Render_Command {
+				ui_rr.Custom_Image_Render_Command{&gc.render_targets.game.texture, false, false},
+			},
+		},
 	},
 	) {
 

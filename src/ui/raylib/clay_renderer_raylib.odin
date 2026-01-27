@@ -1,6 +1,7 @@
 package raylib_renderer
 
 import clay "/../clay-odin"
+import "core:fmt"
 import "core:math"
 import "core:strings"
 import rl "vendor:raylib"
@@ -260,7 +261,32 @@ clay_raylib_render :: proc(
 				)
 			}
 		case clay.RenderCommandType.Custom:
-		// Implement custom element rendering here
+			custom_render_data := render_command.renderData.custom
+			custom_render_command_type := cast(^Custom_Render_Command)custom_render_data.customData
+			// custom_render_command.config := render_command.renderData.image
+			switch command in custom_render_command_type {
+			case Custom_Image_Render_Command:
+				// tint := custom_render_data.backgroundColor
+				// if tint == 0 {
+				// 	tint = {255, 255, 255, 255}
+				// }
+
+				imageTexture := (^rl.Texture2D)(command.image_data)
+				fmt.printfln("hello {}", imageTexture.id)
+				rl.DrawTexturePro(
+					imageTexture^,
+					rl.Rectangle {
+						0,
+						0,
+						f32(imageTexture.width) * (command.flip_x ? -1 : 1),
+						f32(imageTexture.height) * (command.flip_y ? -1 : 1),
+					},
+					rl.Rectangle{bounds.x, bounds.y, bounds.width, bounds.height},
+					{},
+					0,
+					rl.WHITE,
+				)
+			}
 		}
 	}
 }
