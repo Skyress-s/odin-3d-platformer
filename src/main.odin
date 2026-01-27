@@ -171,6 +171,8 @@ main :: proc() {
 
 		// Get game rect from layout system (after first frame, use cached bounding box)
 		game_item := layout2.get_item_checked(&layout_ctx.lic, game_window_handle)
+
+		// TODO: Get body not the outline.
 		game_element_data := clay.GetElementData(clay.GetElementId(clay.MakeString(game_item.id)))
 
 		game_rect: rl.Rectangle
