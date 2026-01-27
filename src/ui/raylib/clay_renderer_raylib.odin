@@ -272,7 +272,6 @@ clay_raylib_render :: proc(
 				// }
 
 				imageTexture := (^rl.Texture2D)(command.image_data)
-				fmt.printfln("hello {}", imageTexture.id)
 				rl.DrawTexturePro(
 					imageTexture^,
 					rl.Rectangle {

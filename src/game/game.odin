@@ -101,30 +101,12 @@ update :: proc(
 			gc.players.editor.position = gc.players.game.verlet_component.position
 			gc.players.editor.look_radians = gc.players.game.look_angles
 
-			// found_node := layout.find_node(gc.root_node_tiling_ui, game_ui.EDITOR_DETAILS_PANEL_NAME)
-			// if found_node == nil {
-			// 	ok, new_editor_details_node := layout.register_node(
-			// 		gc.root_node_tiling_ui,
-			// 		game_ui.make_editor_details_node(gc),
-			// 	)
-			// 	assert(ok)
-			// 	found_node = new_editor_details_node
-			// }
-
-
 			gc.players.mode = plrs.Player_Mode.Editor
 			character.pause_speedrun(&gc.players.game)
 		case plrs.Player_Mode.Editor:
 			// enable game mode
 			rl.DisableCursor()
 
-
-			// if found_node := layout.find_node(
-			// 	gc.root_node_tiling_ui,
-			// 	game_ui.EDITOR_DETAILS_PANEL_NAME,
-			// ); found_node != nil {
-			// 	layout.unregister_node(gc.root_node_tiling_ui, game_ui.EDITOR_DETAILS_PANEL_NAME)
-			// }
 
 			gc.players.mode = plrs.Player_Mode.Game
 			character.start_speedrun(&gc.players.game)
@@ -141,31 +123,34 @@ update :: proc(
 
 		character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
 	case plrs.Player_Mode.Editor:
-		if rl.IsKeyPressed(.ONE) {
-			position_transform_tool.active_tool = e_tools.Position_Tool{}
-		} else if rl.IsKeyPressed(.TWO) {
-			position_transform_tool.active_tool = e_tools.Rotation_Tool{}
-		} else if rl.IsKeyPressed(.THREE) {
-			position_transform_tool.active_tool = e_tools.Scale_Tool{}
-		}
-
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
-			e_tools.on_click(position_transform_tool, &cam, gc.current_level, mouse_pos, ray)
-
-		}
-		if position_transform_tool.target_object_id.idx != 0 {
-			if position_transform_tool.dragging {
-				e_tools.update_transform_tool(
-					position_transform_tool,
-					&cam,
-					rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-					rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-					&gc.current_level.collision_object_map,
-					ray,
-				)
+		if gc.mouse_over_game {
+			if rl.IsKeyPressed(.ONE) {
+				position_transform_tool.active_tool = e_tools.Position_Tool{}
+			} else if rl.IsKeyPressed(.TWO) {
+				position_transform_tool.active_tool = e_tools.Rotation_Tool{}
+			} else if rl.IsKeyPressed(.THREE) {
+				position_transform_tool.active_tool = e_tools.Scale_Tool{}
 			}
+
+			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
+				e_tools.on_click(position_transform_tool, &cam, gc.current_level, mouse_pos, ray)
+
+			}
+			if position_transform_tool.target_object_id.idx != 0 {
+				if position_transform_tool.dragging {
+					e_tools.update_transform_tool(
+						position_transform_tool,
+						&cam,
+						rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+						rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+						&gc.current_level.collision_object_map,
+						ray,
+					)
+				}
+			}
+			editor_player.update(&gc.players.editor, dt)
+
 		}
-		editor_player.update(&gc.players.editor, dt)
 	}
 
 	overlapping_finish_volume := spat.does_location_overlap_finish_volume(
