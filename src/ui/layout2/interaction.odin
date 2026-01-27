@@ -2,8 +2,6 @@ package layout2
 
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
-import "core:fmt"
-import "core:time"
 
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	if !allow_interaction do return
@@ -26,6 +24,7 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 		   ctx.mouse_pos.x < layout_item_bounding_box.x + layout_item_bounding_box.width &&
 		   ctx.mouse_pos.y > layout_item_bounding_box.y &&
 		   ctx.mouse_pos.y < layout_item_bounding_box.y + layout_item_bounding_box.height {
+
 			hovered_layout_item_handle = layout_item.handle
 			break
 		}

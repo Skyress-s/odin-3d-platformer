@@ -234,21 +234,6 @@ main :: proc() {
 		// Draw UI overlay
 		layout2.render(&ui_render_commands)
 
-		// Draw game texture at layout-determined position
-		// rl.DrawTexturePro(
-		// 	render_targets.game.texture,
-		// 	rl.Rectangle {
-		// 		0,
-		// 		0,
-		// 		f32(render_targets.game.texture.width),
-		// 		f32(-render_targets.game.texture.height),
-		// 	},
-		// 	game_rect,
-		// 	{},
-		// 	0,
-		// 	rl.WHITE,
-		// )
-
 		rl.EndDrawing()
 
 		ui.end_frame(&ui_context)
