@@ -32,15 +32,17 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
+	image_render_command := new(ui_rr.Custom_Render_Command, context.temp_allocator)
+	image_render_command^ = ui_rr.Custom_Image_Render_Command {
+		&gc.render_targets.game.texture,
+		false,
+		true,
+	}
+
 	if clay.UI(clay.ID("game_render_window"))(
 	{
 		layout = {sizing = {clay.SizingGrow(), clay.SizingGrow()}, layoutDirection = .TopToBottom},
-		// image = {&gc.render_targets.game.texture},
-		custom = clay.CustomElementConfig {
-			ui_rr.Custom_Render_Command {
-				ui_rr.Custom_Image_Render_Command{&gc.render_targets.game.texture, false, false},
-			},
-		},
+		custom = clay.CustomElementConfig{image_render_command},
 	},
 	) {
 

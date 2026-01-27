@@ -12,7 +12,7 @@ COLOR_ITEM_BODY := clay.Color{14, 21, 33, 255}
 OUTLINE_WIDTH :: 3
 LEAF_CORNER_RADIUS :: 12
 
-BODY_PADDING :: 18
+BODY_PADDING :: 13
 
 DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
 	// fontSize      = 48,
@@ -101,33 +101,25 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		is_leaf(&ctx.lic, item_handle) &&
 		item.layout_proc == nil
 
-	if clay.UI(clay.ID(item.id))(
+	if clay.UI(clay.ID(fmt.tprintf("{}_outline", item.id)))(
 	{
 		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
 		// clip = clay.ClipElementConfig{true, true, clay.GetScrollOffset()},
 		layout = {
 			layoutDirection = item.layout_dir,
-			sizing          = {
+			sizing = {
 				clay.SizingPercent(item.size_percent.x),
 				clay.SizingPercent(item.size_percent.y),
 			},
-			padding         = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(OUTLINE_WIDTH) : clay.PaddingAll(0),
-			childGap        = 4,
-			// padding         = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(16) : clay.PaddingAll(16),
-			// childGap        = 8,
+			padding = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(OUTLINE_WIDTH) : clay.PaddingAll(0),
+			childGap = 4,
 		},
-		// backgroundColor = clay.Color {
-		// 	f32(max_leaf_distance(&ctx.lic, item_handle)) * 50,
-		// 	0,
-		// 	0,
-		// 	255,
-		// },
 		backgroundColor = is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND,
 	},
 	) {
 
 		if is_leaf(&ctx.lic, item_handle) {
-			if clay.UI()(
+			if clay.UI(clay.ID(item.id))(
 			{
 				cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
 				layout = {
