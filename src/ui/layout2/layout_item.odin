@@ -31,6 +31,8 @@ Context :: struct {
 	mouse_pos:                                         raylib.Vector2,
 	mouse_pos_last_frame:                              raylib.Vector2,
 	screen_dimensions:                                 clay.Dimensions,
+	// I am abit unsure if this library should have this responsebility...
+	controlling_layout_item:                           Layout_Item_Handle, // Tells ui which one has control / can receive inputs. if {}, we are in layout edit mode
 }
 
 Layout_Item :: struct {
@@ -860,4 +862,31 @@ try_resize :: proc(
 	// TODO: Can implement later if wanted
 
 	return
+}
+
+// brute force find the if we are hovering a Layout_Item
+get_hovered_layout_item_leaf :: proc(ctx: ^Context) -> Layout_Item_Handle {
+
+	// brute force find the if we are hovering a Layout_Item
+	for layout_item in ctx.lic.items {
+		if hms.skip(layout_item) do continue
+
+		if !is_leaf(&ctx.lic, layout_item.handle) do continue
+
+		if layout_item.handle == ctx.dragging_handle do continue
+
+		layout_clay_id := clay.GetElementId(clay.MakeString(layout_item.id))
+		layout_item_bounding_box := get_clay_bounding_box(layout_item.id)
+
+		// Cannot use clay.PointerOver(layout_clay_id) as it can be obstructed by other floating ui objects
+		if ctx.mouse_pos.x > layout_item_bounding_box.x &&
+		   ctx.mouse_pos.x < layout_item_bounding_box.x + layout_item_bounding_box.width &&
+		   ctx.mouse_pos.y > layout_item_bounding_box.y &&
+		   ctx.mouse_pos.y < layout_item_bounding_box.y + layout_item_bounding_box.height {
+
+			return layout_item.handle
+		}
+	}
+
+	return {}
 }

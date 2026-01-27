@@ -6,30 +6,10 @@ import clay "../clay-odin/"
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	if !allow_interaction do return
 
-	hovered_layout_item_handle: Layout_Item_Handle
+	if ctx.controlling_layout_item != {} do return
 
-	// brute force find the if we are hovering a Layout_Item
-	for layout_item in ctx.lic.items {
-		if hms.skip(layout_item) do continue
+	hovered_layout_item_handle: Layout_Item_Handle = get_hovered_layout_item_leaf(ctx)
 
-		if !is_leaf(&ctx.lic, layout_item.handle) do continue
-
-		if layout_item.handle == ctx.dragging_handle do continue
-
-		layout_clay_id := clay.GetElementId(clay.MakeString(layout_item.id))
-		layout_item_bounding_box := get_clay_bounding_box(layout_item.id)
-
-		// Cannot use clay.PointerOver(layout_clay_id) as it can be obstructed by other floating ui objects
-		if ctx.mouse_pos.x > layout_item_bounding_box.x &&
-		   ctx.mouse_pos.x < layout_item_bounding_box.x + layout_item_bounding_box.width &&
-		   ctx.mouse_pos.y > layout_item_bounding_box.y &&
-		   ctx.mouse_pos.y < layout_item_bounding_box.y + layout_item_bounding_box.height {
-
-			hovered_layout_item_handle = layout_item.handle
-			break
-		}
-
-	}
 
 	if !hms.valid(ctx.lic, hovered_layout_item_handle) do return // expected, might not hover over any Layout_Item
 

@@ -115,7 +115,21 @@ update_state :: proc(ctx: ^Context) {
 	update_pointer_state_mouse(&ctx.add_click, .LEFT, .LEFT_CONTROL)
 	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_SHIFT)
 	update_pointer_state_mouse(&ctx.move_click, .RIGHT, .LEFT_CONTROL)
+
+
+	if raylib.IsKeyPressed(.L) {
+		ctx.controlling_layout_item = {}
+
+	} else if ctx.controlling_layout_item == {} &&
+	   raylib.IsMouseButtonPressed(.LEFT) &&
+	   !any_modifier_key_down_or_pressed() {
+		ctx.controlling_layout_item = get_hovered_layout_item_leaf(ctx)
+
+	} else if !hms.valid(ctx.lic, ctx.controlling_layout_item) {
+		ctx.controlling_layout_item = {}
+	}
 }
+
 
 update_pointer_state_mouse :: proc(
 	pointer_state: ^clay.PointerDataInteractionState,

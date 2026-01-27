@@ -206,7 +206,11 @@ main :: proc() {
 			game_rt_needs_update = false
 		}
 
-		debug_draw_data := game.update(&gc, game_rect)
+		debug_draw_data := game.update(
+			&gc,
+			game_rect,
+			layout_ctx.controlling_layout_item == game_window_handle,
+		)
 
 		render.render(
 			gc.current_level,

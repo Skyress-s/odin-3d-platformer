@@ -229,6 +229,7 @@ Context :: struct {
 	hover_id:                        u32,
 	updated_hover:                   bool,
 
+
 	// hold_focus:                      bool,
 	textbox_state:                   textedit.State,
 	text_input:                      strings.Builder,
@@ -341,6 +342,7 @@ update_state :: proc(ctx: ^Context) {
 	update_text_input(ctx)
 
 	layout.update_state(&ctx.layout_ctx)
+
 }
 
 set_focus :: proc(ctx: ^Context, id: u32) {

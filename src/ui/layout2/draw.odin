@@ -6,6 +6,7 @@ import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin/"
 
 COLOR_LEAF_OUTLINE := clay.Color{72, 100, 150, 255}
+COLOR_LEAF_OUTLINE_CONTROLLING := clay.Color{164, 165, 252, 255}
 COLOR_BACKGROUND := clay.Color{3, 4, 43, 255}
 COLOR_ITEM_BODY := clay.Color{14, 21, 33, 255}
 
@@ -110,6 +111,9 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		is_leaf(&ctx.lic, item_handle) &&
 		item.layout_proc == nil
 
+	outline_color := is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND
+	if ctx.controlling_layout_item == item_handle do outline_color = COLOR_LEAF_OUTLINE_CONTROLLING
+
 	if clay.UI(clay.ID(fmt.tprintf("{}", item.id)))(
 	{
 		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
@@ -123,7 +127,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 			padding = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(OUTLINE_WIDTH) : clay.PaddingAll(0),
 			childGap = 4,
 		},
-		backgroundColor = is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND,
+		backgroundColor = outline_color,
 	},
 	) {
 

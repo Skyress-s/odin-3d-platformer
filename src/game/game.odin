@@ -33,6 +33,7 @@ import e_tools "../editor/tools"
 update :: proc(
 	gc: ^gctx.Global_Context,
 	game_rect: rl.Rectangle,
+	can_receive_input: bool,
 ) -> (
 	debug_draw_data: render.Debug_Draw_Data,
 ) {
@@ -92,64 +93,72 @@ update :: proc(
 
 	}
 
-	// should we change to another state
-	if rl.IsKeyPressed(.Q) {
+	if can_receive_input {
+		// should we change to another state
+		if rl.IsKeyPressed(.Q) {
+			switch gc.players.mode {
+			case plrs.Player_Mode.Game:
+				// enable editor mode
+				rl.EnableCursor()
+				gc.players.editor.position = gc.players.game.verlet_component.position
+				gc.players.editor.look_radians = gc.players.game.look_angles
+
+				gc.players.mode = plrs.Player_Mode.Editor
+				character.pause_speedrun(&gc.players.game)
+			case plrs.Player_Mode.Editor:
+				// enable game mode
+				rl.DisableCursor()
+
+
+				gc.players.mode = plrs.Player_Mode.Game
+				character.start_speedrun(&gc.players.game)
+			}
+		}
+
 		switch gc.players.mode {
 		case plrs.Player_Mode.Game:
-			// enable editor mode
-			rl.EnableCursor()
-			gc.players.editor.position = gc.players.game.verlet_component.position
-			gc.players.editor.look_radians = gc.players.game.look_angles
+			camera.interp_fov(
+				&gc.camera_state,
+				linalg.length(gc.players.game.verlet_component.velocity),
+				dt,
+			)
 
-			gc.players.mode = plrs.Player_Mode.Editor
-			character.pause_speedrun(&gc.players.game)
+			character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
 		case plrs.Player_Mode.Editor:
-			// enable game mode
-			rl.DisableCursor()
+			if gc.mouse_over_game {
+				if rl.IsKeyPressed(.ONE) {
+					position_transform_tool.active_tool = e_tools.Position_Tool{}
+				} else if rl.IsKeyPressed(.TWO) {
+					position_transform_tool.active_tool = e_tools.Rotation_Tool{}
+				} else if rl.IsKeyPressed(.THREE) {
+					position_transform_tool.active_tool = e_tools.Scale_Tool{}
+				}
 
-
-			gc.players.mode = plrs.Player_Mode.Game
-			character.start_speedrun(&gc.players.game)
-		}
-	}
-
-	switch gc.players.mode {
-	case plrs.Player_Mode.Game:
-		camera.interp_fov(
-			&gc.camera_state,
-			linalg.length(gc.players.game.verlet_component.velocity),
-			dt,
-		)
-
-		character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
-	case plrs.Player_Mode.Editor:
-		if gc.mouse_over_game {
-			if rl.IsKeyPressed(.ONE) {
-				position_transform_tool.active_tool = e_tools.Position_Tool{}
-			} else if rl.IsKeyPressed(.TWO) {
-				position_transform_tool.active_tool = e_tools.Rotation_Tool{}
-			} else if rl.IsKeyPressed(.THREE) {
-				position_transform_tool.active_tool = e_tools.Scale_Tool{}
-			}
-
-			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
-				e_tools.on_click(position_transform_tool, &cam, gc.current_level, mouse_pos, ray)
-
-			}
-			if position_transform_tool.target_object_id.idx != 0 {
-				if position_transform_tool.dragging {
-					e_tools.update_transform_tool(
+				if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
+					e_tools.on_click(
 						position_transform_tool,
 						&cam,
-						rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-						rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-						&gc.current_level.collision_object_map,
+						gc.current_level,
+						mouse_pos,
 						ray,
 					)
-				}
-			}
-			editor_player.update(&gc.players.editor, dt)
 
+				}
+				if position_transform_tool.target_object_id.idx != 0 {
+					if position_transform_tool.dragging {
+						e_tools.update_transform_tool(
+							position_transform_tool,
+							&cam,
+							rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+							rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+							&gc.current_level.collision_object_map,
+							ray,
+						)
+					}
+				}
+				editor_player.update(&gc.players.editor, dt)
+
+			}
 		}
 	}
 
