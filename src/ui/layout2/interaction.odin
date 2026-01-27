@@ -19,8 +19,13 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 		if layout_item.handle == ctx.dragging_handle do continue
 
 		layout_clay_id := clay.GetElementId(clay.MakeString(layout_item.id))
+		layout_item_bounding_box := get_clay_bounding_box(layout_item.id)
 
-		if clay.PointerOver(layout_clay_id) {
+		// Cannot use clay.PointerOver(layout_clay_id) as it can be obstructed by other floating ui objects
+		if ctx.mouse_pos.x > layout_item_bounding_box.x &&
+		   ctx.mouse_pos.x < layout_item_bounding_box.x + layout_item_bounding_box.width &&
+		   ctx.mouse_pos.y > layout_item_bounding_box.y &&
+		   ctx.mouse_pos.y < layout_item_bounding_box.y + layout_item_bounding_box.height {
 			hovered_layout_item_handle = layout_item.handle
 			break
 		}
@@ -39,8 +44,6 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 
 	hovered_bounding_box := hovered_element_data.boundingBox
 
-
-	// priority: Resize, add, remove
 	corner := closest_corner(hovered_bounding_box, ctx.mouse_pos)
 	edge := closest_edge(hovered_bounding_box, ctx.mouse_pos)
 

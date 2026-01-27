@@ -37,6 +37,7 @@ layout :: proc(ctx: ^Context) {
 	},
 	) {
 		layout_tiling_layout_item(ctx, ctx.root)
+
 		layout_floating_item(ctx)
 	}
 
@@ -53,7 +54,7 @@ layout_floating_item :: proc(ctx: ^Context) {
 	target_floating_dimensions.height *= 0.2
 	target_floating_dimensions.width *= 0.2
 
-	if clay.UI(clay.ID(dragging_item.id))(
+	if clay.UI(clay.ID(fmt.tprintf("{}", dragging_item.id)))(
 		config = clay.ElementDeclaration {
 			cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
 			layout = clay.LayoutConfig {
@@ -74,7 +75,7 @@ layout_floating_item :: proc(ctx: ^Context) {
 		},
 	) {
 
-		if clay.UI()(
+		if clay.UI(clay.ID(fmt.tprintf("{}_body", dragging_item.id)))(
 		{
 			cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
 			layout = {
@@ -85,7 +86,13 @@ layout_floating_item :: proc(ctx: ^Context) {
 			backgroundColor = COLOR_ITEM_BODY,
 		},
 		) {
-			layout_debug_leaf_data(ctx, dragging_item)
+			if dragging_item.layout_proc != nil {
+				parent := get_item_checked(&ctx.lic, dragging_item.handle)
+				dragging_item.layout_proc(parent, &ctx.active_elements)
+
+			} else {
+				layout_debug_leaf_data(ctx, dragging_item)
+			}
 
 		}
 

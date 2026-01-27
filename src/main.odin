@@ -154,6 +154,16 @@ main :: proc() {
 		0,
 		game_window_item,
 	)
+	{
+		ui_layout_item := layout2.make_layout_item(
+			layout_ctx,
+			"ui_details",
+			&gc,
+			game_ui.layout_ui_data,
+		)
+		ui_layout_item.size_percent = {0.5, 0.5}
+		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, ui_layout_item)
+	}
 	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
 	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 

@@ -66,7 +66,7 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 
 				assert_contextless(gc != nil)
 
-				gc.mouse_over_game = true
+				gc.mouse_over_game = gc.ui_context.layout_ctx.dragging_handle == {}
 			}
 
 			clay.OnHover(on_hover, gc)
@@ -123,7 +123,15 @@ layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2
 	assert(gc != nil)
 
 	layout_details_panel(gc.ui_context, gc.players, gc.game_state, gc.current_level, active_elems)
+}
 
+layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+	gc := cast(^gctx.Global_Context)node.userdata
+	assert(gc != nil)
+
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
+	)
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
@@ -226,6 +234,7 @@ layout_reticle :: proc(
 				expand = {2.0, 2.0},
 				attachTo = .Parent,
 				attachment = clay.FloatingAttachPoints{parent = .CenterCenter},
+				pointerCaptureMode = .Passthrough,
 			},
 			backgroundColor = layout2.COLOR_GREEN,
 		},
@@ -247,6 +256,7 @@ layout_speedrun_timer :: proc(players: ^plrs.Players) {
 				attachTo = .Parent,
 				attachment = clay.FloatingAttachPoints{parent = .CenterTop},
 				expand = {100, 100},
+				pointerCaptureMode = .Passthrough,
 			},
 			// backgroundColor = layout.COLOR_GREEN,
 		},
