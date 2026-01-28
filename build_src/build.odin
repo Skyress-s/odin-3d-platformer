@@ -39,14 +39,14 @@ main :: proc() {
 		"build",
 		"src/",
 		"-o:speed",
-		"-out:build/game" + exe_file_extension,
+		"-out:build/defenestration_game" + exe_file_extension,
 	}
 
 	_, _, _, err := os.process_exec(process_desc, context.temp_allocator)
 	assert(err == nil, fmt.tprint(err))
 	print_build_step_with_time_and_restart(&build_step_stopwatch, "Building game.")
 
-	zip_folder("build", "build.zip")
+	zip_folder("build", "defenestration_game.zip")
 	print_build_step_with_time_and_restart(&build_step_stopwatch, "Compressing game to zip.")
 	os.remove_all("build")
 
