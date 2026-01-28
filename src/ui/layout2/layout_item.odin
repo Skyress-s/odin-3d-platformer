@@ -32,7 +32,8 @@ Context :: struct {
 	mouse_pos_last_frame:                              raylib.Vector2,
 	screen_dimensions:                                 clay.Dimensions,
 	// I am abit unsure if this library should have this responsebility...
-	controlling_layout_item:                           Layout_Item_Handle, // Tells ui which one has control / can receive inputs. if {}, we are in layout edit mode
+	// controlling_layout_item:                           Layout_Item_Handle, // Tells ui which one has control / can receive inputs. if {}, we are in layout edit mode
+	hover_layout_handle:                               Layout_Item_Handle,
 }
 
 Layout_Item :: struct {
@@ -732,7 +733,7 @@ get_neighbour_with_min_size :: proc(
 		neighour, neighour_ok := get_item(lic, neighour_handle)
 		if !neighour_ok do return {} // item is last of first
 
-		element_bounding_box := get_clay_bounding_box(neighour.id)
+		element_bounding_box := get_clay_bounding_box_checked(neighour.id)
 
 		if after == dragging_towards_after {
 			if horizontal {
@@ -794,11 +795,17 @@ get_neighbour :: proc(
 	return parent.child_nodes[neighbour_index_in_parent]
 }
 
-get_clay_bounding_box :: proc(id: string) -> clay.BoundingBox {
+get_clay_bounding_box_checked :: proc(id: string) -> clay.BoundingBox {
+	bounding_box, ok := get_clay_bounding_box(id)
+	assert(ok)
+	return bounding_box
+}
+
+
+get_clay_bounding_box :: proc(id: string) -> (clay.BoundingBox, bool) {
 	clay_element_id := clay.GetElementId(clay.MakeString(id))
 	element_data := clay.GetElementData(clay_element_id)
-	assert(element_data.found)
-	return element_data.boundingBox
+	return element_data.boundingBox, element_data.found
 }
 
 // TODO: Can implement later if wanted
@@ -816,8 +823,8 @@ scale_with_min_size :: proc(
 	item := get_item_checked(&ctx.lic, item_handle)
 	parent := get_item_checked(&ctx.lic, item.parent_handle)
 
-	item_bounds := get_clay_bounding_box(item.id)
-	parent_bounds := get_clay_bounding_box(parent.id)
+	item_bounds := get_clay_bounding_box_checked(item.id)
+	parent_bounds := get_clay_bounding_box_checked(parent.id)
 
 
 	after := is_right(corner)
@@ -876,7 +883,11 @@ get_hovered_layout_item_leaf :: proc(ctx: ^Context) -> Layout_Item_Handle {
 		if layout_item.handle == ctx.dragging_handle do continue
 
 		layout_clay_id := clay.GetElementId(clay.MakeString(layout_item.id))
-		layout_item_bounding_box := get_clay_bounding_box(layout_item.id)
+		layout_item_bounding_box, layout_item_bounding_box_ok := get_clay_bounding_box(
+			layout_item.id,
+		)
+
+		if !layout_item_bounding_box_ok do continue
 
 		// Cannot use clay.PointerOver(layout_clay_id) as it can be obstructed by other floating ui objects
 		if ctx.mouse_pos.x > layout_item_bounding_box.x &&

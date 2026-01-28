@@ -91,6 +91,34 @@ update :: proc(
 		}
 
 
+		/*
+	{       next up to implement
+		@(static) cursor_enabled := false
+		if rl.IsKeyPressed(.TAB) {
+
+			GAME_CHEATS_WINDOW_NAME :: "game_cheats"
+
+			cursor_enabled = !cursor_enabled
+			if cursor_enabled {
+				rl.EnableCursor()
+			} else {
+				rl.DisableCursor()
+			}
+		}
+
+		if cursor_enabled {
+			rl.ShowCursor()
+
+		} else {
+			rl.ShowCursor()
+			x := game_rect.x + game_rect.width / 2
+			y := game_rect.y + game_rect.height / 2
+			rl.SetMousePosition(i32(x), i32(y))
+
+		}
+	}
+         * */
+
 	}
 
 	if can_receive_input {

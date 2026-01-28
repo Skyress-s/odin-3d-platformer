@@ -112,7 +112,7 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 		item.layout_proc == nil
 
 	outline_color := is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND
-	if ctx.controlling_layout_item == item_handle do outline_color = COLOR_LEAF_OUTLINE_CONTROLLING
+	// if ctx.controlling_layout_item == item_handle do outline_color = COLOR_LEAF_OUTLINE_CONTROLLING
 
 	if clay.UI(clay.ID(fmt.tprintf("{}", item.id)))(
 	{

@@ -6,14 +6,11 @@ import clay "../clay-odin/"
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	if !allow_interaction do return
 
-	if ctx.controlling_layout_item != {} do return
+	// if ctx.controlling_layout_item != {} do return
 
-	hovered_layout_item_handle: Layout_Item_Handle = get_hovered_layout_item_leaf(ctx)
+	if !hms.valid(ctx.lic, ctx.hover_layout_handle) do return // expected, might not hover over any Layout_Item
 
-
-	if !hms.valid(ctx.lic, hovered_layout_item_handle) do return // expected, might not hover over any Layout_Item
-
-	hovered_layout_item := hms.get(&ctx.lic, hovered_layout_item_handle)
+	hovered_layout_item := hms.get(&ctx.lic, ctx.hover_layout_handle)
 	assert(hms.valid(ctx.lic, hovered_layout_item.parent_handle))
 
 	hovered_element_data := clay.GetElementData(
@@ -110,8 +107,8 @@ scale_layout_item :: proc(
 
 		input_flip_flop: f32 = after ? 1 : -1
 
-		scalar_x_parent_bounding_box := get_clay_bounding_box(parent_scalar_x.id)
-		neighbour_x_parent_bounding_box := get_clay_bounding_box(
+		scalar_x_parent_bounding_box := get_clay_bounding_box_checked(parent_scalar_x.id)
+		neighbour_x_parent_bounding_box := get_clay_bounding_box_checked(
 			get_item_checked(&ctx.lic, neighbour.parent_handle).id,
 		)
 

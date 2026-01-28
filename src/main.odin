@@ -209,7 +209,9 @@ main :: proc() {
 		debug_draw_data := game.update(
 			&gc,
 			game_rect,
-			layout_ctx.controlling_layout_item == game_window_handle,
+			gc.ui_context.layout_ctx.hover_layout_handle == game_window_handle,
+			// true,
+			// layout_ctx.controlling_layout_item == game_window_handle,
 		)
 
 		render.render(

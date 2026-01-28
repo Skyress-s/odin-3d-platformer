@@ -133,9 +133,9 @@ layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
 	)
 
-	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Controlling leaf {}", gc.ui_context.layout_ctx.controlling_layout_item),
-	)
+	// ui.layout_dynamic_text_entry(
+	// 	fmt.tprintf("Controlling leaf {}", gc.ui_context.layout_ctx.controlling_layout_item),
+	// )
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
