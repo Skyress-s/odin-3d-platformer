@@ -11,6 +11,10 @@ when ODIN_OS == .Windows {
 	exe_file_extension :: ""
 }
 
+GAME_NAME :: "defenestration_game"
+BUILD_FOLDER_PATH :: "build"
+CONTENT_PATH :: "content"
+
 main :: proc() {
 	fmt.printfln("Start building game...")
 	build_stopwatch: time.Stopwatch
@@ -20,17 +24,19 @@ main :: proc() {
 	build_step_stopwatch: time.Stopwatch
 	time.stopwatch_start(&build_step_stopwatch)
 
-	os.remove_all("build") // make sure dir is clean
-	os.mkdir_all("build/resources")
+	os.remove_all(BUILD_FOLDER_PATH) // make sure dir is clean
+	os.remove_all(GAME_NAME)
+	os.mkdir_all("build/content")
+	os.mkdir_all(BUILD_FOLDER_PATH + "/" + CONTENT_PATH)
 
 	print_build_step_with_time_and_restart(
 		&build_step_stopwatch,
 		"Removing old /build/ and creating new /build/.",
 	)
 
-	os.copy_directory_all("build", "resources")
+	os.copy_directory_all(BUILD_FOLDER_PATH + "/" + CONTENT_PATH, CONTENT_PATH)
 
-	print_build_step_with_time_and_restart(&build_step_stopwatch, "Copy /resources/ into /build/.")
+	print_build_step_with_time_and_restart(&build_step_stopwatch, "Copy /content/ into /build/.")
 
 	process_desc := os.Process_Desc{}
 	process_desc.working_dir = ""
@@ -48,6 +54,7 @@ main :: proc() {
 
 	zip_folder("build", "defenestration_game.zip")
 	print_build_step_with_time_and_restart(&build_step_stopwatch, "Compressing game to zip.")
+
 	os.remove_all("build")
 
 	print_build_step_with_time_and_restart(&build_step_stopwatch, "Deleting /build/")
