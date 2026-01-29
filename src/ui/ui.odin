@@ -300,8 +300,7 @@ input_scroll :: proc(ctx: ^Context, x, y: i32) {
 	ctx.scroll_delta.y += y
 }
 
-update_mouse_input :: proc(ctx: ^Context) {
-	mouse_pos := rl.GetMousePosition()
+update_mouse_input :: proc(ctx: ^Context, mouse_pos: rl.Vector2) {
 	mouse_x, mouse_y := i32(mouse_pos.x), i32(mouse_pos.y)
 	input_mouse_move(ctx, mouse_x, mouse_y)
 
@@ -336,12 +335,12 @@ update_text_input :: proc(ctx: ^Context) {
 	}
 }
 
-update_state :: proc(ctx: ^Context) {
-	update_mouse_input(ctx)
+update_state :: proc(ctx: ^Context, mouse_pos: rl.Vector2) {
+	update_mouse_input(ctx, mouse_pos)
 	update_key_input(ctx)
 	update_text_input(ctx)
 
-	layout.update_state(&ctx.layout_ctx)
+	layout.update_state(&ctx.layout_ctx, mouse_pos)
 
 }
 

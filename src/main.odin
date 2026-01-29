@@ -24,6 +24,7 @@ import clay "ui/clay-odin"
 import game_ui "ui/game_ui"
 import layout2 "ui/layout2"
 import rl "vendor:raylib"
+import vmouse "virtual_mouse"
 
 
 USE_TRACESTACK :: #config(USE_TRACESTACK, false)
@@ -72,6 +73,10 @@ when USE_TRACESTACK {
 		}
 		runtime.trap()
 	}
+}
+
+disable_cursor :: proc() {
+	rl.DisableCursor()
 }
 
 main :: proc() {
@@ -128,15 +133,19 @@ main :: proc() {
 	defer ui.deinit(&ui_context)
 
 	gc: gctx.Global_Context = {
-		players        = &players,
-		game_state     = &game_state,
-		current_level  = &current_level,
-		ui_context     = &ui_context,
-		camera_state   = camera.init(
+		players           = &players,
+		game_state        = &game_state,
+		current_level     = &current_level,
+		ui_context        = &ui_context,
+		camera_state      = camera.init(
 			generate_camera(),
 			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 		),
-		render_targets = render.render_targets_init({0, 0}),
+		render_targets    = render.render_targets_init({0, 0}),
+		virtual_mouse_ctx = vmouse.init(
+			{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
+			disable_cursor,
+		),
 	}
 
 	defer {
@@ -164,6 +173,16 @@ main :: proc() {
 		ui_layout_item.size_percent = {0.5, 0.5}
 		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, ui_layout_item)
 	}
+	{
+		log_layout_item := layout2.make_layout_item(
+			layout_ctx,
+			"log",
+			&gc,
+			game_ui.layout_log_window,
+		)
+		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, log_layout_item)
+	}
+
 	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
 	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 
@@ -171,9 +190,13 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		gc.mouse_over_game = false // Will be set to true by layout_game_ui if hovered
-
+		vmouse.update(
+			&gc.virtual_mouse_ctx,
+			rl.GetMouseDelta(),
+			{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
+		)
 		// Update UI state (mouse, keyboard, etc.)
-		ui.update_state(&ui_context)
+		ui.update_state(&ui_context, vmouse.get_mouse_pos(gc.virtual_mouse_ctx))
 
 		if rl.IsWindowResized() {
 			game_rt_needs_update = true
@@ -210,6 +233,8 @@ main :: proc() {
 			&gc,
 			game_rect,
 			gc.ui_context.layout_ctx.hover_layout_handle == game_window_handle,
+			vmouse.get_mouse_pos(gc.virtual_mouse_ctx),
+
 			// true,
 			// layout_ctx.controlling_layout_item == game_window_handle,
 		)
@@ -239,6 +264,17 @@ main :: proc() {
 
 		// Draw UI overlay
 		layout2.render(&ui_render_commands)
+
+		if !vmouse.is_mouse_hidden(gc.virtual_mouse_ctx) {
+			rl.DrawRectangle(
+				i32(gc.virtual_mouse_ctx.mouse_position.x) - 4,
+				i32(gc.virtual_mouse_ctx.mouse_position.y) - 4,
+				8,
+				8,
+				rl.RED,
+			)
+
+		}
 
 		rl.EndDrawing()
 

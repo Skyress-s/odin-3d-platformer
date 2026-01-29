@@ -23,6 +23,7 @@ import l "../level"
 import "../player_data"
 import plrs "../players"
 import rlb "../raylib_bridge"
+import vmouse "../virtual_mouse"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -34,14 +35,13 @@ update :: proc(
 	gc: ^gctx.Global_Context,
 	game_rect: rl.Rectangle,
 	can_receive_input: bool,
+	mouse_pos: rl.Vector2,
 ) -> (
 	debug_draw_data: render.Debug_Draw_Data,
 ) {
 	dt := rl.GetFrameTime()
 	// dt = 0.06
-	mouse_pos := rl.GetMousePosition()
-	mouse_pos.x -= game_rect.x
-	mouse_pos.y -= game_rect.y
+	mouse_pos := mouse_pos
 
 	cam := gc.camera_state.current_camera
 
@@ -76,50 +76,25 @@ update :: proc(
 
 
 	}
-	if rl.IsKeyPressed(.TAB) {
-		@(static) cursor_enabled := false
-
-		GAME_CHEATS_WINDOW_NAME :: "game_cheats"
-
-		cursor_enabled = !cursor_enabled
-		if cursor_enabled {
-			rl.EnableCursor()
-			// layout.register_node(gc.root_node_tiling_ui, layout.make_new_node_with_draw_proc(GAME_CHEATS_WINDOW_NAME, game_ui.layout_game_cheats_window, gc))
-		} else {
-			rl.DisableCursor()
-			// layout.unregister_node(gc.root_node_tiling_ui, GAME_CHEATS_WINDOW_NAME)
-		}
-
-
-		/*
-	{       next up to implement
+	{
 		@(static) cursor_enabled := false
 		if rl.IsKeyPressed(.TAB) {
 
 			GAME_CHEATS_WINDOW_NAME :: "game_cheats"
 
 			cursor_enabled = !cursor_enabled
-			if cursor_enabled {
-				rl.EnableCursor()
-			} else {
-				rl.DisableCursor()
-			}
 		}
 
 		if cursor_enabled {
-			rl.ShowCursor()
-
+			vmouse.restrict_mouse(&gc.virtual_mouse_ctx, {0, 0}, {10000, 1000000})
 		} else {
-			rl.ShowCursor()
-			x := game_rect.x + game_rect.width / 2
-			y := game_rect.y + game_rect.height / 2
-			rl.SetMousePosition(i32(x), i32(y))
-
+			vmouse.restrict_mouse(
+				&gc.virtual_mouse_ctx,
+				vmouse.Vec2{game_rect.x + game_rect.width / 2, game_rect.y + game_rect.height / 2},
+			)
 		}
 	}
-         * */
 
-	}
 
 	if can_receive_input {
 		// should we change to another state
@@ -127,7 +102,7 @@ update :: proc(
 			switch gc.players.mode {
 			case plrs.Player_Mode.Game:
 				// enable editor mode
-				rl.EnableCursor()
+				// rl.EnableCursor()
 				gc.players.editor.position = gc.players.game.verlet_component.position
 				gc.players.editor.look_radians = gc.players.game.look_angles
 
@@ -135,7 +110,7 @@ update :: proc(
 				character.pause_speedrun(&gc.players.game)
 			case plrs.Player_Mode.Editor:
 				// enable game mode
-				rl.DisableCursor()
+				// rl.DisableCursor()
 
 
 				gc.players.mode = plrs.Player_Mode.Game

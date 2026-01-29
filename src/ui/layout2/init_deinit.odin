@@ -87,7 +87,7 @@ deinit :: proc(ctx: ^Context) {
 }
 
 // Updated cursor / pointer states and such
-update_state :: proc(ctx: ^Context) {
+update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	windowWidth = raylib.GetScreenWidth()
 	windowHeight = raylib.GetScreenHeight()
 	if (raylib.IsKeyPressed(.U)) {
@@ -109,7 +109,7 @@ update_state :: proc(ctx: ^Context) {
 	clay.SetLayoutDimensions(ctx.screen_dimensions)
 
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
-	ctx.mouse_pos = raylib.GetMousePosition()
+	ctx.mouse_pos = mouse_pos
 
 	update_pointer_state_mouse(&ctx.remove_click, .BACK, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.add_click, .MIDDLE, .LEFT_ALT)

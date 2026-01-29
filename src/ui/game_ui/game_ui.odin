@@ -1,6 +1,7 @@
 package game_ui
 
 import "core:fmt"
+import "core:log"
 import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
@@ -20,6 +21,7 @@ import hms "../../handle_map/handle_map_static/"
 import l "../../level/"
 import plrs "../../players/"
 import "../../serialization/"
+import vmouse "../../virtual_mouse/"
 import clay "../clay-odin/"
 import layout2 "../layout2/"
 import ui_rr "../raylib/"
@@ -117,6 +119,20 @@ layout_game_cheats_window :: proc(
 	layout_cheats_panel(gc.ui_context, gc.players, gc.game_state)
 }
 
+layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+	gc := cast(^gctx.Global_Context)node.userdata
+	assert(gc != nil)
+
+	if clay.UI()(
+	{layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}}},
+	) {
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("Mouse Pos", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
+		)
+	}
+
+}
+
 
 layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
@@ -156,6 +172,17 @@ make_game_window_node :: proc(
 	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
+
+LOG_WINDOW_NAME :: "Log_Window"
+make_log_window_node :: proc(
+	ctx: ^layout2.Context,
+	gc: ^gctx.Global_Context,
+) -> layout2.Layout_Item {
+	node := layout2.make_layout_item(ctx, LOG_WINDOW_NAME, gc, layout_game_ui)
+	node.size_percent = {1, 1} // Fill the entire available space
+	return node
+}
+
 
 layout_stats :: proc(
 	players: ^plrs.Players,

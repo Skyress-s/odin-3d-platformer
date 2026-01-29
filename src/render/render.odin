@@ -18,8 +18,6 @@ import e_tools "../editor/tools"
 import hms "../handle_map/handle_map_static/"
 import "../player_data/"
 
-import gameui "../micro-ui/"
-
 
 Debug_Draw_Data :: distinct struct {
 	active_cell:      map[spat.Hash_Key]bool,
@@ -304,7 +302,6 @@ render :: proc(
 
 	// Draw UI babiiiiiii
 
-	gameui.draw_ui()
 
 	// rl.EndDrawing()
 	rl.EndTextureMode()
