@@ -286,7 +286,7 @@ main :: proc() {
 
 			rl.DrawTexturePro(
 				texture,
-				rl.Rectangle{0, 0, f32(texture.width), f32(texture.height)},
+				rl.Rectangle{0, 0, f32(texture.width - 1), f32(texture.height - 1)},
 				rl.Rectangle {
 					gc.virtual_mouse_ctx.mouse_position.x,
 					gc.virtual_mouse_ctx.mouse_position.y,
