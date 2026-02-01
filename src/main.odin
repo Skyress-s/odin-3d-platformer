@@ -183,6 +183,9 @@ main :: proc() {
 		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, log_layout_item)
 	}
 
+	texture := rl.LoadTexture("content/resources/cursor_1.png")
+	fmt.printfln("IMAGE {}", texture)
+
 	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
 	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 
@@ -266,12 +269,31 @@ main :: proc() {
 		layout2.render(&ui_render_commands)
 
 		if !vmouse.is_mouse_hidden(gc.virtual_mouse_ctx) {
-			rl.DrawRectangle(
-				i32(gc.virtual_mouse_ctx.mouse_position.x) - 4,
-				i32(gc.virtual_mouse_ctx.mouse_position.y) - 4,
-				8,
-				8,
-				rl.RED,
+			// rl.DrawRectangle(
+			// 	i32(gc.virtual_mouse_ctx.mouse_position.x) - 4,
+			// 	i32(gc.virtual_mouse_ctx.mouse_position.y) - 4,
+			// 	8,
+			// 	8,
+			// 	rl.RED,
+			// )
+			//
+			x := i32(gc.virtual_mouse_ctx.mouse_position.x)
+			y := i32(gc.virtual_mouse_ctx.mouse_position.y)
+
+			// rl.DrawTexture(
+			// 	texture,
+			// 	i32(gc.virtual_mouse_ctx.mouse_position.x),
+			// 	i32(gc.virtual_mouse_ctx.mouse_position.y),
+			// 	rl.WHITE,
+			// )
+
+			rl.DrawTexturePro(
+				texture,
+				rl.Rectangle{0, 0, f32(texture.width), f32(texture.height)},
+				rl.Rectangle{f32(x), f32(y), 32, 32},
+				{},
+				{},
+				rl.WHITE,
 			)
 
 		}
