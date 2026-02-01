@@ -111,7 +111,7 @@ update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = mouse_pos
 
-	update_pointer_state_mouse(&ctx.remove_click, .BACK, .LEFT_ALT)
+	update_pointer_state_mouse(&ctx.remove_click, .SIDE, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.add_click, .MIDDLE, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.move_click, .LEFT, .LEFT_ALT)

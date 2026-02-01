@@ -127,7 +127,7 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	{layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}}},
 	) {
 		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Mouse Pos", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
+			fmt.tprintf("Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
 		)
 	}
 
@@ -679,7 +679,7 @@ vis_dir :: proc(
 				dir_name := vis_dir(ctx, fi, active_elems)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
-				if ui.layout_button_immediate(ctx, fmt.tprint({}, name)) {
+				if ui.layout_button_immediate(ctx, fmt.tprintf("{}", name)) {
 					clicked_map_name = to_local_from_cwd_map_path(fi.fullpath)
 				}
 			}

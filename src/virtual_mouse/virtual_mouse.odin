@@ -19,11 +19,15 @@ Context :: struct {
 	mouse_position_last_frame: Vec2,
 	mouse_restrict_rect:       Rect,
 	mouse_hidden:              bool,
+	disable_cursor_proc:       proc(),
 }
 
 update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	assert(ctx != nil)
 	ctx.mouse_position_last_frame = ctx.mouse_position
+
+	assert(ctx.disable_cursor_proc != nil)
+	// ctx.disable_cursor_proc()
 
 	ctx.mouse_restrict_rect.position = linalg.clamp(
 		ctx.mouse_restrict_rect.position,
@@ -53,6 +57,7 @@ init :: proc(screen_dimensions: Vec2, disable_cursor_proc: proc()) -> (ctx: Cont
 
 	assert(disable_cursor_proc != nil)
 	disable_cursor_proc()
+	ctx.disable_cursor_proc = disable_cursor_proc
 
 	ctx.mouse_restrict_rect = {
 		position   = Vec2{0, 0},
