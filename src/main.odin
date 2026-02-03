@@ -20,8 +20,7 @@ import l "level"
 import plrs "players"
 import rlb "raylib_bridge"
 import "render"
-import rb_ai "ringbuffer"
-import rb "ringbuffer2"
+import rb "ringbuffer"
 import "serialization"
 import ui "ui"
 import clay "ui/clay-odin"
@@ -82,53 +81,6 @@ when USE_TRACESTACK {
 disable_cursor :: proc() {
 	rl.DisableCursor()
 }
-
-// Entry :: struct {
-// 	age: i64,
-// }
-//
-// ITEMS :: 10_000
-// ITERATIONS :: 10_000_000
-//
-// main :: proc() {
-// 	sw := time.Stopwatch{}
-//
-// 	time.stopwatch_start(&sw)
-// 	rb1 := rb_ai.ring_buffer(Entry, ITEMS)
-// 	for i in 0 ..< ITERATIONS {
-// 		rb_ai.push_force(&rb1, Entry{i64(i)})
-// 	}
-//
-// 	total_ai: i128
-// 	for i := 0; i < rb1.capacity; i += 1 {
-// 		index := (rb1.head + i) % rb1.capacity
-// 		elem := &rb1.data[index]
-// 		total_ai += i128(elem.age)
-// 	}
-// 	time.stopwatch_stop(&sw)
-//
-// 	time_ai := time.duration_milliseconds(time.stopwatch_duration(sw))
-// 	fmt.printfln("AI {} milli", time_ai)
-//
-// 	time.stopwatch_reset(&sw)
-// 	time.stopwatch_start(&sw)
-// 	backing: [ITEMS]Entry
-// 	rb2 := rb.init(backing[:])
-// 	for i in 0 ..< ITERATIONS {
-// 		rb.add_front_overrite(&rb2, Entry{i64(i)})
-// 	}
-//
-// 	total: i128
-// 	itr := rb.iterator_init(&rb2)
-// 	for item in rb.iterator_next(&itr) {
-// 		total += i128(item.age)
-// 	}
-// 	time.stopwatch_stop(&sw)
-//
-// 	time_handmade := time.duration_milliseconds(time.stopwatch_duration(sw))
-// 	fmt.printfln("Handmade {} milli", time_handmade)
-// 	fmt.printfln("Handmade is {} times faster", time_ai / time_handmade)
-// }
 
 
 main :: proc() {
