@@ -1,4 +1,4 @@
-package ringbuffer
+package ringbuffer_ai
 
 import "core:fmt"
 
