@@ -19,15 +19,29 @@ Context :: struct {
 	mouse_position_last_frame: Vec2,
 	mouse_restrict_rect:       Rect,
 	mouse_hidden:              bool,
-	disable_cursor_proc:       proc(),
+	disable_cursor_proc:       Disable_Custor_Proc,
+	is_window_focused_proc:    Is_Window_Focused_Proc,
+	window_focused_last_frame: bool,
+	show_cursor_proc:          Show_Cursor_Proc,
+	hide_cursor_proc:          Hide_Cursor_Proc,
+	is_cursor_hidden_proc:     Is_Cusor_Hidden_Proc,
 }
+
+Is_Window_Focused_Proc :: proc() -> bool
+
+Empty_Proc :: proc()
+Disable_Custor_Proc :: Empty_Proc
+Hide_Cursor_Proc :: Empty_Proc
+Show_Cursor_Proc :: Empty_Proc
+Is_Cusor_Hidden_Proc :: proc() -> bool
+
 
 update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	assert(ctx != nil)
 	ctx.mouse_position_last_frame = ctx.mouse_position
 
 	assert(ctx.disable_cursor_proc != nil)
-	// ctx.disable_cursor_proc()
+	assert(ctx.is_window_focused_proc != nil)
 
 	ctx.mouse_restrict_rect.position = linalg.clamp(
 		ctx.mouse_restrict_rect.position,
@@ -49,15 +63,40 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	// }
 
 	clamp_vec_to_rect(&ctx.mouse_position, ctx.mouse_restrict_rect)
+
+	window_focused := ctx.is_window_focused_proc()
+	if ctx.window_focused_last_frame && window_focused {
+		ctx.disable_cursor_proc()
+	}
+	ctx.window_focused_last_frame = window_focused
 }
 
-init :: proc(screen_dimensions: Vec2, disable_cursor_proc: proc()) -> (ctx: Context) {
+init :: proc(
+	screen_dimensions: Vec2,
+	disable_cursor_proc: Disable_Custor_Proc,
+	is_window_focused_proc: Is_Window_Focused_Proc,
+	show_mouse_proc: Show_Cursor_Proc,
+	hide_mouse_proc: Hide_Cursor_Proc,
+	is_cursor_hidden_proc: Is_Cusor_Hidden_Proc,
+) -> (
+	ctx: Context,
+) {
 	ctx.mouse_position = screen_dimensions / 2
 	ctx.mouse_position_last_frame = ctx.mouse_position
 
 	assert(disable_cursor_proc != nil)
-	disable_cursor_proc()
+	assert(is_window_focused_proc != nil)
+	assert(show_mouse_proc != nil)
+	assert(hide_mouse_proc != nil)
+	assert(is_cursor_hidden_proc != nil)
+
 	ctx.disable_cursor_proc = disable_cursor_proc
+	ctx.is_window_focused_proc = is_window_focused_proc
+	ctx.show_cursor_proc = show_mouse_proc
+	ctx.hide_cursor_proc = hide_mouse_proc
+	ctx.is_cursor_hidden_proc = is_cursor_hidden_proc
+
+	disable_cursor_proc()
 
 	ctx.mouse_restrict_rect = {
 		position   = Vec2{0, 0},
@@ -71,12 +110,15 @@ deinit :: proc() {
 
 }
 
+free_mouse :: proc(ctx: ^Context) {
+	restrict_mouse(ctx, {0, 0}, {max(f32), max(f32)})
+}
+
 restrict_mouse :: proc {
 	restrict_mouse_min_max,
 	restrict_mouse_rect,
 	restrict_mouse_pos,
 }
-
 
 restrict_mouse_min_max :: proc(ctx: ^Context, min, max: Vec2) {
 	assert(max.x > min.x)
@@ -90,8 +132,6 @@ restrict_mouse_min_max :: proc(ctx: ^Context, min, max: Vec2) {
 restrict_mouse_rect :: proc(ctx: ^Context, rect: Rect) {
 	assert(ctx != nil)
 	ctx.mouse_restrict_rect = rect
-
-
 }
 
 restrict_mouse_pos :: proc(ctx: ^Context, pos: Vec2) {
@@ -109,8 +149,16 @@ get_mouse_pos :: proc(ctx: Context) -> Vec2 {
 	return ctx.mouse_position
 }
 
-is_mouse_hidden :: proc(ctx: Context) -> bool {
-	return ctx.mouse_hidden
+is_cursor_hidden :: proc(ctx: Context) -> bool {
+	return ctx.is_cursor_hidden_proc()
+}
+
+hide_cursor :: proc(ctx: Context) {
+	ctx.hide_cursor_proc()
+}
+
+show_cursor :: proc(ctx: Context) {
+	ctx.show_cursor_proc()
 }
 
 @(private)

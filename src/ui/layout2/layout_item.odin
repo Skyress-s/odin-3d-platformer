@@ -123,6 +123,11 @@ make_layout_item :: proc(
 	return
 }
 
+// Note, do not use the passed in layout item. This will make a copy that now own the memory
+add_to_context :: proc(ctx: ^Context, layout_item: Layout_Item) -> Layout_Item_Handle {
+	return hms.add(&ctx.lic, layout_item)
+}
+
 // deletes item.
 delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	if !hms.valid(ctx.lic, handle) do return
@@ -539,7 +544,6 @@ insert_item_same_level :: proc(
 	normalize_sizes(&ctx.lic, parent.handle)
 }
 
-@(private)
 insert_item_new_level :: proc(
 	ctx: ^Context,
 	avg_size: clay.Vector2,

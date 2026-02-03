@@ -127,8 +127,10 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	{layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}}},
 	) {
 		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
+			fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
 		)
+		ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
+		ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
 	}
 
 }

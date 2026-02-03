@@ -81,6 +81,21 @@ when USE_TRACESTACK {
 disable_cursor :: proc() {
 	rl.DisableCursor()
 }
+is_window_focused :: proc() -> bool {
+	return rl.IsWindowFocused()
+}
+show_mouse_proc :: proc() {
+
+	rl.EnableCursor()
+}
+hide_mouse_proc :: proc() {
+
+	rl.DisableCursor()
+
+}
+is_cursor_hidden_proc :: proc() -> bool {
+	return rl.IsCursorHidden()
+}
 
 
 main :: proc() {
@@ -149,6 +164,10 @@ main :: proc() {
 		virtual_mouse_ctx = vmouse.init(
 			{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
 			disable_cursor,
+			is_window_focused,
+			show_mouse_proc,
+			hide_mouse_proc,
+			is_cursor_hidden_proc,
 		),
 	}
 
@@ -184,16 +203,35 @@ main :: proc() {
 			&gc,
 			game_ui.layout_log_window,
 		)
-		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, log_layout_item)
-	}
-	{
+		log_layout_handle := layout2.add_layout_node(
+			&layout_ctx.lic,
+			layout_ctx.root,
+			0,
+			log_layout_item,
+		)
+
 		editor_default_layout_item := layout2.make_layout_item(
 			layout_ctx,
 			"editor_details",
 			&gc,
 			game_ui.layout_editor_details,
 		)
-		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, editor_default_layout_item)
+
+		editor_default_layout_item_handle := layout2.add_to_context(
+			layout_ctx,
+			editor_default_layout_item,
+		)
+
+		layout2.insert_item_new_level(
+			layout_ctx,
+			{0.5, 0.5},
+			0,
+			.Bottom,
+			log_layout_handle,
+			editor_default_layout_item_handle,
+		)
+	}
+	{
 	}
 
 	texture := rl.LoadTexture("content/resources/cursor_1.png")
@@ -281,7 +319,7 @@ main :: proc() {
 		// Draw UI overlay
 		layout2.render(&ui_render_commands)
 
-		if !vmouse.is_mouse_hidden(gc.virtual_mouse_ctx) {
+		if !vmouse.is_cursor_hidden(gc.virtual_mouse_ctx) {
 			x := i32(gc.virtual_mouse_ctx.mouse_position.x)
 			y := i32(gc.virtual_mouse_ctx.mouse_position.y)
 

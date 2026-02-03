@@ -160,7 +160,7 @@ update :: proc(
 						)
 					}
 				}
-				editor_player.update(&gc.players.editor, dt)
+				editor_player.update(&gc.players.editor, &gc.virtual_mouse_ctx, dt)
 
 			}
 		}
