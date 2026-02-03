@@ -16,6 +16,7 @@ Rect :: struct {
 
 Context :: struct {
 	mouse_position:            Vec2,
+	mouse_delta:               Vec2,
 	mouse_position_last_frame: Vec2,
 	mouse_restrict_rect:       Rect,
 	mouse_hidden:              bool,
@@ -52,6 +53,7 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	clamp_rect_to_screen_dimensions(&ctx.mouse_restrict_rect, screen_dimensions)
 
 	ctx.mouse_position += mouse_delta
+	ctx.mouse_delta = mouse_delta
 
 	// if ctx.mouse_position.x < 0 ||
 	//    ctx.mouse_position.x > screen_dimensions.x ||
@@ -65,7 +67,7 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	clamp_vec_to_rect(&ctx.mouse_position, ctx.mouse_restrict_rect)
 
 	window_focused := ctx.is_window_focused_proc()
-	if ctx.window_focused_last_frame && window_focused {
+	if !ctx.window_focused_last_frame && window_focused {
 		ctx.disable_cursor_proc()
 	}
 	ctx.window_focused_last_frame = window_focused
@@ -141,24 +143,27 @@ restrict_mouse_pos :: proc(ctx: ^Context, pos: Vec2) {
 	ctx.mouse_restrict_rect.dimensions = Vec2{0, 0}
 }
 
-set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {
-	ctx.mouse_hidden = !mouse_visible
-}
+// set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {
+// 	ctx.mouse_hidden = !mouse_visible
+// }
 
 get_mouse_pos :: proc(ctx: Context) -> Vec2 {
 	return ctx.mouse_position
 }
 
 is_cursor_hidden :: proc(ctx: Context) -> bool {
-	return ctx.is_cursor_hidden_proc()
+	return ctx.mouse_hidden
+	// return ctx.is_cursor_hidden_proc()
 }
 
-hide_cursor :: proc(ctx: Context) {
-	ctx.hide_cursor_proc()
+hide_cursor :: proc(ctx: ^Context) {
+	ctx.mouse_hidden = true
+	// ctx.hide_cursor_proc()
 }
 
-show_cursor :: proc(ctx: Context) {
-	ctx.show_cursor_proc()
+show_cursor :: proc(ctx: ^Context) {
+	ctx.mouse_hidden = false
+	// ctx.show_cursor_proc()
 }
 
 @(private)
