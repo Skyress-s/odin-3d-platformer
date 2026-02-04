@@ -49,3 +49,5 @@ Defenistration the game
 every level starts and ends with crashing into a window
 Always starts the Defenistration with some momentum
 
+- [ ] Allow windows to be fullscreened.
+

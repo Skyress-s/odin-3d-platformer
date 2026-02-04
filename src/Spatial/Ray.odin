@@ -39,6 +39,7 @@ ray_intersect_spatial_hash_grid :: proc(
 
 	dist: f32 = max(f32)
 	hashes := calculate_hashes_by_ray(ray^)
+	defer delete(hashes)
 	ray_length := linalg.distance(ray.origin, ray.end)
 	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
 

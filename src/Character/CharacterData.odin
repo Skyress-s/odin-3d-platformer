@@ -68,9 +68,6 @@ get_current_speedrun_time :: proc(game_player: ^CharacternData) -> f64 {
 	return time.duration_seconds(time.stopwatch_duration(game_player.speedrun_stop_watch))
 }
 
-@(private)
-cursor_enabled: bool = false
-
 update_character :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
@@ -87,11 +84,6 @@ update_character :: proc(
 		gamestate.finished_level = false
 	}
 
-	if rl.IsKeyPressed(.TAB) {
-		cursor_enabled = !cursor_enabled
-		if cursor_enabled {rl.EnableCursor()} else {rl.DisableCursor()}
-
-	}
 
 	input_snapshot: input.Input_Snapshot = input.make_input_snapshot()
 	switch &state in character_data.current_state {
@@ -175,7 +167,7 @@ update_character_physics :: proc(
 	player_hash_cells: ^map[spat.Hash_Key]bool,
 	dt: f32,
 ) {
-	copy_comp : verlet.Velocity_Verlet_Component = character_data.verlet_component
+	copy_comp: verlet.Velocity_Verlet_Component = character_data.verlet_component
 	verlet.velocity_verlet_frog(&copy_comp, dt)
 	copy_comp.acceleration += {0, -30, 0}
 	verlet.velocity_verlet_leap(&copy_comp, dt)
@@ -225,6 +217,7 @@ update_character_physics :: proc(
 					// p += coll_obj.transform.position
 				}
 				hit, loc := spat.sphere_trace_triangle_intersect(&movement_sphere_trace, &tri, nil)
+
 				if hit {
 					dist := linalg.distance(loc, movement_sphere_trace.origin)
 					remaining_distance := spat.ray_length(&movement_sphere_trace.ray) - dist
@@ -236,6 +229,7 @@ update_character_physics :: proc(
 					)
 
 					dist_to_tri, normal := spat.distance_to_tri(&tri, &loc)
+					// log.warnf("dist {} loc {}", tri, loc)
 
 					ray_direction := spat.ray_direction(movement_sphere_trace.ray)
 
@@ -244,7 +238,8 @@ update_character_physics :: proc(
 					end_pos := loc + reflected * remaining_distance
 
 					ddu.enqueue_ins(
-						&ddu.Wire_Sphere_Ins{location = loc, radius = 3, color = col.WHITE}, 0.3
+						&ddu.Wire_Sphere_Ins{location = loc, radius = 3, color = col.WHITE},
+						0.3,
 					)
 
 					// character_data.verlet_component.position = end_pos
@@ -261,7 +256,6 @@ update_character_physics :: proc(
 					// 	dt,
 					// )
 
-					log.errorf("hit object!")
 					collided_this_frame = true // TODO we should in reality check against all triangles, find the one that would be hit first and calculate of that.
 					// break
 				}
@@ -387,8 +381,10 @@ handle_movement_input_Airborne :: proc(
 		new_vel = linalg.clamp_length(new_vel, linalg.length(velocity_before_xz))
 	}
 
+	// log.warnf(" mov before {}", verlet_component)
 	verlet_component.velocity.x = new_vel.x
 	verlet_component.velocity.z = new_vel.z
+	// log.warnf(" mov after {}", verlet_component)
 }
 
 handle_movement_input_Grounded :: proc(

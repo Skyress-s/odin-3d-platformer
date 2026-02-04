@@ -1,6 +1,7 @@
 package level
 
 import spat "../Spatial"
+import hms "../handle_map/handle_map_static/"
 
 Level :: distinct struct {
 	name:                 string,
@@ -21,4 +22,19 @@ Level :: distinct struct {
 
 	// Stats
 	author_time: f64
+}
+
+delete_level :: proc(l: ^Level){
+	delete(l.name)
+
+	spat.delete_spatial_hash_grid(&l.spatial_hash_grid)
+
+	for item in l.collision_object_map.items{
+		if hms.skip(item) do continue
+		delete(item.tris)
+	}
+	
+	delete(l.finish_volumes)
+	delete(l.kill_volumes)
+	delete(l.grappable)
 }

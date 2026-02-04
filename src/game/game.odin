@@ -8,139 +8,175 @@ import "core:log"
 import "core:reflect"
 import "core:time"
 
+// import ui "../ui"
+// import layout "../ui/layout/"
+// import game_ui "../ui/game_ui/"
 
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import camera "../camera"
 import ddu "../debug_draw_utils/"
 import "../editor_player"
 import gs "../game_state"
+import gctx "../global_context"
 import l "../level"
-import gameui "../micro-ui/"
-import "../mph_ui/"
 import "../player_data"
 import plrs "../players"
+import rlb "../raylib_bridge"
+import vmouse "../virtual_mouse"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
-import mu "vendor:microui"
 import rl "vendor:raylib"
 
 import e_tools "../editor/tools"
 
-update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data) {
-	free_all(context.temp_allocator)
-
-
+update :: proc(
+	gc: ^gctx.Global_Context,
+	game_rect: rl.Rectangle,
+	can_receive_input: bool,
+	mouse_pos: rl.Vector2,
+) -> (
+	debug_draw_data: render.Debug_Draw_Data,
+) {
 	dt := rl.GetFrameTime()
+	// dt = 0.06
+	mouse_pos := mouse_pos
 
-	if ((rl.GetScreenWidth() != gameui.state.screen_width) ||
-		   (rl.GetScreenHeight() != gameui.state.screen_height)) {
-		gameui.resize_ui()
-	}
+	cam := gc.camera_state.current_camera
 
-	gameui.handle_input_micro_ui(&gameui.state.mu_ctx)
 
-	mu.begin(&gameui.state.mu_ctx)
-	mph_ui.all_windows(
-		&gameui.state.mu_ctx,
-		gc.players,
-		gc.game_state,
-		{rl.GetScreenWidth(), rl.GetScreenHeight()},
-		gc.current_level,
+	ray := rlb.convert_ray(
+		rl.GetScreenToWorldRayEx(
+			mouse_pos - {game_rect.x, game_rect.y},
+			gc.camera_state.current_camera,
+			i32(game_rect.width),
+			i32(game_rect.height),
+		),
 	)
-	//gameui.all_windows(&gameui.state.mu_ctx, &players, &game_state)
-	mu.end(&gameui.state.mu_ctx)
-	gameui.render(&gameui.state.mu_ctx)
 
-
-	// Is our mouse overlapping any widget? (naive implementation)
-	mouse_over_ui := false
-	for &container in gameui.state.mu_ctx.containers {
-		if mu.rect_overlaps_vec2(container.rect, gameui.state.mu_ctx.mouse_pos) &&
-		   container.zindex >= 0 { 	// container.zindex >= 0 feels abit hacky
-
-			mouse_over_ui = true
-			break
-		}
-	}
-	mouse_over_ui = mu.rect_overlaps_vec2(mu.get_container(&gameui.state.mu_ctx, "details_panel").rect, gameui.state.mu_ctx.mouse_pos) 
-
-	if (rl.IsKeyPressed(rl.KeyboardKey.LEFT_ALT)) {
-
-		container := mu.get_container(&gameui.state.mu_ctx, "Log")
-		container.open = !container.open
-	}
-	// time.stopwatch_stop(&timer)
-	// fmt.printfln("micro-ui layout time {}", time.duration_microseconds(time.stopwatch_duration(timer)))
 
 	position_transform_tool := &gc.players.editor.transform_tool
 
 	if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
 	   position_transform_tool.target_object_id.idx != 0 {
-		fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
+		// fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
 
-		if !mouse_over_ui {
-			if position_transform_tool.dragging == true {
-				position_transform_tool.dragging = false
-				position_transform_tool.target_object_id = spat.notify_object_transform_changed(
-					&gc.current_level.collision_object_map,
-					&gc.current_level.spatial_hash_grid,
-					position_transform_tool.target_object_id,
-				)
-				//position_transform_tool.target_object_id.idx = 0
-			}
+		// if !mouse_over_ui {
+		if position_transform_tool.dragging == true {
+			position_transform_tool.dragging = false
+			position_transform_tool.target_object_id = spat.notify_object_transform_changed(
+				&gc.current_level.collision_object_map,
+				&gc.current_level.spatial_hash_grid,
+				position_transform_tool.target_object_id,
+			)
+			//position_transform_tool.target_object_id.idx = 0
 		}
+		// }
 
 
 	}
+	{
+		@(static) cursor_enabled := false
+		if rl.IsKeyPressed(.TAB) {
+			GAME_CHEATS_WINDOW_NAME :: "game_cheats"
 
-	// should we change to another state
-	if rl.IsKeyPressed(.F10) || rl.IsKeyPressed(.K) || rl.IsKeyPressed(.Q) {
+			cursor_enabled = !cursor_enabled
+			if cursor_enabled {
+				vmouse.show_cursor(&gc.virtual_mouse_ctx)
+				vmouse.free_mouse(&gc.virtual_mouse_ctx)
+			} else {
+				vmouse.hide_cursor(&gc.virtual_mouse_ctx)
+				vmouse.restrict_mouse(
+					&gc.virtual_mouse_ctx,
+					vmouse.Vec2 {
+						game_rect.x + game_rect.width / 2,
+						game_rect.y + game_rect.height / 2,
+					},
+				)
+			}
+		}
+
+	}
+
+
+	if can_receive_input {
+		// should we change to another state
+		if rl.IsKeyPressed(.Q) {
+			switch gc.players.mode {
+			case plrs.Player_Mode.Game:
+				// enable editor mode
+				// rl.EnableCursor()
+				gc.players.editor.position = gc.players.game.verlet_component.position
+				gc.players.editor.look_radians = gc.players.game.look_angles
+
+				gc.players.mode = plrs.Player_Mode.Editor
+				character.pause_speedrun(&gc.players.game)
+			case plrs.Player_Mode.Editor:
+				// enable game mode
+				// rl.DisableCursor()
+
+
+				gc.players.mode = plrs.Player_Mode.Game
+				character.start_speedrun(&gc.players.game)
+			}
+		}
+
 		switch gc.players.mode {
 		case plrs.Player_Mode.Game:
-			rl.EnableCursor()
-			gc.players.editor.position = gc.players.game.verlet_component.position
-			gc.players.editor.look_radians = gc.players.game.look_angles
+			camera.interp_fov(
+				&gc.camera_state,
+				linalg.length(gc.players.game.verlet_component.velocity),
+				dt,
+			)
 
-			gc.players.mode = plrs.Player_Mode.Editor
-			character.pause_speedrun(&gc.players.game)
+			character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
 		case plrs.Player_Mode.Editor:
-			rl.DisableCursor()
+			if gc.mouse_over_game {
+				if rl.IsKeyPressed(.ONE) {
+					position_transform_tool.active_tool = e_tools.Position_Tool{}
+				} else if rl.IsKeyPressed(.TWO) {
+					position_transform_tool.active_tool = e_tools.Rotation_Tool{}
+				} else if rl.IsKeyPressed(.THREE) {
+					position_transform_tool.active_tool = e_tools.Scale_Tool{}
+				}
 
-			gc.players.mode = plrs.Player_Mode.Game
-			character.start_speedrun(&gc.players.game)
-		}
-	}
+				if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
+					ddu.enqueue_ins(
+						&ddu.Line_Ins {
+							spat.Ray {
+								ray.origin + {0, -1, 0},
+								ray.end + (ray.end - ray.origin) * 10000,
+							},
+							col.RED,
+						},
+						10,
+					)
+					e_tools.on_click(
+						position_transform_tool,
+						&cam,
+						gc.current_level,
+						mouse_pos,
+						ray,
+					)
 
-	switch gc.players.mode {
-	case plrs.Player_Mode.Game:
-		character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
-	case plrs.Player_Mode.Editor:
-		if rl.IsKeyPressed(.ONE) {
-			position_transform_tool.active_tool = e_tools.Position_Tool{}
-		} else if rl.IsKeyPressed(.TWO) {
-			position_transform_tool.active_tool = e_tools.Rotation_Tool{}
-		} else if rl.IsKeyPressed(.THREE) {
-			position_transform_tool.active_tool = e_tools.Scale_Tool{}
-		}
+				}
+				if position_transform_tool.target_object_id.idx != 0 {
+					if position_transform_tool.dragging {
+						e_tools.update_transform_tool(
+							position_transform_tool,
+							&cam,
+							rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+							rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+							&gc.current_level.collision_object_map,
+							ray,
+						)
+					}
+				}
+				editor_player.update(&gc.players.editor, &gc.virtual_mouse_ctx, dt)
 
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && !mouse_over_ui {
-			e_tools.on_click(position_transform_tool, gc.cam, gc.current_level)
-
-		}
-		if position_transform_tool.target_object_id.idx != 0 {
-			if position_transform_tool.dragging {
-				e_tools.update_transform_tool(
-					position_transform_tool,
-					gc.cam,
-					rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-					rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-					&gc.current_level.collision_object_map,
-					rl.GetMousePosition(),
-				)
 			}
 		}
-		editor_player.update(&gc.players.editor, dt)
 	}
 
 	overlapping_finish_volume := spat.does_location_overlap_finish_volume(
@@ -191,6 +227,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 	case plrs.Player_Mode.Game:
 		if !gc.game_state.finished_level {
 			verlet.velocity_verlet_leap(&gc.players.game.verlet_component, dt)
+
 			character.update_character_physics(
 				&gc.players.game,
 				gc.current_level,
@@ -223,17 +260,22 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 		_, forward, right := player_data.calculate_direction_from_look(
 			&gc.players.game.look_angles,
 		)
-		gc.cam.position = gc.players.game.verlet_component.position
-		gc.cam.target = gc.cam.position + forward
-		gc.cam.up = linalg.cross(forward, right)
 
+		camera.update_transform(
+			&gc.camera_state,
+			gc.players.game.verlet_component.position,
+			forward,
+			right,
+		)
 	case plrs.Player_Mode.Editor:
 		_, forward, right := player_data.calculate_direction_from_look(
 			&gc.players.editor.look_data,
 		)
-		gc.cam.position = gc.players.editor.position
-		gc.cam.target = gc.cam.position + forward
-		gc.cam.up = linalg.cross(forward, right)
+
+		camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
+	// gc.cam.position = gc.players.editor.position
+	// gc.cam.target = gc.cam.position + forward
+	// gc.cam.up = linalg.cross(forward, right)
 	}
 
 	player_loction := gc.players.game.verlet_component.position
@@ -283,14 +325,7 @@ update :: proc(gc: ^Global_Context) -> (debug_draw_data: render.Debug_Draw_Data)
 
 	debug_draw_data.active_cell = player_overlapping_cells
 	debug_draw_data.active_cell_hash = active_hash_key
+
 	return debug_draw_data
 	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
-}
-
-// Class that contains most resources that are global / created at the very start of the game.
-Global_Context :: distinct struct {
-	players:       ^plrs.Players,
-	game_state:    ^gs.Game_State,
-	current_level: ^l.Level,
-	cam:           ^rl.Camera3D,
 }

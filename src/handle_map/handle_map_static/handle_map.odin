@@ -203,7 +203,7 @@ make_iter :: proc(m: ^Handle_Map($T, $HT, $N)) -> Handle_Map_Iterator(T, HT, N) 
 // Usage:
 //     my_iter := hm.make_iter(&my_handle_map)
 //     for e in hm.iter(&my_iter) {}
-// 
+//
 // Instead of using an iterator you can also loop over `items` and check if
 // `item.handle.idx == 0` and in that case skip that item.
 iter :: proc(it: ^Handle_Map_Iterator($T, $HT, $N)) -> (val: ^T, h: HT, cond: bool) {
@@ -229,4 +229,3 @@ iter :: proc(it: ^Handle_Map_Iterator($T, $HT, $N)) -> (val: ^T, h: HT, cond: bo
 skip :: proc(e: $T) -> bool {
 	return e.handle.idx == 0
 }
-

@@ -6,6 +6,8 @@ import gs "../game_state"
 import l "../level"
 import lightray "../lightray"
 import plrs "../players/"
+import "core:c"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -16,35 +18,42 @@ import e_tools "../editor/tools"
 import hms "../handle_map/handle_map_static/"
 import "../player_data/"
 
-import gameui "../micro-ui/"
-
-
 
 Debug_Draw_Data :: distinct struct {
 	active_cell:      map[spat.Hash_Key]bool,
 	active_cell_hash: spat.Hash_Key,
 }
 
+Render_Targets :: struct {
+	game: rl.RenderTexture2D,
+}
+
+render_targets_init :: proc(game_dims: [2]c.int) -> Render_Targets {
+	render_targets: Render_Targets
+	render_targets.game = rl.LoadRenderTexture(game_dims[0], game_dims[1])
+	return render_targets
+}
+render_targets_deinit :: proc(render_targets: Render_Targets) {
+	rl.UnloadRenderTexture(render_targets.game)
+}
+
 render :: proc(
 	level: ^l.Level,
 	players: ^plrs.Players,
-	cam: ^rl.Camera3D,
+	cam: rl.Camera3D,
 	debug_draw_data: ^Debug_Draw_Data,
-	// active_cell: ^map[spat.Hash_Key]bool,
-	// active_cell_hash: spat.Hash_Key,
 	game_state: ^gs.Game_State,
+	game_rect: rl.Rectangle,
+	render_targets: ^Render_Targets,
 ) {
 
-	// todo lets not do this in tick
-	// rt := rl.LoadRenderTexture(rl.(), rl.GetRenderWidth())
-	// defer rl.UnloadRenderTexture(rt)
 
 	dt := rl.GetFrameTime()
-	rl.BeginDrawing()
-	// rl.BeginTextureMode(rt)
-
+	// rl.BeginDrawing()
+	rl.BeginTextureMode(render_targets.game)
 	rl.ClearBackground({40, 30, 50, 255})
-	rl.BeginMode3D(cam^)
+
+	rl.BeginMode3D(cam)
 
 
 	@(static) shader_editor_tool_depth: rl.Shader
@@ -52,10 +61,12 @@ render :: proc(
 
 	assert(shader_editor_tool_depth.id != 0)
 	view_loc := rl.GetShaderLocation(lightray.lighting.shader, "viewPos")
+
+	cam_position := cam.position
 	rl.SetShaderValue(
 		lightray.lighting.shader,
 		view_loc,
-		&cam.position,
+		&cam_position,
 		rlgl.ShaderUniformDataType.VEC3,
 	)
 
@@ -185,6 +196,7 @@ render :: proc(
 	}
 
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
+	defer delete(drawn_collision_objects_ids)
 
 	for kill_id in level.kill_volumes {
 		drawn_collision_objects_ids[kill_id] = true
@@ -290,15 +302,10 @@ render :: proc(
 
 	// Draw UI babiiiiiii
 
-	gameui.draw_ui()
 
-	rl.EndDrawing()
-	// rl.EndTextureMode()
-
-
-	// rl.BeginDrawing()
-	// rl.DrawTexturePro(rt.texture, rl.Rectangle{0,0, f32(rt.texture.width), f32(-rt.texture.height)}, rl.Rectangle{0,0, f32(rl.GetScreenHeight()), f32(rl.GetScreenWidth())}, {}, 0, rl.WHITE)
 	// rl.EndDrawing()
+	rl.EndTextureMode()
+
 
 }
 
@@ -318,4 +325,11 @@ draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
 	rlgl.Vertex3f(a.x, a.y, a.z)
 	rlgl.Vertex3f(b.x, b.y, b.z)
 	rlgl.Vertex3f(c.x, c.y, c.z)
+}
+
+resize_render_targets :: proc(render_targets: ^Render_Targets, game_rect: rl.Rectangle) {
+
+	rl.UnloadRenderTexture(render_targets.game)
+	render_targets.game = rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
+
 }
