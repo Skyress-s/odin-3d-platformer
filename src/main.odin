@@ -239,6 +239,22 @@ main :: proc() {
 
 	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
 	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
+	{
+
+		clay.BeginLayout()
+		layout2.layout(layout_ctx)
+		ui_render_commands := clay.EndLayout()
+	}
+	{
+		item := layout2.get_item_checked(&ui_context.layout_ctx.lic, game_window_handle)
+		bounds := layout2.get_clay_bounding_box_checked(item.id)
+
+		vmouse.restrict_mouse(
+			&gc.virtual_mouse_ctx,
+			vmouse.Vec2{f32(bounds.x + bounds.width / 2), f32(bounds.y + bounds.height / 2)},
+		)
+		vmouse.hide_cursor(&gc.virtual_mouse_ctx)
+	}
 
 	game_rt_needs_update := true
 
@@ -293,6 +309,7 @@ main :: proc() {
 			// layout_ctx.controlling_layout_item == game_window_handle,
 		)
 
+		// render to RT
 		render.render(
 			gc.current_level,
 			gc.players,
@@ -350,6 +367,7 @@ main :: proc() {
 		draw_mouse_restrict_corner_box(top_right)
 		draw_mouse_restrict_corner_box(bottom_left)
 		draw_mouse_restrict_corner_box(bottom_right)
+
 
 		rl.EndDrawing()
 

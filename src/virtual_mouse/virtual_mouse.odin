@@ -84,9 +84,15 @@ apply_wanted_state :: proc(ctx: ^Context, state: Wanted_State) {
 	if cursor_pos_ok {
 		ctx.mouse_position = cursor_pos
 	}
+
 	hidden, hidden_ok := state.hidden.(bool)
 	if hidden_ok {
-		cursor
+		set_show_visibility(ctx, !hidden)
+	}
+
+	restrict_rect, restrict_rect_ok := state.restrict_rect.(Rect)
+	if restrict_rect_ok {
+		restrict_mouse(ctx, restrict_rect)
 	}
 
 
@@ -162,9 +168,9 @@ restrict_mouse_pos :: proc(ctx: ^Context, pos: Vec2) {
 	ctx.mouse_restrict_rect.dimensions = Vec2{0, 0}
 }
 
-// set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {
-// 	ctx.mouse_hidden = !mouse_visible
-// }
+set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {
+	ctx.mouse_hidden = !mouse_visible
+}
 
 get_mouse_pos :: proc(ctx: Context) -> Vec2 {
 	return ctx.mouse_position

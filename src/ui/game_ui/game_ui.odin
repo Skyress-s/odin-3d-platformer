@@ -562,8 +562,18 @@ layout_details_panel :: proc(
 
 		}
 
+		if clay.UI()(
+		{
+			layout = {
+				layoutDirection = .LeftToRight,
+				sizing = {clay.SizingGrow(), clay.SizingFit()},
+			},
+		},
+		) {
+			ui.layout_dynamic_text_entry(fmt.tprint("Level: "))
+			ui.layout_textbox_immediate2(ctx, buf[:], &buf_len)
 
-		ui.layout_dynamic_text_entry(fmt.tprint("Level:", string(buf[:buf_len])))
+		}
 
 
 		// mu.text(ctx, "Level:")

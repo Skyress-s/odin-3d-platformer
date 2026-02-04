@@ -48,7 +48,7 @@ update :: proc(
 
 	ray := rlb.convert_ray(
 		rl.GetScreenToWorldRayEx(
-			mouse_pos,
+			mouse_pos - {game_rect.x, game_rect.y},
 			gc.camera_state.current_camera,
 			i32(game_rect.width),
 			i32(game_rect.height),
@@ -83,8 +83,10 @@ update :: proc(
 
 			cursor_enabled = !cursor_enabled
 			if cursor_enabled {
-				vmouse.restrict_mouse(&gc.virtual_mouse_ctx, {0, 0}, {10000, 1000000})
+				vmouse.show_cursor(&gc.virtual_mouse_ctx)
+				vmouse.free_mouse(&gc.virtual_mouse_ctx)
 			} else {
+				vmouse.hide_cursor(&gc.virtual_mouse_ctx)
 				vmouse.restrict_mouse(
 					&gc.virtual_mouse_ctx,
 					vmouse.Vec2 {
@@ -140,7 +142,16 @@ update :: proc(
 				}
 
 				if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
-					// ddu.enqueue_ins(&ddu.Line_Ins{ray, col.RED})
+					ddu.enqueue_ins(
+						&ddu.Line_Ins {
+							spat.Ray {
+								ray.origin + {0, -1, 0},
+								ray.end + (ray.end - ray.origin) * 10000,
+							},
+							col.RED,
+						},
+						10,
+					)
 					e_tools.on_click(
 						position_transform_tool,
 						&cam,
