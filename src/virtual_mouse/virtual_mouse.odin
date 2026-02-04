@@ -28,6 +28,12 @@ Context :: struct {
 	is_cursor_hidden_proc:     Is_Cusor_Hidden_Proc,
 }
 
+Wanted_State :: struct {
+	cursor_pos:    Maybe(Vec2),
+	hidden:        Maybe(bool),
+	restrict_rect: Maybe(Rect),
+}
+
 Is_Window_Focused_Proc :: proc() -> bool
 
 Empty_Proc :: proc()
@@ -71,6 +77,19 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 		ctx.disable_cursor_proc()
 	}
 	ctx.window_focused_last_frame = window_focused
+}
+
+apply_wanted_state :: proc(ctx: ^Context, state: Wanted_State) {
+	cursor_pos, cursor_pos_ok := state.cursor_pos.(Vec2)
+	if cursor_pos_ok {
+		ctx.mouse_position = cursor_pos
+	}
+	hidden, hidden_ok := state.hidden.(bool)
+	if hidden_ok {
+		cursor
+	}
+
+
 }
 
 init :: proc(

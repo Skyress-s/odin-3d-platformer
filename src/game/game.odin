@@ -79,20 +79,22 @@ update :: proc(
 	{
 		@(static) cursor_enabled := false
 		if rl.IsKeyPressed(.TAB) {
-
 			GAME_CHEATS_WINDOW_NAME :: "game_cheats"
 
 			cursor_enabled = !cursor_enabled
+			if cursor_enabled {
+				vmouse.restrict_mouse(&gc.virtual_mouse_ctx, {0, 0}, {10000, 1000000})
+			} else {
+				vmouse.restrict_mouse(
+					&gc.virtual_mouse_ctx,
+					vmouse.Vec2 {
+						game_rect.x + game_rect.width / 2,
+						game_rect.y + game_rect.height / 2,
+					},
+				)
+			}
 		}
 
-		if cursor_enabled {
-			vmouse.restrict_mouse(&gc.virtual_mouse_ctx, {0, 0}, {10000, 1000000})
-		} else {
-			vmouse.restrict_mouse(
-				&gc.virtual_mouse_ctx,
-				vmouse.Vec2{game_rect.x + game_rect.width / 2, game_rect.y + game_rect.height / 2},
-			)
-		}
 	}
 
 

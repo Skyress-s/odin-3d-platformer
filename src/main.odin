@@ -339,6 +339,17 @@ main :: proc() {
 			)
 
 		}
+		top_left := gc.virtual_mouse_ctx.mouse_restrict_rect.position
+		top_right := top_left + {gc.virtual_mouse_ctx.mouse_restrict_rect.dimensions.x, 0}
+		bottom_left := top_left + {0, gc.virtual_mouse_ctx.mouse_restrict_rect.dimensions.y}
+		bottom_right := top_right + {0, gc.virtual_mouse_ctx.mouse_restrict_rect.dimensions.y}
+		draw_mouse_restrict_corner_box :: proc(pos: vmouse.Vec2) {
+			rl.DrawRectangle(i32(pos.x - 10), i32(pos.y - 10), 20, 20, rl.PURPLE)
+		}
+		draw_mouse_restrict_corner_box(top_left)
+		draw_mouse_restrict_corner_box(top_right)
+		draw_mouse_restrict_corner_box(bottom_left)
+		draw_mouse_restrict_corner_box(bottom_right)
 
 		rl.EndDrawing()
 
