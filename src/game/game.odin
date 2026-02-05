@@ -130,7 +130,7 @@ update :: proc(
 				dt,
 			)
 
-			character.update_character(&gc.players.game, gc.current_level, gc.game_state, dt)
+			character.update_character(&gc.players.game, gc.current_level, &gc.game_state, dt)
 		case plrs.Player_Mode.Editor:
 			if gc.mouse_over_game {
 				if rl.IsKeyPressed(.ONE) {

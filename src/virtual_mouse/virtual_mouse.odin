@@ -19,6 +19,7 @@ Context :: struct {
 	mouse_delta:               Vec2,
 	mouse_position_last_frame: Vec2,
 	mouse_restrict_rect:       Rect,
+	mouse_restrict_free:       bool,
 	mouse_hidden:              bool,
 	disable_cursor_proc:       Disable_Custor_Proc,
 	is_window_focused_proc:    Is_Window_Focused_Proc,
@@ -26,6 +27,7 @@ Context :: struct {
 	show_cursor_proc:          Show_Cursor_Proc,
 	hide_cursor_proc:          Hide_Cursor_Proc,
 	is_cursor_hidden_proc:     Is_Cusor_Hidden_Proc,
+	screen_dimensions:         Vec2,
 }
 
 Wanted_State :: struct {
@@ -42,8 +44,8 @@ Hide_Cursor_Proc :: Empty_Proc
 Show_Cursor_Proc :: Empty_Proc
 Is_Cusor_Hidden_Proc :: proc() -> bool
 
-
 update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
+	ctx.screen_dimensions = screen_dimensions
 	assert(ctx != nil)
 	ctx.mouse_position_last_frame = ctx.mouse_position
 
@@ -108,6 +110,7 @@ init :: proc(
 ) -> (
 	ctx: Context,
 ) {
+	ctx.screen_dimensions = screen_dimensions
 	ctx.mouse_position = screen_dimensions / 2
 	ctx.mouse_position_last_frame = ctx.mouse_position
 
@@ -138,7 +141,7 @@ deinit :: proc() {
 }
 
 free_mouse :: proc(ctx: ^Context) {
-	restrict_mouse(ctx, {0, 0}, {max(f32), max(f32)})
+	restrict_mouse(ctx, {0, 0}, ctx.screen_dimensions)
 }
 
 restrict_mouse :: proc {
@@ -152,20 +155,30 @@ restrict_mouse_min_max :: proc(ctx: ^Context, min, max: Vec2) {
 	assert(max.y > min.y)
 	assert(ctx != nil)
 
-	ctx.mouse_restrict_rect.position = min
-	ctx.mouse_restrict_rect.dimensions = max - min
+	rect: Rect
+	rect.position = min
+	rect.dimensions = max - min
+	_restrict_mouse(ctx, rect)
 }
 
 restrict_mouse_rect :: proc(ctx: ^Context, rect: Rect) {
 	assert(ctx != nil)
-	ctx.mouse_restrict_rect = rect
+	_restrict_mouse(ctx, rect)
 }
 
 restrict_mouse_pos :: proc(ctx: ^Context, pos: Vec2) {
 	assert(ctx != nil)
 
-	ctx.mouse_restrict_rect.position = pos
-	ctx.mouse_restrict_rect.dimensions = Vec2{0, 0}
+	rect: Rect
+	rect.position = pos
+	rect.dimensions = Vec2{0, 0}
+	_restrict_mouse(ctx, rect)
+}
+
+@(private)
+_restrict_mouse :: proc(ctx: ^Context, restrict_rect: Rect) {
+	ctx.mouse_restrict_rect = restrict_rect
+
 }
 
 set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {

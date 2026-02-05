@@ -56,8 +56,8 @@ init :: proc(
 	// raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
 	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
 
-	loadFont(DEBUG_FONT_ID, 56, "content/resources/Calistoga-Regular.ttf")
-	loadFont(DEBUG_FONT_ID_2, 56, "content/resources/Calistoga-Regular.ttf") // Need to have something with ID = 0 for debug to work
+	load_font(DEBUG_FONT_ID, 56, "content/resources/Calistoga-Regular.ttf")
+	load_font(DEBUG_FONT_ID_2, 56, "content/resources/Calistoga-Regular.ttf") // Need to have something with ID = 0 for debug to work
 
 	// root node
 	{
@@ -82,6 +82,7 @@ init :: proc(
 deinit :: proc(ctx: ^Context) {
 	vmem.arena_destroy(&ctx.arena)
 	free(ctx.clay_arena.memory)
+	unload_all_fonts()
 
 	hms.clear(&ctx.lic)
 }

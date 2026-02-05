@@ -53,7 +53,7 @@ Transform_Tool_Data :: distinct struct {
 
 
 // todo please dear "})& please remove
-tooltip_local: bool = true 
+tooltip_local: bool = true
 
 init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 	// Does nothing atm
@@ -122,10 +122,11 @@ on_click_position_tool :: proc(
 	bars_hit, bars_hit_location := ray_axis_bars_intersect(&ray, &bars)
 	plane_hit, plane_hit_location, plane_normal := ray_axis_planes_intersect(&ray, &planes)
 
-	bars_dist :f32= linalg.distance(cam_position, bars_hit_location)
-	planes_dist :f32= linalg.distance(cam_position, plane_hit_location)
+	bars_dist: f32 = linalg.distance(cam_position, bars_hit_location)
+	planes_dist: f32 = linalg.distance(cam_position, plane_hit_location)
 
-	plane_hit_closer_than_bars := bars_hit == .None || (bars_hit != .None && planes_dist < bars_dist)
+	plane_hit_closer_than_bars :=
+		bars_hit == .None || (bars_hit != .None && planes_dist < bars_dist)
 	if plane_hit != .None && plane_hit_closer_than_bars {
 		transform_tool.dragging = true
 		transform_tool.start_transform = found_object.transform
@@ -196,12 +197,11 @@ on_click_scale_tool :: proc(
 		transform_tool.dragging = true
 		transform_tool.start_transform = found_object.transform
 		transform_tool.start_ray_plane_intersect = intersect_location
-		active_tool.axis = axis_hit 
-		active_tool.scale_normal = 
-			spat.transform_vector_tr(
-				found_object.transform,
-				spat.axis_to_unit_vector(axis_hit),
-			)
+		active_tool.axis = axis_hit
+		active_tool.scale_normal = spat.transform_vector_tr(
+			found_object.transform,
+			spat.axis_to_unit_vector(axis_hit),
+		)
 
 		//continue
 	} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
@@ -213,14 +213,11 @@ update_transform_tool :: proc(
 	left_mouse_button_pressed: bool,
 	left_mouse_button_down: bool,
 	object_map: ^spat.Collision_Object_Handle_Map,
-	ray: spat.Ray
+	ray: spat.Ray,
 ) {
 	if !data.dragging do return
-	log.warnf("update {}", time.to_unix_seconds(time.now()))
-
 
 	current_ray := ray
-	// current_ray := rlb.convert_ray(rl.GetScreenToWorldRay(current_mouse_position, cam^))
 	found_object := hms.get(object_map, data.target_object_id)
 	assert(found_object != nil)
 
@@ -279,9 +276,12 @@ update_transform_tool :: proc(
 	// //panic("rotation not implemented")
 	case Scale_Tool:
 		norm := linalg.cross(
-				linalg.cross(active_tool.scale_normal, (cam.position - data.start_ray_plane_intersect)),
+			linalg.cross(
 				active_tool.scale_normal,
-			)
+				(cam.position - data.start_ray_plane_intersect),
+			),
+			active_tool.scale_normal,
+		)
 		hit, location := spat.ray_plane_intersect(
 			&current_ray,
 			norm,

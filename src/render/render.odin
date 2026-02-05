@@ -28,13 +28,19 @@ Render_Targets :: struct {
 	game: rl.RenderTexture2D,
 }
 
-render_targets_init :: proc(game_dims: [2]c.int) -> Render_Targets {
-	render_targets: Render_Targets
-	render_targets.game = rl.LoadRenderTexture(game_dims[0], game_dims[1])
-	return render_targets
+Textures :: struct {
+	render_targets: Render_Targets,
+	cursor_texture: rl.Texture2D,
 }
-render_targets_deinit :: proc(render_targets: Render_Targets) {
-	rl.UnloadRenderTexture(render_targets.game)
+
+textures_init :: proc(game_dims: [2]c.int) -> Textures {
+	textures: Textures
+	textures.render_targets.game = rl.LoadRenderTexture(game_dims[0], game_dims[1])
+	textures.cursor_texture = rl.LoadTexture("content/resources/cursor_1.png")
+	return textures
+}
+textures_deinit :: proc(textures: Textures) {
+	rl.UnloadRenderTexture(textures.render_targets.game)
 }
 
 render :: proc(

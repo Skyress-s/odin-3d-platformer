@@ -36,7 +36,7 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 
 	image_render_command := new(ui_rr.Custom_Render_Command, context.temp_allocator)
 	image_render_command^ = ui_rr.Custom_Image_Render_Command {
-		&gc.render_targets.game.texture,
+		&gc.textures.render_targets.game.texture,
 		false,
 		true,
 	}
@@ -116,7 +116,7 @@ layout_game_cheats_window :: proc(
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_cheats_panel(gc.ui_context, gc.players, gc.game_state)
+	layout_cheats_panel(&gc.ui_context, gc.players, &gc.game_state)
 }
 
 layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
@@ -131,16 +131,24 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 		)
 		ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
 		ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
+		)
 	}
 
 }
-
 
 layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_details_panel(gc.ui_context, gc.players, gc.game_state, gc.current_level, active_elems)
+	layout_details_panel(
+		&gc.ui_context,
+		gc.players,
+		&gc.game_state,
+		gc.current_level,
+		active_elems,
+	)
 }
 
 layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
@@ -738,4 +746,85 @@ to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
 	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
 
 	return local_path
+}
+
+render_restrict_rect :: proc(ctx: vmouse.Context) {
+
+	top_left := ctx.mouse_restrict_rect.position
+	top_right := top_left + {ctx.mouse_restrict_rect.dimensions.x, 0}
+	bottom_left := top_left + {0, ctx.mouse_restrict_rect.dimensions.y}
+	bottom_right := top_right + {0, ctx.mouse_restrict_rect.dimensions.y}
+
+	LINE_THICKNESS :: 8
+	draw_mouse_restrict_corner_box :: proc(pos: vmouse.Vec2) {
+		rl.DrawRectangle(
+			i32(pos.x - LINE_THICKNESS / 2),
+			i32(pos.y - LINE_THICKNESS / 2),
+			LINE_THICKNESS,
+			LINE_THICKNESS,
+			rl.PURPLE,
+		)
+	}
+	rl.DrawLineEx(top_left, top_right, LINE_THICKNESS, rl.PURPLE)
+	rl.DrawLineEx(top_right, bottom_right, LINE_THICKNESS, rl.PURPLE)
+	rl.DrawLineEx(bottom_right, bottom_left, LINE_THICKNESS, rl.PURPLE)
+	rl.DrawLineEx(bottom_left, top_left, LINE_THICKNESS, rl.PURPLE)
+	draw_mouse_restrict_corner_box(top_left)
+	draw_mouse_restrict_corner_box(top_right)
+	draw_mouse_restrict_corner_box(bottom_left)
+	draw_mouse_restrict_corner_box(bottom_right)
+}
+
+setup_initial_window_layout :: proc(
+	gc: ^gctx.Global_Context,
+) -> (
+	game_handle: layout2.Layout_Item_Handle,
+) {
+	layout_ctx := &gc.ui_context.layout_ctx
+
+	game_window_item := make_game_window_node(layout_ctx, gc)
+	game_window_handle := layout2.add_layout_node(
+		&layout_ctx.lic,
+		layout_ctx.root,
+		0,
+		game_window_item,
+	)
+	{
+		ui_layout_item := layout2.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
+		ui_layout_item.size_percent = {0.5, 0.5}
+		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, ui_layout_item)
+	}
+	{
+		log_layout_item := layout2.make_layout_item(layout_ctx, "log", gc, layout_log_window)
+		log_layout_handle := layout2.add_layout_node(
+			&layout_ctx.lic,
+			layout_ctx.root,
+			0,
+			log_layout_item,
+		)
+
+		editor_default_layout_item := layout2.make_layout_item(
+			layout_ctx,
+			"editor_details",
+			gc,
+			layout_editor_details,
+		)
+
+		editor_default_layout_item_handle := layout2.add_to_context(
+			layout_ctx,
+			editor_default_layout_item,
+		)
+
+		layout2.insert_item_new_level(
+			layout_ctx,
+			{0.5, 0.5},
+			0,
+			.Bottom,
+			log_layout_handle,
+			editor_default_layout_item_handle,
+		)
+	}
+	{
+	}
+	return game_window_handle
 }

@@ -6,7 +6,7 @@ import "vendor:raylib"
 DEBUG_FONT_ID :: 1
 DEBUG_FONT_ID_2 :: 0
 
-loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
+load_font :: proc(fontId: u16, fontSize: u16, path: cstring) {
 	assign_at(
 		&rr.raylib_fonts,
 		fontId,
@@ -16,4 +16,12 @@ loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
 		},
 	)
 	raylib.SetTextureFilter(rr.raylib_fonts[fontId].font.texture, raylib.TextureFilter.TRILINEAR)
+}
+
+unload_all_fonts :: proc() {
+	for &font in rr.raylib_fonts {
+		raylib.UnloadFont(font.font)
+	}
+	delete(rr.raylib_fonts)
+
 }
