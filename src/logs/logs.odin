@@ -8,22 +8,28 @@ import "core:os"
 import "core:strings"
 import "core:time"
 
-Log_Entry :: struct {
-	log: string,
-	// buf:     [1024]byte,
-	// buf_len: int,
-}
+// Log_Entry :: struct {
+// 	log: string,
+// 	// buf:     [1024]byte,
+// 	// buf_len: int,
+// }
 
 
 Context :: struct {
-	logs_cache: rb.RingBuffer(Log_Entry),
-	levels:     [len(System)]log.Level, // This is really cool!
+	// logs_cache: rb.RingBuffer(Log_Entry),
+	logs_buf: rb.RingBuffer(byte),
+	levels:   [len(System)]log.Level, // This is really cool!
 }
 
 global_ctx: Context
-backing: [16]Log_Entry
+// backing: [16]Log_Entry
 
-logs_memory: [1024]byte // contains our runtime logs
+// logs_memory: [1 << 16]byte // contains our runtime logs
+NUM_BYTES_FOR_RUNTIME_LOGS :: 1 << 14
+@(private)
+logs_memory: [NUM_BYTES_FOR_RUNTIME_LOGS]byte // contains our runtime logs
+@(private)
+static_buf: [NUM_BYTES_FOR_RUNTIME_LOGS]byte
 
 System :: enum {
 	Base,
@@ -33,6 +39,7 @@ System :: enum {
 }
 
 /*
+  TODO: OUTDATED
  Example program
 package main
 
@@ -67,7 +74,8 @@ main :: proc() {
  */
 
 init :: proc() -> (logger: log.Logger) {
-	global_ctx.logs_cache = rb.init(backing[:])
+	global_ctx.logs_buf = rb.init(logs_memory[:])
+	// global_ctx.logs_cache = rb.init(backing[:])
 	for &system_log_level in global_ctx.levels {
 		system_log_level = .Debug
 	}
@@ -92,10 +100,22 @@ init :: proc() -> (logger: log.Logger) {
 }
 
 deinit :: proc() {
-	itr := rb.iterator_init(&global_ctx.logs_cache)
-	for item in rb.iterator_next(&itr) {
-		delete(item.log)
+	// itr := rb.iterator_init(&global_ctx.logs_cache)
+	// for item in rb.iterator_next(&itr) {
+	// 	delete(item.log)
+	// }
+}
+
+get_string_slice :: proc() -> string {
+
+	itr := rb.iterator_init(&global_ctx.logs_buf)
+
+	for item, i in rb.iterator_next(&itr) {
+		// fmt.print(rune(item^), "bazinga")
+		static_buf[i] = item^
 	}
+	static_as_string := string(static_buf[:])
+	return static_as_string
 }
 
 
@@ -178,22 +198,27 @@ _format_string :: proc(
 	if level < logger.lowest_level {
 		return {}
 	}
-	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
+	// runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
 
 	return _console_logger_proc(logger.data, level, str, logger.options, location)
 }
 
 _fire_string :: proc(level: log.Level, string_with_system: string, location := #caller_location) {
+	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
 	maybe_string := _format_string(level = level, str = string_with_system, location = location)
 	string, ok := maybe_string.(string)
 	assert(ok)
 	if ok {
 		// ugh
-		if (int(global_ctx.logs_cache.len) == len(global_ctx.logs_cache.elements)) {
-			i := rb.get_index(global_ctx.logs_cache, 0)
-			delete(global_ctx.logs_cache.elements[i].log)
+		// if (int(global_ctx.logs_cache.len) == len(global_ctx.logs_cache.elements)) {
+		// 	i := rb.get_index(global_ctx.logs_cache, 0)
+		// 	delete(global_ctx.logs_cache.elements[i].log)
+		// }
+		string_as_bytes := transmute([]byte)(string)
+		for b in string_as_bytes {
+			rb.add_back_overrite(&global_ctx.logs_buf, b)
 		}
-		rb.add_back_overrite(&global_ctx.logs_cache, Log_Entry{string})
+		// rb.add_back_overrite(&global_ctx.logs_cache, Log_Entry{string})
 		context.logger.options += {.Terminal_Color}
 		log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
 		//fmt.print(string)
@@ -224,7 +249,7 @@ _console_logger_proc :: proc(
 	backing: [1024]byte
 	buf := strings.builder_from_bytes(backing[:])
 	_format_logger_proc(&buf, data.ident, level, text, options, location)
-	return fmt.aprintf("{}{}\n", strings.to_string(buf), text) // called takes ownership
+	return fmt.tprintf("{}{}\n", strings.to_string(buf), text) // called takes ownership
 }
 
 

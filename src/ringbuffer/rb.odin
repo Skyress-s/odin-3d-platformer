@@ -77,12 +77,26 @@ iterator_init :: proc(rb: ^RingBuffer($T)) -> (iter: Iterator(T)) {
 	return
 }
 
-iterator_next :: #force_inline proc(itr: ^Iterator($T)) -> (val: ^T, cond: bool) #no_bounds_check {
-	if itr.i >= int(itr.rb.len) do return nil, false
+// iterator_next :: #force_inline proc(itr: ^Iterator($T)) -> (val: ^T, cond: bool) #no_bounds_check {
+// 	if itr.i >= int(itr.rb.len) do return nil, false
+//
+// 	index := get_index(itr.rb^, itr.i)
+// 	itr.i += 1
+// 	return &itr.rb.elements[index], true
+// }
+
+iterator_next :: #force_inline proc(
+	itr: ^Iterator($T),
+) -> (
+	val: ^T,
+	i: int,
+	cond: bool,
+) #no_bounds_check {
+	if itr.i >= int(itr.rb.len) do return nil, -1, false
 
 	index := get_index(itr.rb^, itr.i)
 	itr.i += 1
-	return &itr.rb.elements[index], true
+	return &itr.rb.elements[index], itr.i - 1, true
 }
 
 

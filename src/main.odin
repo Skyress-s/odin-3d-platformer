@@ -7,6 +7,7 @@ import "core:fmt"
 import "core:log"
 import "core:math/rand"
 import "core:mem"
+import "core:strings"
 import "core:time"
 
 import character "Character"
@@ -31,7 +32,7 @@ import rl "vendor:raylib"
 import vmouse "virtual_mouse"
 
 
-USE_TRACESTACK :: #config(USE_TRACESTACK, true)
+USE_TRACESTACK :: #config(USE_TRACESTACK, false)
 
 generate_camera :: proc() -> rl.Camera {
 	return {
@@ -126,23 +127,19 @@ main :: proc() {
 
 	context.logger = logs.init()
 	defer logs.deinit()
-
 	defer log.destroy_console_logger(context.logger)
 
 	logs.log_base(.UI, .Debug, "test 133")
 	for i in 0 ..< 1025 {
 		logs.fatalf(.Physics, "Ops {}: {}", "Some error", i)
 	}
-	logs.logf_base(.UI, .Error, "Bingus {} | {}", 9897, "test")
 
-	logs.warn(.Physics, "test 89595", 85)
 	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
+	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
+	logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
+	logs.fatalf(.UI, "opise {}", "Bingus is too weak")
 
-	itr := rb.iterator_init(&logs.global_ctx.logs_cache)
-	for item in rb.iterator_next(&itr) {
-		fmt.print(item.log)
-	}
-
+	fmt.print(logs.get_string_slice())
 
 	if true do return
 
