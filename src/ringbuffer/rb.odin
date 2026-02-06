@@ -78,7 +78,7 @@ iterator_init :: proc(rb: ^RingBuffer($T)) -> (iter: Iterator(T)) {
 }
 
 iterator_next :: #force_inline proc(itr: ^Iterator($T)) -> (val: ^T, cond: bool) #no_bounds_check {
-	if itr.i >= int(rb.elements.len) do return nil, false
+	if itr.i >= int(itr.rb.len) do return nil, false
 
 	index := get_index(itr.rb^, itr.i)
 	itr.i += 1

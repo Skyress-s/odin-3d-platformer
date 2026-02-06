@@ -10,12 +10,20 @@ import "core:time"
 
 Log_Entry :: struct {
 	log: string,
+	// buf:     [1024]byte,
+	// buf_len: int,
 }
+
 
 Context :: struct {
 	logs_cache: rb.RingBuffer(Log_Entry),
 	levels:     [len(System)]log.Level, // This is really cool!
 }
+
+global_ctx: Context
+backing: [16]Log_Entry
+
+logs_memory: [1024]byte // contains our runtime logs
 
 System :: enum {
 	Base,
@@ -58,9 +66,9 @@ main :: proc() {
 }
  */
 
-init :: proc(backing: []Log_Entry) -> (ctx: Context, logger: log.Logger) {
-	ctx.logs_cache = rb.init(backing[:])
-	for &system_log_level in ctx.levels {
+init :: proc() -> (logger: log.Logger) {
+	global_ctx.logs_cache = rb.init(backing[:])
+	for &system_log_level in global_ctx.levels {
 		system_log_level = .Debug
 	}
 
@@ -70,40 +78,97 @@ init :: proc(backing: []Log_Entry) -> (ctx: Context, logger: log.Logger) {
 	// ahh[0] = ctx
 
 	logger = log.create_console_logger(
-		.Debug,
-		{.Line, .Short_File_Path, .Terminal_Color, .Time, .Procedure, .Level},
+	.Debug,
+	{
+		.Line,
+		.Short_File_Path, /*, .Terminal_Color*/
+		.Time,
+		.Procedure,
+		.Level,
+	},
 	)
 
-	return ctx, logger
+	return logger
 }
 
-log :: proc(
-	ctx: ^Context,
+deinit :: proc() {
+	itr := rb.iterator_init(&global_ctx.logs_cache)
+	for item in rb.iterator_next(&itr) {
+		delete(item.log)
+	}
+}
+
+
+debug :: proc(system: System, args: ..any, sep := " ", location := #caller_location) {
+	log_base(system = system, level = .Debug, args = args, sep = sep, location = location)
+}
+info :: proc(system: System, args: ..any, sep := " ", location := #caller_location) {
+	log_base(system = system, level = .Info, args = args, sep = sep, location = location)
+}
+warn :: proc(system: System, args: ..any, sep := " ", location := #caller_location) {
+	log_base(system = system, level = .Warning, args = args, sep = sep, location = location)
+}
+error :: proc(system: System, args: ..any, sep := " ", location := #caller_location) {
+	log_base(system = system, level = .Error, args = args, sep = sep, location = location)
+}
+fatal :: proc(system: System, args: ..any, sep := " ", location := #caller_location) {
+	log_base(system = system, level = .Fatal, args = args, sep = sep, location = location)
+}
+
+debugf :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
+	logf_base(system = system, level = .Debug, fmt_str = fmt_str, args = args, location = location)
+}
+infof :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
+	logf_base(system = system, level = .Info, fmt_str = fmt_str, args = args, location = location)
+}
+warnf :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
+	logf_base(
+		system = system,
+		level = .Warning,
+		fmt_str = fmt_str,
+		args = args,
+		location = location,
+	)
+}
+errorf :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
+	logf_base(system = system, level = .Error, fmt_str = fmt_str, args = args, location = location)
+}
+fatalf :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
+	logf_base(system = system, level = .Fatal, fmt_str = fmt_str, args = args, location = location)
+}
+// Info    = 10,
+// Warning = 20,
+// Error   = 30,
+// Fatal   = 40,
+
+
+logf_base :: proc(
+	system: System,
+	level: log.Level,
+	fmt_str: string,
+	args: ..any,
+	location := #caller_location,
+) {
+	string_with_system := fmt.tprintf("[{}] {}", system, fmt.tprintf(fmt_str, ..args))
+	_fire_string(level = level, string_with_system = string_with_system, location = location)
+}
+
+
+log_base :: proc(
 	system: System,
 	level: log.Level,
 	args: ..any,
 	sep := " ",
 	location := #caller_location,
 ) {
-	string_with_system := fmt.tprintf("[{}] {}", system, fmt.tprint(args))
-	maybe_string := _log(
-		level = level,
-		args = {string_with_system},
-		sep = sep,
-		location = location,
-	)
-	string, ok := maybe_string.(string)
-	if ok {
-		rb.add_back_overrite(&ctx.logs_cache, Log_Entry{string})
-		fmt.print(string)
-	}
+	string_with_system := fmt.tprintf("[{}] {}", system, fmt.tprint(..args, sep = sep))
+	_fire_string(level = level, string_with_system = string_with_system, location = location)
 }
 
 @(private)
-_log :: proc(
+_format_string :: proc(
 	level: log.Level,
-	args: ..any,
-	sep := " ",
+	str: string,
 	location := #caller_location,
 ) -> Maybe(string) {
 	logger := context.logger
@@ -114,11 +179,28 @@ _log :: proc(
 		return {}
 	}
 	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
-	str := fmt.tprint(..args, sep = sep)
 
 	return _console_logger_proc(logger.data, level, str, logger.options, location)
-	// logger.procedure(logger.data, level, str, logger.options, location)
 }
+
+_fire_string :: proc(level: log.Level, string_with_system: string, location := #caller_location) {
+	maybe_string := _format_string(level = level, str = string_with_system, location = location)
+	string, ok := maybe_string.(string)
+	assert(ok)
+	if ok {
+		// ugh
+		if (int(global_ctx.logs_cache.len) == len(global_ctx.logs_cache.elements)) {
+			i := rb.get_index(global_ctx.logs_cache, 0)
+			delete(global_ctx.logs_cache.elements[i].log)
+		}
+		rb.add_back_overrite(&global_ctx.logs_cache, Log_Entry{string})
+		context.logger.options += {.Terminal_Color}
+		log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
+		//fmt.print(string)
+	}
+
+}
+
 
 @(private)
 _console_logger_proc :: proc(
@@ -145,38 +227,6 @@ _console_logger_proc :: proc(
 	return fmt.aprintf("{}{}\n", strings.to_string(buf), text) // called takes ownership
 }
 
-@(private)
-_file_console_logger_proc :: proc(
-	h: os.Handle,
-	ident: string,
-	level: log.Level,
-	text: string,
-	options: log.Options,
-	location: runtime.Source_Code_Location,
-) {
-	backing: [1024]byte //NOTE(Hoej): 1024 might be too much for a header backing, unless somebody has really long paths.
-	buf := strings.builder_from_bytes(backing[:])
-
-	log.do_level_header(options, &buf, level)
-
-	when time.IS_SUPPORTED {
-		log.do_time_header(options, &buf, time.now())
-	}
-
-	log.do_location_header(options, &buf, location)
-
-	if .Thread_Id in options {
-		// NOTE(Oskar): not using context.thread_id here since that could be
-		// incorrect when replacing context for a thread.
-		fmt.sbprintf(&buf, "[{}] ", os.current_thread_id())
-	}
-
-	if ident != "" {
-		fmt.sbprintf(&buf, "[%s] ", ident)
-	}
-	//TODO(Hoej): When we have better atomics and such, make this thread-safe
-	fmt.fprintf(h, "%s%s\n", strings.to_string(buf), text)
-}
 
 @(private)
 _format_logger_proc :: proc(

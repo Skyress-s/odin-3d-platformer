@@ -17,6 +17,7 @@ import "game"
 import gs "game_state"
 import gctx "global_context"
 import l "level"
+import "logs"
 import plrs "players"
 import rlb "raylib_bridge"
 import "render"
@@ -30,7 +31,7 @@ import rl "vendor:raylib"
 import vmouse "virtual_mouse"
 
 
-USE_TRACESTACK :: #config(USE_TRACESTACK, false)
+USE_TRACESTACK :: #config(USE_TRACESTACK, true)
 
 generate_camera :: proc() -> rl.Camera {
 	return {
@@ -122,6 +123,29 @@ main :: proc() {
 			mem.tracking_allocator_destroy(&track)
 		}
 	}
+
+	context.logger = logs.init()
+	defer logs.deinit()
+
+	defer log.destroy_console_logger(context.logger)
+
+	logs.log_base(.UI, .Debug, "test 133")
+	for i in 0 ..< 1025 {
+		logs.fatalf(.Physics, "Ops {}: {}", "Some error", i)
+	}
+	logs.logf_base(.UI, .Error, "Bingus {} | {}", 9897, "test")
+
+	logs.warn(.Physics, "test 89595", 85)
+	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
+
+	itr := rb.iterator_init(&logs.global_ctx.logs_cache)
+	for item in rb.iterator_next(&itr) {
+		fmt.print(item.log)
+	}
+
+
+	if true do return
+
 
 	main_console_logger := log.create_console_logger()
 	context.logger = main_console_logger
