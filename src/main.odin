@@ -139,14 +139,6 @@ main :: proc() {
 	logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
 	logs.fatalf(.UI, "opise {}", "Bingus is too weak")
 
-	// fmt.print(logs.get_string_slice())
-
-	// if true do return
-
-
-	main_console_logger := log.create_console_logger()
-	context.logger = main_console_logger
-	defer log.destroy_console_logger(main_console_logger)
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 

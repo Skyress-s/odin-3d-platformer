@@ -8,13 +8,6 @@ import "core:os"
 import "core:strings"
 import "core:time"
 
-// Log_Entry :: struct {
-// 	log: string,
-// 	// buf:     [1024]byte,
-// 	// buf_len: int,
-// }
-
-
 Context :: struct {
 	// logs_cache: rb.RingBuffer(Log_Entry),
 	logs_buf: rb.RingBuffer(byte),
@@ -22,10 +15,9 @@ Context :: struct {
 }
 
 global_ctx: Context
-// backing: [16]Log_Entry
 
-// logs_memory: [1 << 16]byte // contains our runtime logs
-NUM_BYTES_FOR_RUNTIME_LOGS :: 1 << 14
+NUM_BYTES_FOR_RUNTIME_LOGS :: 1024 << 2 // 1024 ~ 1 kb
+// NUM_BYTES_FOR_RUNTIME_LOGS :: 1 << 9 // 1024 ~ 1 kb
 @(private)
 logs_memory: [NUM_BYTES_FOR_RUNTIME_LOGS]byte // contains our runtime logs
 @(private)

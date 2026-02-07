@@ -1,13 +1,13 @@
 package Spatial
 
-import "core:testing"
-import "core:log"
 import cc "../Physics/collision_channel"
 import hms "../handle_map/handle_map_static"
 import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:math/linalg"
 import "core:math/rand"
+import "core:testing"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
@@ -123,14 +123,12 @@ Hash_Key :: struct {
 Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
 
 
-
 @(test)
-test_spatial_hash_grid_and_map :: proc(t: ^testing.T)
-{
-	shg :Spatial_Hash_Grid
-	com : Collision_Object_Handle_Map
+test_spatial_hash_grid_and_map :: proc(t: ^testing.T) {
+	shg: Spatial_Hash_Grid
+	com: Collision_Object_Handle_Map
 
-	collision_object_data :=shape_to_collision_object(&Collision_Shape{shape = Box{{2,2,2}}})
+	collision_object_data := shape_to_collision_object(&Collision_Shape{shape = Box{{2, 2, 2}}})
 	defer delete(collision_object_data.tris)
 	collision_object_id := add_to_object_map(&com, collision_object_data)
 	add_to_spatial_hash_grid(&shg, collision_object_data, collision_object_id)
@@ -138,14 +136,14 @@ test_spatial_hash_grid_and_map :: proc(t: ^testing.T)
 	delete_spatial_hash_grid(&shg)
 }
 
-delete_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid){
-	for key, &hash_cell in shg{
+delete_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid) {
+	for key, &hash_cell in shg {
 		delete_hash_cell(&hash_cell)
 	}
 	delete(shg^)
 }
 
-delete_hash_cell :: proc(shc: ^Hash_Cell){
+delete_hash_cell :: proc(shc: ^Hash_Cell) {
 	delete(shc.objects_ids)
 }
 
@@ -734,6 +732,36 @@ add_to_spatial_hash_grid :: proc(
 	}
 }
 
+remove_from_spatial_hash_grid :: proc(
+	spatial_hash_grid: ^Spatial_Hash_Grid,
+	collision_object_map: ^Collision_Object_Handle_Map,
+	id: Collision_Object_Id,
+) {
+	object := hms.get(collision_object_map, id)
+	assert(object != nil)
+
+	{
+		bounds := calculate_bounds_from_tris_transform(object.tris, object.transform) // todo defaults to  ref right hehe??
+		potential_hash_keys := calculate_overlapping_cells2(bounds)
+		defer delete(potential_hash_keys) // TODO: Use temp allocator?
+
+		for hash_key in potential_hash_keys {
+			cell := &spatial_hash_grid[hash_key]
+			if cell != nil {
+				spatial_hash_grid[hash_key] = Hash_Cell{}
+				cell = &spatial_hash_grid[hash_key]
+				for &obj_id, i in &cell.objects_ids {
+					if obj_id == id {
+						unordered_remove(&cell.objects_ids, i)
+						return
+					}
+				}
+			}
+		}
+	}
+	panic("ops")
+}
+
 
 add_to_object_map :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
@@ -747,6 +775,13 @@ add_to_object_map :: proc(
 			transform = data.transform,
 		},
 	)
+}
+
+remove_from_object_map :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	id: Collision_Object_Id,
+) {
+	hms.remove(collision_object_map, id)
 }
 
 add_to_finish_volumes :: proc(
@@ -784,6 +819,18 @@ add_to_level :: proc(
 
 	return id
 }
+
+remove_from_level :: proc(
+	collision_object_map: ^Collision_Object_Handle_Map,
+	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
+	id: Collision_Object_Id,
+) {
+	remove_from_object_map(collision_object_map, id)
+	remove_from_spatial_hash_grid(spatial_hash_grid, collision_object_map, id)
+
+
+}
+
 
 create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,

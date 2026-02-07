@@ -122,6 +122,7 @@ layout_game_cheats_window :: proc(
 layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
+	logs.debugf(.Base, "test {}", time.now())
 
 	if clay.UI()(
 	{
@@ -131,14 +132,6 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	) {
 		ui.layout_dynamic_text_entry(logs.get_string_slice())
 
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
-		)
-		ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
-		ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
-		)
 	}
 
 }
@@ -162,6 +155,14 @@ layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 
 	ui.layout_dynamic_text_entry(
 		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
+	)
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
+	)
+	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
+	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
 	)
 
 	// ui.layout_dynamic_text_entry(
@@ -480,13 +481,6 @@ layout_details_panel :: proc(
 	level: ^l.Level,
 	active_elems: ^layout2.Active_Elements,
 ) {
-
-
-	// if mu.window(ctx, "details_panel", screen_rect, {.NO_CLOSE}) {
-	//
-	// 	current_container := mu.get_current_container(ctx)
-	// 	current_container.rect = screen_rect
-
 	current_id := players.editor.transform_tool.target_object_id
 
 
@@ -496,7 +490,7 @@ layout_details_panel :: proc(
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
 			ui.layout_dynamic_text_entry(fmt.tprint(current_id))
-			if ui.layout_button_immediate(ctx, fmt.tprint("duplicate")) {
+			if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
 				if current_coll_obj != nil {
 					new_id := spat.add_to_level(
 						&level.collision_object_map,
@@ -513,6 +507,19 @@ layout_details_panel :: proc(
 					if is_grappable {
 						level.grappable[new_id] = true
 					}
+				}
+			}
+			if ui.layout_button_immediate(ctx, fmt.tprint("Delete")) {
+				if current_coll_obj != nil {
+					spat.remove_from_level(
+						&level.collision_object_map,
+						&level.spatial_hash_grid,
+						current_id,
+					)
+
+					delete_key(&level.kill_volumes, current_id)
+					delete_key(&level.grappable, current_id)
+					delete_key(&level.finish_volumes, current_id)
 				}
 			}
 
