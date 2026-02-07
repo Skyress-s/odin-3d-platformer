@@ -1,7 +1,6 @@
 package game_ui
 
 import "core:fmt"
-import "core:log"
 import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
@@ -19,6 +18,7 @@ import gs "../../game_state/"
 import gctx "../../global_context"
 import hms "../../handle_map/handle_map_static/"
 import l "../../level/"
+import "../../logs/"
 import plrs "../../players/"
 import "../../serialization/"
 import vmouse "../../virtual_mouse/"
@@ -124,8 +124,13 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	assert(gc != nil)
 
 	if clay.UI()(
-	{layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}}},
+	{
+		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
+		clip = clay.ClipElementConfig{false, true, clay.GetScrollOffset()},
+	},
 	) {
+		ui.layout_dynamic_text_entry(logs.get_string_slice())
+
 		ui.layout_dynamic_text_entry(
 			fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
 		)

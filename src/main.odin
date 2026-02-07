@@ -139,9 +139,9 @@ main :: proc() {
 	logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
 	logs.fatalf(.UI, "opise {}", "Bingus is too weak")
 
-	fmt.print(logs.get_string_slice())
+	// fmt.print(logs.get_string_slice())
 
-	if true do return
+	// if true do return
 
 
 	main_console_logger := log.create_console_logger()
