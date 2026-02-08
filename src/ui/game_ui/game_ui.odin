@@ -122,7 +122,6 @@ layout_game_cheats_window :: proc(
 layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
-	logs.debugf(.Base, "test {}", time.now())
 
 	if clay.UI()(
 	{
@@ -484,61 +483,69 @@ layout_details_panel :: proc(
 	current_id := players.editor.transform_tool.target_object_id
 
 
+	col_scene := &level.collsion_scene
+
 	@(static) object_manip_dropdown := false
 	if current_id != spat.INVALID_OBJECT_ID {
-		current_coll_obj := hms.get(&level.collision_object_map, current_id)
+		current_coll_obj := hms.get(&level.collsion_scene.collision_object_map, current_id)
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
 			ui.layout_dynamic_text_entry(fmt.tprint(current_id))
 			if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
 				if current_coll_obj != nil {
 					new_id := spat.add_to_level(
-						&level.collision_object_map,
-						&level.spatial_hash_grid,
+						&col_scene.collision_object_map,
+						&col_scene.spatial_hash_grid,
 						current_coll_obj.data,
 					)
 
-					_, is_kill_volume := level.kill_volumes[current_id]
+					_, is_kill_volume := col_scene.kill_volumes[current_id]
 					if is_kill_volume {
-						level.kill_volumes[new_id] = true
+						col_scene.kill_volumes[new_id] = true
 					}
 
-					_, is_grappable := level.grappable[current_id]
+					_, is_grappable := col_scene.grappable[current_id]
 					if is_grappable {
-						level.grappable[new_id] = true
+						col_scene.grappable[new_id] = true
 					}
 				}
 			}
 			if ui.layout_button_immediate(ctx, fmt.tprint("Delete")) {
 				if current_coll_obj != nil {
 					spat.remove_from_level(
-						&level.collision_object_map,
-						&level.spatial_hash_grid,
+						&col_scene.collision_object_map,
+						&col_scene.spatial_hash_grid,
 						current_id,
 					)
+					players.editor.transform_tool.target_object_id = {}
 
-					delete_key(&level.kill_volumes, current_id)
-					delete_key(&level.grappable, current_id)
-					delete_key(&level.finish_volumes, current_id)
+					logs.debug(.UI, "id {}", current_id)
+					logs.debug(.UI, "kill_volumes {}", col_scene.kill_volumes)
+					logs.debug(.UI, "before {}", len(col_scene.kill_volumes))
+					delete_key(&col_scene.kill_volumes, current_id)
+					logs.debug(.UI, "after {}", len(col_scene.kill_volumes))
+					delete_key(&col_scene.grappable, current_id)
+					delete_key(&col_scene.finish_volumes, current_id)
+					return
 				}
 			}
 
 
 			{
-				_, is_kill_volume := level.kill_volumes[current_id]
+				_, is_kill_volume := col_scene.kill_volumes[current_id]
 
 				if ui.layout_checkbox_immediate(ctx, fmt.tprint("Kill Volume"), &is_kill_volume) {
-					if is_kill_volume do level.kill_volumes[current_id] = true
-					else do delete_key(&level.kill_volumes, current_id)
+					if is_kill_volume do col_scene.kill_volumes[current_id] = true
+					else do delete_key(&col_scene.kill_volumes, current_id)
 				}
 			}
 
 			{
-				_, grappable := level.grappable[current_id]
+				_, grappable := col_scene.grappable[current_id]
 
 				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Grappable"), &grappable) {
-					if grappable do level.grappable[current_id] = true
-					else do delete_key(&level.grappable, current_id)
+					if grappable do col_scene.grappable[current_id] = true
+					else do delete_key(&col_scene.grappable, current_id)
 				}
 			}
 

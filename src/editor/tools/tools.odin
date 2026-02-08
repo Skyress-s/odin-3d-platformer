@@ -3,12 +3,8 @@ package tools
 import spat "../../Spatial"
 import hms "../../handle_map/handle_map_static"
 import l "../../level"
-import rlb "../../raylib_bridge"
 import "core:fmt"
-import "core:log"
-import "core:math"
 import "core:math/linalg"
-import "core:time"
 import rl "vendor:raylib"
 
 Plane_Vector_Union :: union #no_nil {
@@ -75,19 +71,22 @@ on_click :: proc(
 	ray := ray
 	ray.end = ray.origin + (ray.end - ray.origin) * 100000 // augh
 
-	found_object := hms.get(&current_level.collision_object_map, transform_tool.target_object_id)
+	found_object := hms.get(
+		&current_level.collsion_scene.collision_object_map,
+		transform_tool.target_object_id,
+	)
 
 	if found_object == nil {
 		hit_object, id, position := spat.ray_intersect_spatial_hash_grid(
-			&current_level.spatial_hash_grid,
-			&current_level.collision_object_map,
+			&current_level.collsion_scene.spatial_hash_grid,
+			&current_level.collsion_scene.collision_object_map,
 			&ray,
 		)
 
 		if hit_object {
 			transform_tool.target_object_id = id
 			transform_tool.start_transform =
-				hms.get(&current_level.collision_object_map, id).data.transform
+				hms.get(&current_level.collsion_scene.collision_object_map, id).data.transform
 		}
 		return
 	}

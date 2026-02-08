@@ -671,6 +671,7 @@ layout_button_immediate :: proc(
 
 		return clay.Hovered() && is_mouse_pressed(ctx)
 	}
+
 	return false
 }
 

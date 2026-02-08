@@ -1,11 +1,8 @@
 #+feature dynamic-literals
 package serialization
 
-import cc "../Physics/collision_channel"
 import spat "../Spatial"
 import l "../level"
-import "core:math"
-import "core:math/linalg"
 
 import "core:encoding/json"
 import "core:fmt"
@@ -71,6 +68,8 @@ delete_serializable_collision_object_data :: proc(scod: ^Serializable_Collision_
 
 // filepath is relative to root of project (where main.odin is)
 save_to_file_level :: proc(level: ^l.Level, filepath: string) {
+	col_scene := &level.collsion_scene
+
 	level_serialization_data := Level_Serialization_Data {
 		name                 = level.name,
 		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
@@ -80,13 +79,13 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	}
 	defer delete_level_serialization_data(&level_serialization_data)
 
-	for id in level.finish_volumes {
+	for id in col_scene.finish_volumes {
 		append_elem(&level_serialization_data.finish_volumes_ids, id)
 	}
-	for id in level.kill_volumes {
+	for id in col_scene.kill_volumes {
 		append_elem(&level_serialization_data.kill_volume_ids, id)
 	}
-	for id in level.grappable {
+	for id in col_scene.grappable {
 		append_elem(&level_serialization_data.grapple_volume_ids, id)
 	}
 
@@ -95,7 +94,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	tris:               [dynamic]Collision_Triangle,
 	*/
 	// Could not get the iter to work, a but perhaps?
-	for &i in level.collision_object_map.items {
+	for &i in col_scene.collision_object_map.items {
 		if hms.skip(i) do continue
 
 		rot := i.transform.rotation
@@ -154,13 +153,13 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		loaded_serialized_level_data.author_time != 0 ? loaded_serialized_level_data.author_time : max(f64)
 
 	for &id in loaded_serialized_level_data.finish_volumes_ids {
-		loaded_level.finish_volumes[id] = true
+		loaded_level.collsion_scene.finish_volumes[id] = true
 	}
 	for &id in loaded_serialized_level_data.kill_volume_ids {
-		loaded_level.kill_volumes[id] = true
+		loaded_level.collsion_scene.kill_volumes[id] = true
 	}
 	for &id in loaded_serialized_level_data.grapple_volume_ids {
-		loaded_level.grappable[id] = true
+		loaded_level.collsion_scene.grappable[id] = true
 	}
 
 	for &obj in loaded_serialized_level_data.objects {
@@ -185,8 +184,8 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 
 
 		spat.add_to_level(
-			&loaded_level.collision_object_map,
-			&loaded_level.spatial_hash_grid,
+			&loaded_level.collsion_scene.collision_object_map,
+			&loaded_level.collsion_scene.spatial_hash_grid,
 			new_loaded_object,
 		)
 

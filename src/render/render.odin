@@ -7,8 +7,6 @@ import l "../level"
 import lightray "../lightray"
 import plrs "../players/"
 import "core:c"
-import "core:log"
-import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
@@ -204,28 +202,28 @@ render :: proc(
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
 	defer delete(drawn_collision_objects_ids)
 
-	for kill_id in level.kill_volumes {
+	for kill_id in level.collsion_scene.kill_volumes {
 		drawn_collision_objects_ids[kill_id] = true
 
-		volume_obj := hms.get(&level.collision_object_map, kill_id)
+		volume_obj := hms.get(&level.collsion_scene.collision_object_map, kill_id)
 		assert(volume_obj != nil)
 		draw_collision_object(volume_obj, rl.RED, rl.GRAY)
 
 	}
 
-	for grappable_obj_id in level.grappable {
+	for grappable_obj_id in level.collsion_scene.grappable {
 		drawn_collision_objects_ids[grappable_obj_id] = true
 
-		volume_obj := hms.get(&level.collision_object_map, grappable_obj_id)
+		volume_obj := hms.get(&level.collsion_scene.collision_object_map, grappable_obj_id)
 		assert(volume_obj != nil)
 		draw_collision_object(volume_obj, rl.SKYBLUE, rl.GRAY)
 
 	}
 
-	for volume_id in level.finish_volumes {
+	for volume_id in level.collsion_scene.finish_volumes {
 		drawn_collision_objects_ids[volume_id] = true
 
-		volume_obj := hms.get(&level.collision_object_map, volume_id)
+		volume_obj := hms.get(&level.collsion_scene.collision_object_map, volume_id)
 		assert(volume_obj != nil)
 		draw_collision_object(volume_obj, rl.YELLOW, rl.GRAY)
 	}
@@ -233,11 +231,11 @@ render :: proc(
 
 	if game_state.cheat_state.change_color_when_player_in_cell {
 		for cell_key in debug_draw_data.active_cell {
-			for &collision_object_id in level.spatial_hash_grid[cell_key].objects_ids {
+			for &collision_object_id in level.collsion_scene.spatial_hash_grid[cell_key].objects_ids {
 				has_been_drawn := collision_object_id in drawn_collision_objects_ids
 				if (!has_been_drawn) {
 					obj: ^spat.Collision_Object_Data = hms.get(
-						&level.collision_object_map,
+						&level.collsion_scene.collision_object_map,
 						collision_object_id,
 					)
 					draw_collision_object(obj, rl.GREEN, rl.GRAY)
@@ -248,15 +246,15 @@ render :: proc(
 	}
 
 	// Draw all other geometry
-	for hash_key in level.spatial_hash_grid {
+	for hash_key in level.collsion_scene.spatial_hash_grid {
 		if hash_key == debug_draw_data.active_cell_hash do continue
 
-		cell := &level.spatial_hash_grid[hash_key]
+		cell := &level.collsion_scene.spatial_hash_grid[hash_key]
 		for &collision_object_id in cell.objects_ids {
 			has_been_drawn := collision_object_id in drawn_collision_objects_ids
 			if (!has_been_drawn) {
 				draw_collision_object(
-					hms.get(&level.collision_object_map, collision_object_id),
+					hms.get(&level.collsion_scene.collision_object_map, collision_object_id),
 					rl.LIGHTGRAY,
 					rl.GRAY,
 				)
@@ -276,7 +274,10 @@ render :: proc(
 	if game_state.cheat_state.draw_bounds {
 		hash_key := spat.Hash_Location(player_verlet.position)
 		spat.Draw_Hash_Cell_Bounds(hash_key)
-		spat.draw_hash_grid_bounds_populated_cells(level.spatial_hash_grid, &hash_key)}
+		spat.draw_hash_grid_bounds_populated_cells(
+			level.collsion_scene.spatial_hash_grid,
+			&hash_key,
+		)}
 
 
 	/*
@@ -299,7 +300,11 @@ render :: proc(
 	rl.BeginShaderMode(shader_editor_tool_depth)
 
 	if players.mode == plrs.Player_Mode.Editor {
-		e_tools.draw_tooltip(&level.collision_object_map, tool, players.editor.position)
+		e_tools.draw_tooltip(
+			&level.collsion_scene.collision_object_map,
+			tool,
+			players.editor.position,
+		)
 	}
 
 	rl.EndShaderMode()

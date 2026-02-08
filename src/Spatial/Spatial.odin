@@ -3,7 +3,6 @@ package Spatial
 import cc "../Physics/collision_channel"
 import hms "../handle_map/handle_map_static"
 import "core:fmt"
-import "core:log"
 import "core:math"
 import "core:math/linalg"
 import "core:math/rand"
@@ -71,6 +70,29 @@ Collision_Shape :: struct {
 }
 
 Bound :: rl.BoundingBox
+
+Collision_Scene :: struct {
+	collision_object_map: Collision_Object_Handle_Map,
+	spatial_hash_grid:    Spatial_Hash_Grid,
+
+	// TODO: These ids could all just be stored in the collision channel...
+	finish_volumes:       map[Collision_Object_Id]bool, // TODO: I give up, there should be a set type somewhere MPH-00001
+	kill_volumes:         map[Collision_Object_Id]bool,
+	grappable:            map[Collision_Object_Id]bool,
+}
+
+delete_collision_scene :: proc(scene: ^Collision_Scene) {
+	delete_spatial_hash_grid(&scene.spatial_hash_grid)
+
+	for item in scene.collision_object_map.items {
+		if hms.skip(item) do continue
+		delete(item.tris)
+	}
+
+	delete(scene.finish_volumes)
+	delete(scene.kill_volumes)
+	delete(scene.grappable)
+}
 
 
 Collision_Object_Id :: distinct hms.Handle
@@ -750,16 +772,15 @@ remove_from_spatial_hash_grid :: proc(
 			if cell != nil {
 				spatial_hash_grid[hash_key] = Hash_Cell{}
 				cell = &spatial_hash_grid[hash_key]
-				for &obj_id, i in &cell.objects_ids {
+				for obj_id, i in &cell.objects_ids {
 					if obj_id == id {
 						unordered_remove(&cell.objects_ids, i)
-						return
+						break
 					}
 				}
 			}
 		}
 	}
-	panic("ops")
 }
 
 
@@ -799,7 +820,10 @@ does_location_overlap_finish_volume :: proc(
 ) -> Collision_Object_Id {
 	for finish_volume_object_id in finish_volumes {
 		found_object := hms.get(collision_object_map, finish_volume_object_id)
-		assert(found_object != nil)
+		assert(
+			found_object != nil,
+			fmt.tprintf("Could not find object with id: {}", finish_volume_object_id),
+		)
 
 		if is_inside_object(found_object, location) {
 			return finish_volume_object_id
@@ -825,8 +849,8 @@ remove_from_level :: proc(
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
 	id: Collision_Object_Id,
 ) {
-	remove_from_object_map(collision_object_map, id)
 	remove_from_spatial_hash_grid(spatial_hash_grid, collision_object_map, id)
+	remove_from_object_map(collision_object_map, id)
 
 
 }

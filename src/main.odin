@@ -5,10 +5,7 @@ import "core:c"
 import "core:debug/trace"
 import "core:fmt"
 import "core:log"
-import "core:math/rand"
 import "core:mem"
-import "core:strings"
-import "core:time"
 
 import character "Character"
 import camera "camera"
@@ -22,7 +19,6 @@ import "logs"
 import plrs "players"
 import rlb "raylib_bridge"
 import "render"
-import rb "ringbuffer"
 import "serialization"
 import ui "ui"
 import clay "ui/clay-odin"
@@ -129,15 +125,15 @@ main :: proc() {
 	defer logs.deinit()
 	defer log.destroy_console_logger(context.logger)
 
-	logs.log_base(.UI, .Debug, "test 133")
-	for i in 0 ..< 1025 {
-		logs.fatalf(.Physics, "Ops {}: {}", "Some error", i)
-	}
-
-	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.fatalf(.UI, "opise {}", "Bingus is too weak")
+	// logs.log_base(.UI, .Debug, "test 133")
+	// for i in 0 ..< 1025 {
+	// 	logs.fatalf(.Physics, "Ops {}: {}", "Some error", i)
+	// }
+	//
+	// logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
+	// logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
+	// logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
+	// logs.fatalf(.UI, "opise {}", "Bingus is too weak")
 
 
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")

@@ -9,9 +9,6 @@ import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
 import "../player_data"
-import "core:fmt"
-import "core:log"
-import "core:math"
 import "core:math/linalg"
 import "core:time"
 import rl "vendor:raylib"
@@ -105,11 +102,11 @@ update_character :: proc(
 				1000.0,
 			)
 			ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
-				&level.spatial_hash_grid,
-				&level.collision_object_map,
+				&level.collsion_scene.spatial_hash_grid,
+				&level.collsion_scene.collision_object_map,
 				&ray,
 			)
-			_, is_grappable := level.grappable[id]
+			_, is_grappable := level.collsion_scene.grappable[id]
 			if ok && is_grappable {
 
 				character_data.hooked_position = hook_hit_location
@@ -131,8 +128,8 @@ update_character :: proc(
 		)
 
 		ok, id, location := spat.ray_intersect_spatial_hash_grid(
-			&level.spatial_hash_grid,
-			&level.collision_object_map,
+			&level.collsion_scene.spatial_hash_grid,
+			&level.collsion_scene.collision_object_map,
 			&ray,
 		)
 
@@ -197,10 +194,10 @@ update_character_physics :: proc(
 	defer delete(movement_hash_cells)
 
 	for hash_key in movement_hash_cells {
-		object_ids := level.spatial_hash_grid[hash_key]
+		object_ids := level.collsion_scene.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
 
-			coll_obj := hms.get(&level.collision_object_map, collision_object_id)
+			coll_obj := hms.get(&level.collsion_scene.collision_object_map, collision_object_id)
 			if !cc.is_blocking(coll_obj.collision_channels) do continue
 
 			transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)

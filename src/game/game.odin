@@ -4,13 +4,6 @@ import character "../Character"
 import col "../color"
 import hms "../handle_map/handle_map_static"
 import "../render"
-import "core:log"
-import "core:reflect"
-import "core:time"
-
-// import ui "../ui"
-// import layout "../ui/layout/"
-// import game_ui "../ui/game_ui/"
 
 import verlet "../Physics/verlet"
 import spat "../Spatial"
@@ -24,8 +17,6 @@ import "../player_data"
 import plrs "../players"
 import rlb "../raylib_bridge"
 import vmouse "../virtual_mouse"
-import "core:fmt"
-import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
@@ -66,8 +57,8 @@ update :: proc(
 		if position_transform_tool.dragging == true {
 			position_transform_tool.dragging = false
 			position_transform_tool.target_object_id = spat.notify_object_transform_changed(
-				&gc.current_level.collision_object_map,
-				&gc.current_level.spatial_hash_grid,
+				&gc.current_level.collsion_scene.collision_object_map,
+				&gc.current_level.collsion_scene.spatial_hash_grid,
 				position_transform_tool.target_object_id,
 			)
 			//position_transform_tool.target_object_id.idx = 0
@@ -168,7 +159,7 @@ update :: proc(
 							&cam,
 							rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
 							rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-							&gc.current_level.collision_object_map,
+							&gc.current_level.collsion_scene.collision_object_map,
 							ray,
 						)
 					}
@@ -180,8 +171,8 @@ update :: proc(
 	}
 
 	overlapping_finish_volume := spat.does_location_overlap_finish_volume(
-		&gc.current_level.finish_volumes,
-		&gc.current_level.collision_object_map,
+		&gc.current_level.collsion_scene.finish_volumes,
+		&gc.current_level.collsion_scene.collision_object_map,
 		&gc.players.game.verlet_component.position,
 	)
 	if overlapping_finish_volume != spat.INVALID_OBJECT_ID {
@@ -196,8 +187,8 @@ update :: proc(
 
 	// Kill volumes
 	overlapping_kill_volumes := spat.does_location_overlap_finish_volume(
-		&gc.current_level.kill_volumes,
-		&gc.current_level.collision_object_map,
+		&gc.current_level.collsion_scene.kill_volumes,
+		&gc.current_level.collsion_scene.collision_object_map,
 		&gc.players.game.verlet_component.position,
 	)
 	if overlapping_kill_volumes != spat.INVALID_OBJECT_ID {
@@ -217,7 +208,7 @@ update :: proc(
 	defer delete(player_overlapping_cells)
 
 	active_hash_key := spat.Hash_Location(gc.players.game.verlet_component.position)
-	active_cell := gc.current_level.spatial_hash_grid[active_hash_key]
+	active_cell := gc.current_level.collsion_scene.spatial_hash_grid[active_hash_key]
 
 	// Collide with cubes / planes
 	active_cell_objects_ids := &active_cell.objects_ids

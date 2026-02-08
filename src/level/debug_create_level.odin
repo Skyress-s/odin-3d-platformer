@@ -1,8 +1,8 @@
 package level
+import cc "../Physics/collision_channel"
 import spat "../Spatial"
 import "core:math/linalg"
 import rl "vendor:raylib"
-import cc "../Physics/collision_channel"
 
 add_debug_level_objects :: proc(
 	level: ^Level,
@@ -67,7 +67,7 @@ add_debug_level_objects :: proc(
 			},
 		)
 
-		level.grappable[id] = true
+		level.collsion_scene.grappable[id] = true
 
 	}
 
@@ -109,5 +109,5 @@ add_debug_level_objects :: proc(
 
 	id := spat.add_to_object_map(collision_objects, collision_object_data)
 	spat.add_to_spatial_hash_grid(spaital_hash_grid, collision_object_data, id)
-	spat.add_to_finish_volumes(&level.finish_volumes, id)
+	spat.add_to_finish_volumes(&level.collsion_scene.finish_volumes, id)
 }
