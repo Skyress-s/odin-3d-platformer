@@ -29,6 +29,7 @@ Serializable_Collision_Object_Data :: distinct struct {
 	collision_channels: u16,
 	transform:          Serializable_Transform,
 	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
+	id:                 spat.Collision_Object_Id,
 }
 
 @(private)
@@ -112,6 +113,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 				collision_channels = i.collision_channels,
 				transform = serializable_transform,
 				tris = i.tris,
+				id = i.handle,
 			},
 		)
 	}

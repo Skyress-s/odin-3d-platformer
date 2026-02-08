@@ -81,7 +81,7 @@ layout_floating_item :: proc(ctx: ^Context) {
 			cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS - OUTLINE_WIDTH),
 			layout = {
 				layoutDirection = .TopToBottom,
-				sizing = {clay.SizingGrow(), clay.SizingGrow()},
+				sizing = {clay.SizingPercent(0.99), clay.SizingPercent(0.99)},
 				padding = clay.PaddingAll(BODY_PADDING),
 			},
 			backgroundColor = COLOR_ITEM_BODY,
