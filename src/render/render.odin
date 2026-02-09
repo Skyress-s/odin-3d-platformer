@@ -133,9 +133,6 @@ render :: proc(
 		t: ^spat.Collision_Triangle,
 		face_color, edge_color: rl.Color,
 	) {
-		using t
-		using transform
-
 		rlgl.PushMatrix()
 		// rlgl.Scalef(transform.scale.x,transform.scale.y, transform.scale.z)
 		// euler_x, euler_y, euler_z:= linalg.euler_angles_from_quaternion_f32(transform.rotation, linalg.Euler_Angle_Order.XYZ)
@@ -152,29 +149,6 @@ render :: proc(
 			p = p4.xyz
 		}
 
-		// rlgl.Translatef(transform.position.x, transform.position.y, transform.position.z)
-
-		// matrix_data := rl.MatrixToFloatV(mat)
-		// rlgl.MultMatrixf(auto_cast &matrix_data)
-
-		// normal := linalg.cross(points[0] - points[1], points[2] - points[1])
-		// normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "normal")
-
-		// uniform mat4 mvp;
-		// uniform mat4 matModel;
-		// uniform mat4 matNormal;
-		// mat_model_loc := rl.GetShaderLocation(lightray.lighting.shader, "matModel")
-		// rl.SetShaderValueMatrix(lightray.lighting.shader, mat_model_loc, rl.Matrix(1))
-		//
-		// mvp_loc := rl.GetShaderLocation(lightray.lighting.shader, "mvp")
-		// rl.SetShaderValueMatrix(lightray.lighting.shader, mvp_loc, rl.Matrix(1))
-		//
-		// mat_normal_loc := rl.GetShaderLocation(lightray.lighting.shader, "matNormal")
-		// rl.SetShaderValueMatrix(lightray.lighting.shader, mat_normal_loc, rl.Matrix(1))
-
-
-		// TODO Currently we are transforming each point induvidually, indeally we should just have a few meshes, send them
-		// once to the gpu and instance it. But Something goes wrong in the shader with normals if we do that. Needs investigation
 
 		draw_triangle(
 			transformed_tri.points.x,

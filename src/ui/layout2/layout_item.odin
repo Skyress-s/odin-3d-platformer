@@ -770,7 +770,7 @@ get_next :: proc(
 	parent := get_item_checked(lic, item.parent_handle)
 
 	index_in_parent := get_index_in_parent(lic, item.handle)
-	neighbour_index_in_parent := index_in_parent + (after ? 1 : -1)
+	neighbour_index_in_parent := i8(index_in_parent) + (after ? 1 : -1)
 	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) {
 		grand_parent, grand_parent_ok := get_item(lic, parent.parent_handle)
 		if !grand_parent_ok do return {}
@@ -793,7 +793,7 @@ get_neighbour :: proc(
 	parent := get_item_checked(lic, item.parent_handle)
 
 	index_in_parent := get_index_in_parent(lic, item.handle)
-	neighbour_index_in_parent := index_in_parent + (after ? 1 : -1)
+	neighbour_index_in_parent := i8(index_in_parent) + (after ? 1 : -1)
 	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) do return {}
 
 	return parent.child_nodes[neighbour_index_in_parent]

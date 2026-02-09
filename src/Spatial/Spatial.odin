@@ -331,10 +331,9 @@ draw_hash_grid_bounds_populated_cells :: proc(
 
 box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_Triangle {
 
-	using shape.transform
-	x := scale.x * box.size.x / 2.0
-	y := scale.y * box.size.y / 2.0
-	z := scale.z * box.size.z / 2.0
+	x := shape.transform.scale.x * box.size.x / 2.0
+	y := shape.transform.scale.y * box.size.y / 2.0
+	z := shape.transform.scale.z * box.size.z / 2.0
 
 	points := [8]Vector {
 		Vector{x, y, z}, // 0
@@ -386,16 +385,16 @@ box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_T
 
 get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
 
-	using collision_shape.transform
+	// using collision_shape.transform
 	srtMatrix := get_matrix_from_transform(collision_shape.transform)
 
 	switch shape in collision_shape.shape {
 	case Box:
 		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
-		using shape
-		x := size.x
-		y := size.y
-		z := size.z
+		// using shape
+		x := shape.size.x
+		y := shape.size.y
+		z := shape.size.z
 		points := [8]Vector {
 			Vector{x, y, z} / 2,
 			Vector{-x, y, z} / 2,
@@ -428,13 +427,15 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	// bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
-		bound.min = position - Vector{r * scale.x, r * scale.y, r * scale.z}
-		bound.max = position + Vector{r * scale.x, r * scale.y, r * scale.z}
+		scale := collision_shape.transform.scale
+		bound.min =
+			collision_shape.transform.position - Vector{r * scale.x, r * scale.y, r * scale.z}
+		bound.max =
+			collision_shape.transform.position + Vector{r * scale.x, r * scale.y, r * scale.z}
 	case Cylinder:
-		using shape
-		x := radius
-		y := height / 2.0
-		z := radius
+		x := shape.radius
+		y := shape.height / 2.0
+		z := shape.radius
 		points := [8]Vector {
 			Vector{x, y, z},
 			Vector{-x, y, z},
