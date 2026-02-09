@@ -3,6 +3,7 @@ package serialization
 
 import spat "../Spatial"
 import l "../level"
+import "../logs"
 
 import "core:encoding/json"
 import "core:fmt"
@@ -151,18 +152,6 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
 
 	// In case somebody loads an old level (author_time will be laoded as 0)
-	loaded_level.author_time =
-		loaded_serialized_level_data.author_time != 0 ? loaded_serialized_level_data.author_time : max(f64)
-
-	for &id in loaded_serialized_level_data.finish_volumes_ids {
-		loaded_level.collsion_scene.finish_volumes[id] = true
-	}
-	for &id in loaded_serialized_level_data.kill_volume_ids {
-		loaded_level.collsion_scene.kill_volumes[id] = true
-	}
-	for &id in loaded_serialized_level_data.grapple_volume_ids {
-		loaded_level.collsion_scene.grappable[id] = true
-	}
 
 	for &obj in loaded_serialized_level_data.objects {
 		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
@@ -185,10 +174,43 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		}
 
 
-		spat.add_to_level(
+		new_id := spat.add_to_level(
 			&loaded_level.collsion_scene.collision_object_map,
 			&loaded_level.collsion_scene.spatial_hash_grid,
 			new_loaded_object,
+		)
+
+
+		add_to_identifier_array_if_exists :: proc(
+			old_arr: ^[dynamic]spat.Collision_Object_Id,
+			target_map: ^map[spat.Collision_Object_Id]bool,
+			old_id, new_id: spat.Collision_Object_Id,
+		) {
+			for id in old_arr^ {
+				if id == old_id {
+					target_map[new_id] = true
+					break
+				}
+			}
+		}
+		collision_scene := &loaded_level.collsion_scene
+		add_to_identifier_array_if_exists(
+			&loaded_serialized_level_data.finish_volumes_ids,
+			&collision_scene.finish_volumes,
+			obj.id,
+			new_id,
+		)
+		add_to_identifier_array_if_exists(
+			&loaded_serialized_level_data.kill_volume_ids,
+			&collision_scene.kill_volumes,
+			obj.id,
+			new_id,
+		)
+		add_to_identifier_array_if_exists(
+			&loaded_serialized_level_data.grapple_volume_ids,
+			&collision_scene.grappable,
+			obj.id,
+			new_id,
 		)
 
 
@@ -200,7 +222,7 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		// )
 	}
 
-	fmt.println("success loading level at path: ", filepath)
+	logs.debugf(.Serialization, "success loading level at path: ", filepath)
 
 	return loaded_level
 }

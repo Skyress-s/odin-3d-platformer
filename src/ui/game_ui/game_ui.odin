@@ -129,10 +129,12 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 		clip = clay.ClipElementConfig{false, true, clay.GetScrollOffset()},
 	},
 	) {
-		ui.layout_dynamic_text_entry(logs.get_string_slice())
-
+		entire_log := logs.get_string_slice()
+		log_lines := strings.split(entire_log, "\n")
+		for log_line in log_lines {
+			ui.layout_dynamic_text_entry(log_line)
+		}
 	}
-
 }
 
 layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {

@@ -23,11 +23,13 @@ logs_memory: [NUM_BYTES_FOR_RUNTIME_LOGS]byte // contains our runtime logs
 @(private)
 static_buf: [NUM_BYTES_FOR_RUNTIME_LOGS]byte
 
+// TODO: Can use generic type instead, this does not really need to be here
 System :: enum {
 	Base,
 	Physics,
 	UI,
 	Gamelogic,
+	Serialization,
 }
 
 /*
@@ -97,10 +99,6 @@ clear :: proc() {
 }
 
 deinit :: proc() {
-	// itr := rb.iterator_init(&global_ctx.logs_cache)
-	// for item in rb.iterator_next(&itr) {
-	// 	delete(item.log)
-	// }
 }
 
 get_string_slice :: proc() -> string {

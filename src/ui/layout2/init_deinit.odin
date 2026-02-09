@@ -2,6 +2,7 @@ package layout2
 import hms "../../handle_map/handle_map_static/"
 import clay "../clay-odin"
 import rr "../raylib"
+import "base:runtime"
 import "core:c"
 import "core:fmt"
 import vmem "core:mem/virtual"
@@ -17,9 +18,8 @@ MODIFIER_KEYS: []raylib.KeyboardKey : {.LEFT_SHIFT, .LEFT_CONTROL, .LEFT_ALT, .L
 LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
 
 errorHandler :: proc "c" (errorData: clay.ErrorData) {
-	if (errorData.errorType == clay.ErrorType.DuplicateId) {
-		// etc
-	}
+	context = runtime.default_context()
+	assert(errorData.errorType == nil, fmt.tprintf("CLAY ERROR: {}", errorData))
 }
 
 // TODO should find a way to move the raylib specific stuff out

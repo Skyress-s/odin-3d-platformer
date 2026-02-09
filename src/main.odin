@@ -3,9 +3,12 @@ package main
 import "base:runtime"
 import "core:c"
 import "core:debug/trace"
+import "core:encoding/json"
 import "core:fmt"
 import "core:log"
+import "core:math/linalg"
 import "core:mem"
+import "core:os/os2"
 
 import character "Character"
 import camera "camera"
@@ -125,17 +128,6 @@ main :: proc() {
 	defer logs.deinit()
 	defer log.destroy_console_logger(context.logger)
 
-	logs.log_base(.UI, .Debug, "test 133")
-	for i in 0 ..< logs.NUM_BYTES_FOR_RUNTIME_LOGS * 2 {
-		logs.fatalf(.Physics, "Ops {}: {}", "Some error", i)
-	}
-
-	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.errorf(.Physics, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.infof(.UI, "This should really not happen: reason {}", "Bingus is too strong")
-	logs.fatalf(.UI, "opise {}", "Bingus is too weak")
-
-
 	current_level := serialization.load_from_file_level("content/levels/2.I.map")
 
 	players := plrs.init_players()
@@ -189,14 +181,8 @@ main :: proc() {
 
 	game_rt_needs_update := true
 
-	rl.SetExitKey(nil)
+	rl.SetExitKey(.Y)
 	for !rl.WindowShouldClose() {
-		// if (rl.GetTime() > 3 && rl.GetTime() < 6) {
-		// 	logs.fatalf(.Physics, "Ops {}: {}", "Some error", 2)
-		// } else if rl.GetTime() > 9 {
-		// 	logs.debugf(.Base, "test")
-		// 	logs.clear()
-		// }
 
 		debug_draw_data, game_rect := update_all(&gc, &game_rt_needs_update, game_window_handle)
 
