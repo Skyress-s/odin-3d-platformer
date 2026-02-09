@@ -92,6 +92,10 @@ init :: proc() -> (logger: log.Logger) {
 	return logger
 }
 
+clear :: proc() {
+	rb.reset(&global_ctx.logs_buf)
+}
+
 deinit :: proc() {
 	// itr := rb.iterator_init(&global_ctx.logs_cache)
 	// for item in rb.iterator_next(&itr) {

@@ -34,6 +34,13 @@ init :: proc(backing: []$T) -> (rb: RingBuffer(T)) {
 	return
 }
 
+reset :: proc(rb: ^RingBuffer($T)) {
+	rb.len = 0
+	rb.offset = 0
+	// TODO: memset 0?
+
+}
+
 add_back_overrite :: #force_inline proc(rb: ^RingBuffer($T), new_elem: T) #no_bounds_check {
 	idx := (rb.offset + rb.len) % len(rb.elements)
 	rb.elements[idx] = new_elem
