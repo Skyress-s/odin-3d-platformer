@@ -79,17 +79,7 @@ init :: proc() -> (logger: log.Logger) {
 	// ahh := cast([8]rawptr)context.user_ptr
 	// ahh[0] = ctx
 
-	logger = log.create_console_logger(
-	.Debug,
-	{
-		.Line,
-		.Short_File_Path, /*, .Terminal_Color*/
-		// .Long_File_Path,
-		.Time,
-		.Procedure,
-		.Level,
-	},
-	)
+	logger = log.create_console_logger(.Debug, {.Line, .Short_File_Path, .Time, .Level})
 
 	return logger
 }
@@ -214,7 +204,8 @@ _fire_string :: proc(level: log.Level, string_with_system: string, location := #
 			rb.add_back_overrite(&global_ctx.logs_buf, b)
 		}
 		// rb.add_back_overrite(&global_ctx.logs_cache, Log_Entry{string})
-		context.logger.options += {.Terminal_Color, .Long_File_Path}
+		context.logger.options += {.Terminal_Color, .Long_File_Path, .Procedure}
+
 		context.logger.options -= {.Short_File_Path}
 		log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
 		//fmt.print(string)

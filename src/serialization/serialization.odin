@@ -222,7 +222,7 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 		// )
 	}
 
-	logs.debugf(.Serialization, "success loading level at path: ", filepath)
+	logs.infof(.Serialization, "success loading level at path: {}", filepath)
 
 	return loaded_level
 }
