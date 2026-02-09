@@ -250,7 +250,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 1,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -501,7 +505,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 2,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -752,7 +760,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 3,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -1003,7 +1015,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 4,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 0,
@@ -1254,7 +1270,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 5,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -1505,7 +1525,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 6,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -1756,7 +1780,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 7,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -2007,7 +2035,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 8,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -2258,7 +2290,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 9,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -2509,7 +2545,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 10,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -2722,7 +2762,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 11,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 0,
@@ -2973,7 +3017,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 12,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -3224,7 +3272,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 13,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -3475,7 +3527,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 14,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -3726,7 +3782,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 15,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -3977,7 +4037,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 16,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -4228,7 +4292,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 17,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -4479,7 +4547,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 18,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 0,
@@ -4730,7 +4802,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 19,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -4981,7 +5057,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 20,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 0,
@@ -5232,7 +5312,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 21,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -5483,7 +5567,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 22,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -5734,7 +5822,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 23,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 1,
@@ -5985,7 +6077,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 24,
+				"gen": 1
+			}
 		},
 		{
 			"collision_channels": 0,
@@ -6236,7 +6332,11 @@
 						]
 					]
 				}
-			]
+			],
+			"id": {
+				"idx": 25,
+				"gen": 1
+			}
 		}
 	],
 	"start_position": [
@@ -6257,7 +6357,11 @@
 	],
 	"kill_volume_ids": [
 		{
-			"idx": 19,
+			"idx": 21,
+			"gen": 1
+		},
+		{
+			"idx": 5,
 			"gen": 1
 		},
 		{
@@ -6265,11 +6369,7 @@
 			"gen": 1
 		},
 		{
-			"idx": 21,
-			"gen": 1
-		},
-		{
-			"idx": 5,
+			"idx": 19,
 			"gen": 1
 		}
 	],
@@ -6279,13 +6379,13 @@
 			"gen": 1
 		},
 		{
-			"idx": 20,
+			"idx": 15,
 			"gen": 1
 		},
 		{
-			"idx": 15,
+			"idx": 20,
 			"gen": 1
 		}
 	],
-	"author_time": 20.8496551960000005
+	"author_time": 0.0000000000000000
 }
