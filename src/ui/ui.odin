@@ -601,7 +601,12 @@ layout_textbox_immediate2 :: proc(
 		config = clay.ElementDeclaration {
 			layout = clay.LayoutConfig {
 				layoutDirection = .TopToBottom,
-				sizing = clay.Sizing{clay.SizingGrow(), clay.SizingFit()},
+				sizing          = clay.Sizing {
+					clay.SizingGrow(),
+					// need min size of 1. Can cause issue where all background
+					// colors and width of some parents becomes unknown (NaN I think)
+					clay.SizingFit(clay.SizingConstraintsMinMax{min = 1}),
+				},
 			},
 			backgroundColor = layout.COLOR_BLUE_DARK,
 		},
@@ -618,36 +623,6 @@ layout_textbox_immediate2 :: proc(
 
 		clay.OnHover(on_hover, text_box_data)
 	}
-
-
-	// /* draw */
-	// draw_control_frame(ctx, id, r, .BASE, opt)
-	// if ctx.focus_id == id {
-	// 	text_color := ctx.style.colors[.TEXT]
-	// 	sel_color := ctx.style.colors[.SELECTION_BG]
-	// 	textw := ctx.text_width(font, textstr)
-	// 	texth := ctx.text_height(font)
-	// 	headx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[0]])
-	// 	tailx := ctx.text_width(font, textstr[:ctx.textbox_state.selection[1]])
-	// 	ofmin := max(ctx.style.padding - headx, r.w - textw - ctx.style.padding)
-	// 	ofmax := min(r.w - headx - ctx.style.padding, ctx.style.padding)
-	// 	ctx.textbox_offset = clamp(ctx.textbox_offset, ofmin, ofmax)
-	// 	textx := r.x + ctx.textbox_offset
-	// 	texty := r.y + (r.h - texth) / 2
-	// 	push_clip_rect(ctx, r)
-	// 	draw_rect(
-	// 		ctx,
-	// 		Rect{textx + min(headx, tailx), texty, abs(headx - tailx), texth},
-	// 		sel_color,
-	// 	)
-	// 	draw_text(ctx, font, textstr, Vec2{textx, texty}, text_color)
-	// 	draw_rect(ctx, Rect{textx + headx, texty, 1, texth}, text_color)
-	// 	pop_clip_rect(ctx)
-	// } else {
-	// 	draw_control_text(ctx, textstr, r, .TEXT, opt)
-	// }
-
-	// return
 }
 
 layout_button_immediate :: proc(
