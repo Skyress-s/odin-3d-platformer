@@ -73,9 +73,11 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 
 			clay.OnHover(on_hover, gc)
 
+			layout_reticle(gc.players)
 			if gc.players.mode == .Game {
-				layout_reticle(gc.players)
 				layout_speedrun_timer(gc.players)
+				layout_game_speed_indicator(gc.players^)
+
 
 				if clay.UI(clay.ID("Game_Divide"))(
 					config = clay.ElementDeclaration {
@@ -97,7 +99,6 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 				// Might want to have something here?
 
 
-				layout_reticle(gc.players)
 			}
 
 		}
@@ -287,6 +288,45 @@ layout_reticle :: proc(
 			backgroundColor = layout2.COLOR_GREEN,
 		},
 	) {
+
+	}
+}
+
+layout_game_speed_indicator :: proc(
+	players: plrs.Players, // screen_dimentions: [2]i32,
+	// screen_rect: mu.Rect,
+) {
+	if clay.UI(clay.ID("speed_text"))(
+		config = clay.ElementDeclaration {
+			layout = {childAlignment = {.Center, .Center}},
+			floating = clay.FloatingElementConfig {
+				attachTo = .Parent,
+				attachment = clay.FloatingAttachPoints{parent = .CenterBottom},
+				expand = {10, 0},
+				pointerCaptureMode = .Passthrough,
+				offset = {0, -32 * 2}, // -32 font height
+			},
+			backgroundColor = clay.Color{50, 50, 50, 50},
+		},
+	) {
+
+		clay.TextDynamic(
+			fmt.tprintf("{:4.1f} u/s", linalg.length(players.game.verlet_component.velocity)),
+			clay.TextConfig(
+				{
+					fontSize = 32,
+					fontId = layout.FONT_ID_BODY_16,
+					textColor = clay.Colo,
+					textAlignment = .Center,
+					wrapMode = .Words,
+					lineHeight = 32,
+				},
+			),
+		)
+		// ui.layout_dynamic_text_entry(
+		// 	fmt.tprintf("{:4.1f} u/s", linalg.length(players.game.verlet_component.velocity)),
+		// 	.Right,
+		// )
 
 	}
 }

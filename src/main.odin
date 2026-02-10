@@ -3,12 +3,9 @@ package main
 import "base:runtime"
 import "core:c"
 import "core:debug/trace"
-import "core:encoding/json"
 import "core:fmt"
 import "core:log"
-import "core:math/linalg"
 import "core:mem"
-import "core:os/os2"
 
 import character "Character"
 import camera "camera"
