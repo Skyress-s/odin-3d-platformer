@@ -77,14 +77,18 @@ is_mouse_down :: proc(ctx: ^Context) -> bool {
 	return Mouse.LEFT in ctx.mouse_down_bits
 }
 
-layout_dynamic_text_entry :: proc(text: string, text_alignment: clay.TextAlignment = .Left) {
+layout_dynamic_text_entry :: proc(
+	text: string,
+	text_alignment: clay.TextAlignment = .Left,
+	color: clay.Color = layout.COLOR_LIGHT,
+) {
 	clay.TextDynamic(
 		text,
 		clay.TextConfig(
 			{
 				fontSize = 32,
 				fontId = layout.FONT_ID_BODY_16,
-				textColor = layout.COLOR_LIGHT,
+				textColor = color,
 				textAlignment = text_alignment,
 				wrapMode = .Words,
 				lineHeight = 32,
@@ -596,6 +600,7 @@ layout_textbox_immediate2 :: proc(
 	}
 
 	textstr := string(textbuf[:textlen^])
+	has_content := len(textstr) > 0
 
 	// TODO: Need some structure to store ids or similar so I can get the ID here.
 	if clay.UI()(
@@ -606,13 +611,19 @@ layout_textbox_immediate2 :: proc(
 					clay.SizingGrow(),
 					// need min size of 1. Can cause issue where all background
 					// colors and width of some parents becomes unknown (NaN I think)
-					clay.SizingFit(clay.SizingConstraintsMinMax{min = 1}),
+					clay.SizingFit(),
 				},
 			},
 			backgroundColor = layout.COLOR_BLUE_DARK,
 		},
 	) {
-		layout_dynamic_text_entry(textstr)
+		if has_content {
+			layout_dynamic_text_entry(textstr)
+		} else {
+			// TODO: Can be ..._static_text...(...)
+			layout_dynamic_text_entry(text = "<empty>...", color = layout.COLOR_GREY)
+
+		}
 
 		text_box_data := new(Text_Box_Data, context.allocator) // TODO: Memory leak
 		text_box_data.ctx = ctx
