@@ -1,6 +1,8 @@
 package game_ui
 
+import "core:c"
 import "core:fmt"
+import "core:math"
 import "core:math/linalg"
 import "core:os"
 import "core:path/filepath"
@@ -296,33 +298,52 @@ layout_game_speed_indicator :: proc(
 	players: plrs.Players, // screen_dimentions: [2]i32,
 	// screen_rect: mu.Rect,
 ) {
+	player_speed := linalg.length(players.game.verlet_component.velocity)
+	ui_height_mod := (u16(player_speed) / 8)
 	if clay.UI(clay.ID("speed_text"))(
 		config = clay.ElementDeclaration {
-			layout = {childAlignment = {.Center, .Center}},
+			layout = {
+				childAlignment = {.Center, .Center},
+				sizing         = {
+					clay.SizingFixed(300),
+					clay.SizingFixed(32 + c.float(ui_height_mod)),
+				},
+				// sizing = {clay.SizingFit(), clay.SizingFit()},
+			},
 			floating = clay.FloatingElementConfig {
 				attachTo = .Parent,
-				attachment = clay.FloatingAttachPoints{parent = .CenterBottom},
-				expand = {10, 0},
+				attachment = clay.FloatingAttachPoints {
+					parent = .CenterBottom,
+					element = .CenterBottom,
+				},
+				expand = {0, 0},
 				pointerCaptureMode = .Passthrough,
-				offset = {0, -32 * 2}, // -32 font height
+				offset = {
+					// math.sin_f32(f32(rl.GetTime()) * f32(player_speed) / 10) * 15,
+					0,
+					-32 * 2 + c.float(ui_height_mod) / 2,
+				}, // -32 font height
 			},
 			backgroundColor = clay.Color{50, 50, 50, 50},
 		},
 	) {
 
+		player_speed := linalg.length(players.game.verlet_component.velocity)
 		clay.TextDynamic(
-			fmt.tprintf("{:4.1f} u/s", linalg.length(players.game.verlet_component.velocity)),
+			fmt.tprintf("{:0.0f}", player_speed),
 			clay.TextConfig(
 				{
-					fontSize = 32,
-					fontId = layout.FONT_ID_BODY_16,
-					textColor = clay.Colo,
-					textAlignment = .Center,
+					fontSize = 32 + ui_height_mod,
+					fontId = layout2.FONT_ID_BODY_16,
+					textColor = layout2.COLOR_LIGHT,
+					textAlignment = .Right,
 					wrapMode = .Words,
 					lineHeight = 32,
+					letterSpacing = 0,
 				},
 			),
 		)
+		// ui.layout_dynamic_text_entry()
 		// ui.layout_dynamic_text_entry(
 		// 	fmt.tprintf("{:4.1f} u/s", linalg.length(players.game.verlet_component.velocity)),
 		// 	.Right,
