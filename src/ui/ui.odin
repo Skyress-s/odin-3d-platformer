@@ -597,6 +597,7 @@ layout_textbox_immediate2 :: proc(
 
 	textstr := string(textbuf[:textlen^])
 
+	// TODO: Need some structure to store ids or similar so I can get the ID here.
 	if clay.UI()(
 		config = clay.ElementDeclaration {
 			layout = clay.LayoutConfig {
