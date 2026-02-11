@@ -1,11 +1,12 @@
 package level
 
 import spat "../Spatial"
+import "../stars/"
 
 Level :: distinct struct {
 	name:                                                 string,
 	collsion_scene:                                       spat.Collision_Scene,
-
+	picked_up_stars:                                      u8,
 
 	// Player Start
 	start_position, start_look_direction, start_velocity: spat.Vector,

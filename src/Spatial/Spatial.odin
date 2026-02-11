@@ -79,6 +79,7 @@ Collision_Scene :: struct {
 	finish_volumes:       map[Collision_Object_Id]bool, // TODO: I give up, there should be a set type somewhere MPH-00001
 	kill_volumes:         map[Collision_Object_Id]bool,
 	grappable:            map[Collision_Object_Id]bool,
+	stars:                map[Collision_Object_Id]bool,
 }
 
 delete_collision_scene :: proc(scene: ^Collision_Scene) {

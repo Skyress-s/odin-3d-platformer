@@ -1,9 +1,9 @@
 package players
 
 import character "../Character"
-import editor_player "../editor_player"
 import verlet "../Physics/verlet"
 import spat "../Spatial"
+import editor_player "../editor_player"
 
 
 Player_Mode :: enum {

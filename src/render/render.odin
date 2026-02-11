@@ -176,6 +176,16 @@ render :: proc(
 	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
 	defer delete(drawn_collision_objects_ids)
 
+	for star_id, picked_up in level.collsion_scene.stars {
+		drawn_collision_objects_ids[star_id] = true
+		if !picked_up {
+			volume_obj := hms.get(&level.collsion_scene.collision_object_map, star_id)
+			assert(volume_obj != nil)
+			draw_collision_object(volume_obj, rl.YELLOW, rl.RED)
+		}
+
+	}
+
 	for kill_id in level.collsion_scene.kill_volumes {
 		drawn_collision_objects_ids[kill_id] = true
 
@@ -199,7 +209,7 @@ render :: proc(
 
 		volume_obj := hms.get(&level.collsion_scene.collision_object_map, volume_id)
 		assert(volume_obj != nil)
-		draw_collision_object(volume_obj, rl.YELLOW, rl.GRAY)
+		draw_collision_object(volume_obj, rl.GREEN, rl.GRAY)
 	}
 
 

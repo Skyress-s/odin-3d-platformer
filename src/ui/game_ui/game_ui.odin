@@ -20,6 +20,7 @@ import gs "../../game_state/"
 import gctx "../../global_context"
 import hms "../../handle_map/handle_map_static/"
 import l "../../level/"
+import lfu "../../level_flow_utils/"
 import "../../logs/"
 import plrs "../../players/"
 import "../../serialization/"
@@ -435,96 +436,7 @@ layout_cheats_panel :: proc(ctx: ^ui.Context, players: ^plrs.Players, game_state
 				)
 			}
 		}
-
-		// 		}
-		//
-		// 		mu.layout_next(ctx)
-		//
-		// 		// if .ACTIVE in mu.treenode(ctx, "MISC") {
-		// 		// 	if stats_container != nil {
-		// 		// 		mu.layout_row(ctx, {-1})
-		// 		// 		open := bool(stats_container.open)
-		// 		// 		mu.checkbox(ctx, "display_stats", &open)
-		// 		//
-		// 		// 		stats_container.open = b32(open)
-		// 		// 	}
-		// 		// }
-		// 	}
-		//
-		// }
-
 	}
-	// percent: f32 = 0.30
-	// screen_rect := screen_rect
-	// screen_rect.x += (cast(i32)(cast(f32)screen_rect.w * (1 - percent)))
-	// screen_rect.w = cast(i32)(cast(f32)screen_rect.w * percent)
-	// // rect := mu.Rect{screen_dimentions.x - 400, 0, 400, 400}
-	//
-	// stats_container := mu.get_container(
-	// ctx, // TODO we should get the container, but it should be hidden / closed by default!
-	// "stats",
-	// {
-	// 	// mu.Opt.NO_INTERACT,
-	// 	// mu.Opt.NO_SCROLL,
-	// 	// mu.Opt.CLOSED,
-	// 	// mu.Opt.NO_FRAME,
-	// 	// mu.Opt.NO_RESIZE,
-	// 	// mu.Opt.NO_TITLE,
-	// },
-	// ) // TODO this crashes the game.
-	// if mu.window(
-	// 	ctx,
-	// 	"Cheat Window (TAB to free mouse)",
-	// 	screen_rect,
-	// 	{mu.Opt.NO_CLOSE, mu.Opt.NO_FRAME, .NO_TITLE},
-	// ) {
-	// 	mu.get_current_container(ctx).rect = screen_rect
-	//
-	// 	if .ACTIVE in mu.treenode(ctx, "MENU (TAB to free mouse)", {mu.Opt.EXPANDED}) {
-	// 		if .ACTIVE in mu.treenode(ctx, "Controls", {mu.Opt.EXPANDED}) {
-	// 			controls_sheet(ctx)
-	// 		}
-	//
-	// 		mu.get_current_container(ctx).rect = screen_rect
-	//
-	// 		mu.layout_next(ctx)
-	//
-	// 		if .ACTIVE in mu.treenode(ctx, "CHEATS") {
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(ctx, "air_jumping", &players.game.air_jumping_cheat)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(ctx, "SHG_bounds", &game_state.cheat_state.draw_bounds)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(
-	// 				ctx,
-	// 				"debug_draw_utils",
-	// 				&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-	// 			)
-	//
-	// 			mu.layout_row(ctx, {-1})
-	// 			mu.checkbox(
-	// 				ctx,
-	// 				"player_in_active_cell",
-	// 				&game_state.cheat_state.change_color_when_player_in_cell,
-	// 			)
-	// 		}
-	//
-	// 		mu.layout_next(ctx)
-	//
-	// 		// if .ACTIVE in mu.treenode(ctx, "MISC") {
-	// 		// 	if stats_container != nil {
-	// 		// 		mu.layout_row(ctx, {-1})
-	// 		// 		open := bool(stats_container.open)
-	// 		// 		mu.checkbox(ctx, "display_stats", &open)
-	// 		//
-	// 		// 		stats_container.open = b32(open)
-	// 		// 	}
-	// 		// }
-	// 	}
-	//
-	// }
 }
 
 layout_controls_sheet :: proc() {
@@ -613,6 +525,23 @@ layout_details_panel :: proc(
 			}
 
 			{
+				_, stareable := col_scene.stars[current_id]
+
+				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Star"), &stareable) {
+					if stareable {
+						col_scene.stars[current_id] = false
+
+						// TODO: This is disgusting.
+						delete_key(&col_scene.kill_volumes, current_id)
+						delete_key(&col_scene.grappable, current_id)
+						delete_key(&col_scene.finish_volumes, current_id)
+					} else do delete_key(&col_scene.stars, current_id)
+
+
+				}
+			}
+
+			{
 				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
 				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Colliding"), &is_colliding) {
 					current_coll_obj.collision_channels =
@@ -691,7 +620,6 @@ layout_details_panel :: proc(
 
 			character.notify_level_loaded(&players.game)
 			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
-
 		}
 
 	}

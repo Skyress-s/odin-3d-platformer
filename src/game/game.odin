@@ -170,11 +170,23 @@ update :: proc(
 		}
 	}
 
+
+	overlapping_star_volume := spat.does_location_overlap_finish_volume(
+		&gc.current_level.collsion_scene.stars,
+		&gc.current_level.collsion_scene.collision_object_map,
+		&gc.players.game.verlet_component.position,
+	)
+
+	if (overlapping_star_volume != spat.INVALID_OBJECT_ID) {
+		gc.current_level.collsion_scene.stars[overlapping_star_volume] = true
+	}
+
 	overlapping_finish_volume := spat.does_location_overlap_finish_volume(
 		&gc.current_level.collsion_scene.finish_volumes,
 		&gc.current_level.collsion_scene.collision_object_map,
 		&gc.players.game.verlet_component.position,
 	)
+
 	if overlapping_finish_volume != spat.INVALID_OBJECT_ID {
 		gc.game_state.finished_level = true
 		character.pause_speedrun(&gc.players.game)
