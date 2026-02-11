@@ -2,8 +2,10 @@ package game
 
 import character "../Character"
 import col "../color"
+import gent "../game/game_entities/"
 import hms "../handle_map/handle_map_static"
 import "../render"
+import hm "core:container/handle_map"
 
 import verlet "../Physics/verlet"
 import spat "../Spatial"
@@ -31,11 +33,13 @@ update :: proc(
 	debug_draw_data: render.Debug_Draw_Data,
 ) {
 	dt := rl.GetFrameTime()
-	// dt = 0.06
 	mouse_pos := mouse_pos
 
 	cam := gc.camera_state.current_camera
 
+	level := gc.current_level
+
+	update_entities(level)
 
 	ray := rlb.convert_ray(
 		rl.GetScreenToWorldRayEx(
@@ -331,4 +335,20 @@ update :: proc(
 
 	return debug_draw_data
 	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
+}
+
+update_entities :: proc(level: ^l.Level) {
+	col_scene := &level.collsion_scene
+	entities := &level.entities
+
+	itr := hm.iterator_make(entities)
+	player_bit_set: gent.Traits = {.Player, .Physics, .Collider}
+	for ent in hm.iterate(&itr) {
+		if player_bit_set & ent.traits == player_bit_set {
+
+
+		}
+
+	}
+
 }
