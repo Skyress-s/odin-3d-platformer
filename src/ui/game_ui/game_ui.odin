@@ -1,5 +1,7 @@
 package game_ui
 
+import sent "../../game/spawn_entities"
+import pd "../../player_data/"
 import "core:c"
 import "core:fmt"
 import "core:math"
@@ -134,7 +136,7 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	},
 	) {
 		entire_log := logs.get_string_slice()
-		log_lines := strings.split(entire_log, "\n")
+		log_lines := strings.split(entire_log, "\n", context.temp_allocator)
 		for log_line in log_lines {
 			ui.layout_dynamic_text_entry(log_line)
 		}
@@ -542,10 +544,11 @@ layout_details_panel :: proc(
 			}
 
 			{
-				is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
+				// is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
+				is_colliding := current_coll_obj.collision_channels.player == cc.BLOCK
 				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Colliding"), &is_colliding) {
-					current_coll_obj.collision_channels =
-						is_colliding ? cc.get_blocking() : cc.get_non_blocking()
+					current_coll_obj.collision_channels = current_coll_obj.collision_channels
+					// is_colliding ? cc.get_blocking() : cc.get_non_blocking()
 					// TODO we should also activate kill volumes when we get a normal collision.
 				}
 			}
@@ -556,6 +559,28 @@ layout_details_panel :: proc(
 				}
 				if ui.layout_button_immediate(ctx, fmt.tprint("Random Rotation")) {
 					current_coll_obj.transform.rotation = spat.rand_rot()
+				}
+			}
+
+			{
+				if ui.layout_button_immediate(ctx, fmt.tprintf("Spawn Cube")) {
+
+					_, forward, _ := pd.calculate_direction_from_look(&players.editor.look_data)
+					spawn_position := players.editor.position + forward * 4
+
+					new_ent_handle := sent.spawn_empty_entity(&level.entities)
+
+					col_shape := spat.Collision_Shape {
+						spat.Transform{spawn_position, spat.QUATERNION_IDENTITY, spat.ONE_VEC3},
+						spat.Box{spat.ONE_VEC3 * 4},
+					}
+
+					sent.add_static_mesh_trait(
+						&level.entities,
+						new_ent_handle,
+						&level.collsion_scene,
+						col_shape,
+					)
 				}
 			}
 
@@ -643,7 +668,7 @@ layout_editor_options :: proc(ctx: ^ui.Context) {
 
 map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout2.Active_Elements) -> string {
 
-	cwd := os.get_current_directory()
+	cwd := os.get_current_directory(context.temp_allocator)
 	f, err := os.open(cwd)
 	defer os.close(f)
 	if err != os.ERROR_NONE {
@@ -662,7 +687,9 @@ map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout2.Active_Elements) 
 
 	return vis_dir(
 		ctx,
-		os.File_Info{fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD})},
+		os.File_Info {
+			fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD}, context.temp_allocator),
+		},
 		active_elems,
 		true,
 	)
@@ -743,15 +770,23 @@ vis_dir :: proc(
 // Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
 to_cwd_map_path_from_local :: proc(local_path: string) -> string {
 	return filepath.join(
-		{PATH_TO_LEVELS_FROM_CWD, strings.concatenate({local_path, MAP_FILE_EXTENSION})},
+		{
+			PATH_TO_LEVELS_FROM_CWD,
+			strings.concatenate({local_path, MAP_FILE_EXTENSION}, context.temp_allocator),
+		},
+		context.temp_allocator,
 	)
 }
 
 // Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
 to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
 	local_path, _ := filepath.rel(
-		filepath.join({os.get_current_directory(), PATH_TO_LEVELS_FROM_CWD}),
+		filepath.join(
+			{os.get_current_directory(context.temp_allocator), PATH_TO_LEVELS_FROM_CWD},
+			context.temp_allocator,
+		),
 		cwd_path,
+		context.temp_allocator,
 	)
 	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
 

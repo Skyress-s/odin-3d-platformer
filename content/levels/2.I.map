@@ -2,7 +2,7 @@
 	"name": "test_level",
 	"objects": [
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					834.56768799,
@@ -257,7 +257,7 @@
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					9.00000000,
@@ -512,7 +512,7 @@
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					17.03609467,
@@ -767,7 +767,7 @@
 			}
 		},
 		{
-			"collision_channels": 0,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					291.32046509,
@@ -1022,7 +1022,7 @@
 			}
 		},
 		{
-			"collision_channels": 0,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					907.48699951,
@@ -1272,12 +1272,12 @@
 				}
 			],
 			"id": {
-				"idx": 6,
+				"idx": 5,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					0.31919479,
@@ -1527,12 +1527,12 @@
 				}
 			],
 			"id": {
-				"idx": 7,
+				"idx": 6,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					599.76660156,
@@ -1782,12 +1782,12 @@
 				}
 			],
 			"id": {
-				"idx": 8,
+				"idx": 7,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					119.88737488,
@@ -2037,12 +2037,12 @@
 				}
 			],
 			"id": {
-				"idx": 9,
+				"idx": 8,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					310.27029419,
@@ -2292,12 +2292,12 @@
 				}
 			],
 			"id": {
-				"idx": 10,
+				"idx": 9,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 0,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					275.25463867,
@@ -2547,12 +2547,12 @@
 				}
 			],
 			"id": {
-				"idx": 11,
+				"idx": 10,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					-5.43998718,
@@ -2802,12 +2802,12 @@
 				}
 			],
 			"id": {
-				"idx": 12,
+				"idx": 11,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 0,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					122.68721008,
@@ -3057,12 +3057,12 @@
 				}
 			],
 			"id": {
-				"idx": 13,
+				"idx": 12,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					2.60373306,
@@ -3312,12 +3312,12 @@
 				}
 			],
 			"id": {
-				"idx": 14,
+				"idx": 13,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 1,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					-34.14287186,
@@ -3567,12 +3567,12 @@
 				}
 			],
 			"id": {
-				"idx": 15,
+				"idx": 14,
 				"gen": 1
 			}
 		},
 		{
-			"collision_channels": 0,
+			"collision_channels": 2,
 			"transform": {
 				"position": [
 					292.57849121,
@@ -3822,7 +3822,7 @@
 				}
 			],
 			"id": {
-				"idx": 16,
+				"idx": 15,
 				"gen": 1
 			}
 		}
@@ -3839,13 +3839,17 @@
 	],
 	"finish_volumes_ids": [
 		{
-			"idx": 6,
+			"idx": 5,
 			"gen": 1
 		}
 	],
 	"kill_volume_ids": [
 		{
-			"idx": 13,
+			"idx": 10,
+			"gen": 1
+		},
+		{
+			"idx": 15,
 			"gen": 1
 		},
 		{
@@ -3853,21 +3857,17 @@
 			"gen": 1
 		},
 		{
-			"idx": 11,
-			"gen": 1
-		},
-		{
-			"idx": 16,
+			"idx": 12,
 			"gen": 1
 		}
 	],
 	"grapple_volume_ids": [
 		{
-			"idx": 12,
+			"idx": 7,
 			"gen": 1
 		},
 		{
-			"idx": 9,
+			"idx": 11,
 			"gen": 1
 		},
 		{

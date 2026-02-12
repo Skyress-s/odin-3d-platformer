@@ -255,6 +255,7 @@ render_all :: proc(
 	)
 
 	// Layout pass
+	free_all(gc.ui_context.layout_ctx.temp_allocator)
 	clay.BeginLayout()
 	layout2.layout(layout_ctx)
 	ui_render_commands := clay.EndLayout()

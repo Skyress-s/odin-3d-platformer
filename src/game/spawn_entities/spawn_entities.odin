@@ -1,0 +1,33 @@
+package spawn_entities
+
+import spat "../../Spatial/"
+import gent "../game_entities/"
+import hm "core:container/handle_map"
+
+spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> gent.Entity_Handle {
+	handle := hm.add(ents, gent.Entity{})
+
+	return handle
+}
+
+add_static_mesh_trait :: proc(
+	ents: ^gent.Game_Entity_Handle_Map,
+	handle: gent.Entity_Handle,
+	col_scene: ^spat.Collision_Scene,
+	data: spat.Collision_Shape,
+) {
+	ent: ^gent.Entity = hm.get(ents, handle)
+
+	assert(ent != nil)
+	assert(.StaticMesh not_in ent.traits)
+
+	ent.traits += {.StaticMesh}
+
+	collision_object_data := spat.shape_to_collision_object(data)
+
+	ent.collision_scene_id = spat.add_to_level(
+		&col_scene.collision_object_map,
+		&col_scene.spatial_hash_grid,
+		collision_object_data,
+	)
+}

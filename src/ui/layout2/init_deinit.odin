@@ -36,8 +36,11 @@ init :: proc(
 
 	arena_init_err := vmem.arena_init_growing(&ctx.arena)
 	assert(arena_init_err == nil)
-
 	ctx.arena_allocator = vmem.arena_allocator(&ctx.arena)
+
+	temp_arena_init_err := vmem.arena_init_growing(&ctx.temp_arena)
+	assert(temp_arena_init_err == nil)
+	ctx.temp_allocator = vmem.arena_allocator(&ctx.temp_arena)
 
 
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
@@ -81,7 +84,11 @@ init :: proc(
 
 deinit :: proc(ctx: ^Context) {
 	vmem.arena_destroy(&ctx.arena)
+	vmem.arena_destroy(&ctx.temp_arena)
 	free(ctx.clay_arena.memory)
+
+	delete(ctx.active_elements.elems)
+
 	unload_all_fonts()
 
 	hms.clear(&ctx.lic)

@@ -4,12 +4,13 @@ import verlet "../Physics/verlet"
 import spat "../Spatial"
 import col "../color"
 import ddu "../debug_draw_utils"
+import gent "../game/game_entities/"
 import "../game_state"
 import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
-import lfu "../level_flow_utils/"
 import "../player_data"
+import hm "core:container/handle_map"
 import "core:math/linalg"
 import "core:time"
 import rl "vendor:raylib"
@@ -199,7 +200,8 @@ update_character_physics :: proc(
 		for &collision_object_id in object_ids.objects_ids {
 
 			coll_obj := hms.get(&level.collsion_scene.collision_object_map, collision_object_id)
-			if !cc.is_blocking(coll_obj.collision_channels) do continue
+			// if !cc.is_blocking(coll_obj.collision_channels) do continue
+			if coll_obj.collision_channels.player != cc.BLOCK do continue
 
 			transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
 

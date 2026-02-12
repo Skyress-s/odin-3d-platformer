@@ -1,12 +1,12 @@
 package mphlog
 
-import "core:os"
-import "core:log"
 import "base:runtime"
+import "core:c"
 import "core:fmt"
+import "core:log"
+import "core:os"
 import "core:strings"
 import rl "vendor:raylib"
-import "core:c"
 
 log_state := struct {
 	log_buf:         [1 << 16]byte,

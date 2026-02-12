@@ -625,7 +625,7 @@ layout_textbox_immediate2 :: proc(
 
 		}
 
-		text_box_data := new(Text_Box_Data, context.allocator) // TODO: Memory leak
+		text_box_data := new(Text_Box_Data, ctx.layout_ctx.temp_allocator)
 		text_box_data.ctx = ctx
 		text_box_data.textbuf = textbuf
 		text_box_data.textlen = textlen

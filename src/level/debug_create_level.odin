@@ -16,13 +16,13 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape{{{16, 16, 16}, q, {1, 1, 1}}, spat.Box{{10.0, 10.0, 9.0}}},
+		spat.Collision_Shape{{{16, 16, 16}, q, {1, 1, 1}}, spat.Box{{10.0, 10.0, 9.0}}},
 	)
 
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape {
+		spat.Collision_Shape {
 			{{9, 17, 9}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
 			spat.Box{{1.0, 1.0, 1.0}},
 		},
@@ -31,7 +31,7 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape {
+		spat.Collision_Shape {
 			{{0, -20, 0}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
 			spat.Box{{150.0, 10.0, 150}},
 		},
@@ -54,14 +54,14 @@ add_debug_level_objects :: proc(
 	spat.add_shape_to_hash_map(
 		collision_objects,
 		spaital_hash_grid,
-		&spat.Collision_Shape{{{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}},
+		spat.Collision_Shape{{{-32, 0, 0}, q2, {2, 2, 2}}, spat.Box{{9.0, 9.0, 9.0}}},
 	)
 
 	for box_num in 0 ..= 5 {
 		id := spat.add_shape_to_hash_map(
 			collision_objects,
 			spaital_hash_grid,
-			&spat.Collision_Shape {
+			spat.Collision_Shape {
 				{{cast(f32)(box_num * 90 + 100), 0, 0}, spat.QUATERNION_IDENTITY, {1, 1, 1}},
 				spat.Box{{3, 3, 40}},
 			},
@@ -91,12 +91,7 @@ add_debug_level_objects :: proc(
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 10, 10}, {10, 10, 10}, {10, 0, 20})
 	append_quad(&tris, {0, 0, 0}, {10, 0, 0}, {0, 0, 10}, {10, 0, 10}, {10, 10, 30})
 
-	spat.create_and_add_collision_object_from_tris(
-		collision_objects,
-		spaital_hash_grid,
-		tris,
-		true,
-	)
+	spat.create_and_add_collision_object_from_tris(collision_objects, spaital_hash_grid, tris)
 
 	// Add finish volume
 	finish_object_shape := spat.Collision_Shape {
@@ -104,8 +99,8 @@ add_debug_level_objects :: proc(
 		spat.Box{{4, 4, 4}},
 	}
 	bounds := spat.get_bounds(finish_object_shape)
-	collision_object_data := spat.shape_to_collision_object(&finish_object_shape)
-	collision_object_data.collision_channels = cc.get_non_blocking()
+	collision_object_data := spat.shape_to_collision_object(finish_object_shape)
+	collision_object_data.collision_channels.player = cc.BLOCK
 
 	id := spat.add_to_object_map(collision_objects, collision_object_data)
 	spat.add_to_spatial_hash_grid(spaital_hash_grid, collision_object_data, id)

@@ -1,27 +1,24 @@
 package collision_channel
 
 
-CHANNEL_SIZE :: u16
+// Type :: enum u8 {
+// 	Blocking,
+// }
 
-set_is_not_blocking :: proc(collision_channel: CHANNEL_SIZE) -> CHANNEL_SIZE {
-	mask: CHANNEL_SIZE = 0b1
-	inverted: CHANNEL_SIZE = ~mask
-	return collision_channel & (inverted)
+// Responses :: bit_set[Type]
+
+
+IGNORE :: 0
+OVERLAP :: 1
+BLOCK :: 2
+
+Response_Size :: distinct u16
+
+Responses :: bit_field Response_Size {
+	player: u8 | 2,
+	// other:  u8 | 2,
 }
 
-get_non_blocking :: proc() ->CHANNEL_SIZE
-{
-	return 0b0
-}
-
-get_blocking :: proc() -> CHANNEL_SIZE {
-	return 0b1 
-}
-
-set_is_blocking :: proc(collision_channel: CHANNEL_SIZE) -> CHANNEL_SIZE {
-	return collision_channel | 0b1
-}
-
-is_blocking :: proc(collision_channel: CHANNEL_SIZE) -> bool {
-	return (collision_channel & 0b1) > 0
+BLOCK_ALL := Responses {
+	player = BLOCK,
 }

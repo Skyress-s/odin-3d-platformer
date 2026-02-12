@@ -20,6 +20,8 @@ Debug_Settings :: struct {
 Context :: struct {
 	arena:                                             vmem.Arena,
 	arena_allocator:                                   mem.Allocator,
+	temp_arena:                                        vmem.Arena,
+	temp_allocator:                                    mem.Allocator,
 	clay_arena:                                        clay.Arena,
 	lic:                                               Layout_Item_Container,
 	root, dragging_handle:                             Layout_Item_Handle,

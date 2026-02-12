@@ -1,13 +1,15 @@
 package game_entities
 
+import spat "../../Spatial/"
 import hm "core:container/handle_map"
 import ilist "core:container/intrusive/list"
 
 // This hole system is very much inspired by Wookash's great interview of Anton Mikhailov: https://www.youtube.com/watch?v=ShSGHb65f3M
 
 Entity :: struct {
-	traits: Traits,
-	handle: Entity_Handle,
+	handle:             Entity_Handle,
+	traits:             Traits,
+	collision_scene_id: spat.Collision_Object_Id,
 }
 
 Traits :: bit_set[Trait]

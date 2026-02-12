@@ -1,6 +1,7 @@
 #+feature dynamic-literals
 package serialization
 
+import cc "../Physics/collision_channel/"
 import spat "../Spatial"
 import l "../level"
 import "../logs"
@@ -27,7 +28,7 @@ Serializable_Transform :: struct {
 }
 
 Serializable_Collision_Object_Data :: distinct struct {
-	collision_channels: u16,
+	collision_channels: cc.Response_Size,
 	transform:          Serializable_Transform,
 	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
 	id:                 spat.Collision_Object_Id,
@@ -111,7 +112,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 		append_elem(
 			&level_serialization_data.objects,
 			Serializable_Collision_Object_Data {
-				collision_channels = i.collision_channels,
+				collision_channels = transmute(cc.Response_Size)i.collision_channels,
 				transform = serializable_transform,
 				tris = i.tris,
 				id = i.handle,
@@ -122,7 +123,7 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 
 	data, err := json.marshal(level_serialization_data, {pretty = true})
 	defer delete(data)
-	assert(err == nil, fmt.aprint("Json save_to_file_level() error: ", err))
+	assert(err == nil, fmt.tprint("Json save_to_file_level() error: ", err))
 
 	// data_as_string := "ops"
 	// data_as_bytes := transmute([]byte)(data_as_string) // 'transmute' casts our string to a byte array
@@ -168,7 +169,7 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 			scale    = obj.transform.scale,
 		}
 		new_loaded_object := spat.Collision_Object_Data {
-			collision_channels = obj.collision_channels,
+			collision_channels = transmute(cc.Responses)obj.collision_channels,
 			transform          = new_loaded_transform,
 			tris               = obj.tris,
 		}
