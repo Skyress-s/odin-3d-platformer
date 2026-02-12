@@ -100,7 +100,7 @@ Collision_Object_Id :: distinct hms.Handle
 
 
 Collision_Object_Data :: distinct struct {
-	collision_channels: u16,
+	collision_channels: cc.Responses,
 	transform:          Transform,
 	tris:               [dynamic]Collision_Triangle,
 }
@@ -151,7 +151,7 @@ test_spatial_hash_grid_and_map :: proc(t: ^testing.T) {
 	shg: Spatial_Hash_Grid
 	com: Collision_Object_Handle_Map
 
-	collision_object_data := shape_to_collision_object(&Collision_Shape{shape = Box{{2, 2, 2}}})
+	collision_object_data := shape_to_collision_object(Collision_Shape{shape = Box{{2, 2, 2}}})
 	defer delete(collision_object_data.tris)
 	collision_object_id := add_to_object_map(&com, collision_object_data)
 	add_to_spatial_hash_grid(&shg, collision_object_data, collision_object_id)
@@ -330,7 +330,7 @@ draw_hash_grid_bounds_populated_cells :: proc(
 }
 
 
-box_get_tris :: proc(box: ^Box, shape: ^Collision_Shape) -> [dynamic]Collision_Triangle {
+box_get_tris :: proc(box: ^Box, shape: Collision_Shape) -> [dynamic]Collision_Triangle {
 
 	x := shape.transform.scale.x * box.size.x / 2.0
 	y := shape.transform.scale.y * box.size.y / 2.0
@@ -696,10 +696,10 @@ notify_object_transform_changed :: proc(
 add_shape_to_hash_map :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^map[Hash_Key]Hash_Cell,
-	shape: ^Collision_Shape,
+	shape: Collision_Shape,
 	blocking_geo: bool = true,
 ) -> Collision_Object_Id {
-	bounds := get_bounds(shape^)
+	bounds := get_bounds(shape)
 
 	collision_object_data := shape_to_collision_object(shape)
 
@@ -713,13 +713,11 @@ create_and_add_collision_object_from_tris_transform :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
 	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
 	transform: Transform,
-	blocking: bool = true,
+	blocking: cc.Responses = cc.BLOCK_ALL,
 ) -> Collision_Object_Id {
 
-	collision_channel: cc.CHANNEL_SIZE =
-		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
 	data := Collision_Object_Data {
-		collision_channels = collision_channel,
+		collision_channels = blocking,
 		transform          = transform,
 		tris               = tris,
 	}
@@ -862,18 +860,16 @@ create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^Spatial_Hash_Grid,
 	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
-	blocking: bool = true,
+	blocking: cc.Responses = cc.BLOCK_ALL,
 ) {
 	bounds := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
 
 	potential_hash_keys := calculate_overlapping_cells2(bounds)
-	collision_channel: cc.CHANNEL_SIZE =
-		blocking ? cc.set_is_blocking({}) : cc.set_is_not_blocking({})
 	// Adding to handle map
 	collision_object_id := hms.add(
 		collision_object_map,
 		Collision_Object_Data_Runtime {
-			collision_channels = collision_channel,
+			collision_channels = blocking,
 			tris = tris,
 			transform = TRANSFORM_IDENTITY,
 		},
@@ -892,7 +888,7 @@ create_and_add_collision_object_from_tris :: proc(
 }
 
 shape_to_collision_object :: proc(
-	shape: ^Collision_Shape,
+	shape: Collision_Shape,
 ) -> (
 	collision_object_data: Collision_Object_Data,
 ) {
@@ -907,7 +903,7 @@ shape_to_collision_object :: proc(
 	}
 
 	collision_object_data.transform = shape.transform
-	collision_object_data.collision_channels = cc.set_is_blocking(1)
+	collision_object_data.collision_channels = cc.BLOCK_ALL
 
 	return collision_object_data
 
