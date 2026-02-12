@@ -1,10 +1,11 @@
 package spawn_entities
 
 import spat "../../Spatial/"
+import hent "../../core/entity_handle"
 import gent "../game_entities/"
 import hm "core:container/handle_map"
 
-spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> gent.Entity_Handle {
+spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Handle {
 	handle := hm.add(ents, gent.Entity{})
 
 	return handle
@@ -12,7 +13,7 @@ spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> gent.Entity_Ha
 
 add_static_mesh_trait :: proc(
 	ents: ^gent.Game_Entity_Handle_Map,
-	handle: gent.Entity_Handle,
+	handle: hent.Entity_Handle,
 	col_scene: ^spat.Collision_Scene,
 	data: spat.Collision_Shape,
 ) {
