@@ -1,14 +1,13 @@
 package Spatial
 
-import hms "../handle_map/handle_map_static"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 import "core:testing"
 
 Sphere_Trace :: distinct struct {
-	using ray:    Ray,
-	radius: f32,
+	using ray: Ray,
+	radius:    f32,
 }
 
 calculate_hashes_by_sphere :: proc(
@@ -85,11 +84,6 @@ calculate_hashes_by_sphere_trace :: proc(
 	// return cells
 }
 
-distance_point_to_line :: proc(p_on_line, v, point: ^Vector) -> f32 {
-	to_point := (point^ - p_on_line^)
-	c := linalg.cross(to_point, v^)
-	return linalg.length(c) / linalg.length(v^)
-}
 
 sphere_trace_spatial_hash_grid :: proc(
 	sphere_trace: ^Sphere_Trace,
@@ -182,7 +176,10 @@ sphere_trace_triangle_intersect :: proc(
 	sphere_trace: ^Sphere_Trace,
 	tri: ^Collision_Triangle,
 	reaction: ^Vector,
-) -> (bool, Vector) {
+) -> (
+	bool,
+	Vector,
+) {
 	if ray_length(&sphere_trace.ray) == 0 do return false, ZERO_VEC3
 
 	i: i32
@@ -196,7 +193,7 @@ sphere_trace_triangle_intersect :: proc(
 	col: i32 = -1
 	_distTravel: f32 = max(f32)
 
-	plane:  = plane_comp_from_point_and_normal(tri.points.x, tri_normal)
+	plane := plane_comp_from_point_and_normal(tri.points.x, tri_normal)
 	// pass1: sphere VS plane
 	h: f32 = distance_to_plane_comp(&plane, &sphere_trace.origin)
 	if h < -sphere_trace.radius do return false, ZERO_VEC3
@@ -266,7 +263,7 @@ sphere_trace_triangle_intersect :: proc(
 		if d > sphere_trace.radius || d < -sphere_trace.radius do continue
 
 		srr: f32 = sphere_trace.radius * sphere_trace.radius
-		r: f32 = math.sqrt(srr - d*d)
+		r: f32 = math.sqrt(srr - d * d)
 
 		pt0: Vector = plane_comp_project(&plane, &sphere_trace.ray.origin) // center of the sphere slice (a circle)
 
@@ -295,7 +292,7 @@ sphere_trace_triangle_intersect :: proc(
 
 		t: f32
 
-		res: bool = intersection_line_line(			
+		res: bool = intersection_line_line(
 			Vector2{pt1[a0], pt1[a1]},
 			Vector2{vv[a0], vv[a1]},
 			Vector2{edge0[a0], edge0[a1]},
@@ -340,5 +337,8 @@ calculate_hashes_by_rays :: proc(rays: ^[dynamic]Ray) -> (hashes: map[Hash_Key]b
 
 	return hashes
 }
-
-
+distance_point_to_line :: proc(p_on_line, v, point: ^Vector) -> f32 {
+	to_point := (point^ - p_on_line^)
+	c := linalg.cross(to_point, v^)
+	return linalg.length(c) / linalg.length(v^)
+}

@@ -1,85 +1,16 @@
-package Spatial
+package collision_scene
 
-import cc "../Physics/collision_channel"
-import hms "../handle_map/handle_map_static"
-import "core:fmt"
-import "core:math"
+import cc "../../Physics/collision_channel/"
+import hent "../entity_handle/"
+import spat "../spatial/"
+
 import "core:math/linalg"
-import "core:math/rand"
 import "core:testing"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-Vector :: rl.Vector3
-Vector2 :: rl.Vector2
-Vector4 :: rl.Vector4
-Quaternion :: quaternion128
-
-ZERO_VEC3 :: Vector{0, 0, 0}
-ZERO_VEC2 :: Vector2{0, 0}
-ZERO_VEC4 :: Vector4{0, 0, 0, 0}
-ONE_VEC3 :: Vector{1, 1, 1}
-
-FORWARD_VEC3 :: Vector{1, 0, 0}
-RIGHT_VEC3 :: Vector{0, 0, 1}
-UP_VEC3 :: Vector{0, 1, 0}
-
-// Transform :: rl.Transform
-
-QUATERNION_IDENTITY :: linalg.QUATERNIONF32_IDENTITY
-
-TRANSFORM_IDENTITY :: Transform {
-	position = ZERO_VEC3,
-	rotation = QUATERNION_IDENTITY,
-	scale    = ONE_VEC3,
-}
-
-INVALID_OBJECT_ID :: Collision_Object_Id{}
-
-Box :: struct {
-	size: Vector,
-}
-
-Box_Better :: struct {
-	size, position: Vector,
-	rotation:       Quaternion,
-}
-
-
-Sphere :: struct {
-	radius: f32,
-	center: Vector,
-}
-
-QuaternionData :: distinct struct {
-	x, y, z, w: f32,
-}
-
-Cylinder :: struct {
-	height: f32,
-	radius: f32,
-}
-
-Collision_Shape :: struct {
-	transform: Transform,
-	shape:     union {
-		Box,
-		Sphere,
-		Cylinder,
-	},
-}
-
-Bound :: rl.BoundingBox
-
 Collision_Scene :: struct {
-	collision_object_map: Collision_Object_Handle_Map,
-	spatial_hash_grid:    Spatial_Hash_Grid,
-
-	// TODO: These ids could all just be stored in the collision channel...
-	finish_volumes:       map[Collision_Object_Id]bool, // TODO: I give up, there should be a set type somewhere MPH-00001
-	kill_volumes:         map[Collision_Object_Id]bool,
-	grappable:            map[Collision_Object_Id]bool,
-	stars:                map[Collision_Object_Id]bool,
+	spatial_hash_grid: Spatial_Hash_Grid,
 }
 
 delete_collision_scene :: proc(scene: ^Collision_Scene) {
@@ -96,22 +27,19 @@ delete_collision_scene :: proc(scene: ^Collision_Scene) {
 }
 
 
-Collision_Object_Id :: distinct hms.Handle
-
-
 Collision_Object_Data :: distinct struct {
 	collision_channels: cc.Responses,
-	transform:          Transform,
-	tris:               [dynamic]Collision_Triangle,
+	transform:          spat.Transform,
+	tris:               [dynamic]spat.Collision_Triangle,
 }
 
 Collision_Object_Data_Runtime :: distinct struct {
 	using data: Collision_Object_Data,
-	handle:     Collision_Object_Id,
+	handle:     hent.Entity_Handle,
 }
 
 Hash_Cell :: struct {
-	objects_ids: [dynamic]Collision_Object_Id,
+	objects_ids: [dynamic]hent.Entity_Handle,
 }
 
 Hash_Int :: i32
@@ -119,7 +47,7 @@ Hash_Int :: i32
 HASH_CELL_SIZE_METERS :: 1 << 7 // 256
 HASH_CELL_SIZE_METERS_FLOAT :: cast(f32)HASH_CELL_SIZE_METERS
 
-HASH_CELL_SIZE :: Vector {
+HASH_CELL_SIZE :: spat.Vector {
 	HASH_CELL_SIZE_METERS_FLOAT,
 	HASH_CELL_SIZE_METERS_FLOAT,
 	HASH_CELL_SIZE_METERS_FLOAT,
@@ -170,21 +98,25 @@ delete_hash_cell :: proc(shc: ^Hash_Cell) {
 	delete(shc.objects_ids)
 }
 
-rand_vector :: proc() -> Vector {
-	return Vector{rand.float32_range(-1, 1), rand.float32_range(-1, 1), rand.float32_range(-1, 1)}}
+rand_vector :: proc() -> spat.Vector {
+	return spat.Vector {
+		rand.float32_range(-1, 1),
+		rand.float32_range(-1, 1),
+		rand.float32_range(-1, 1),
+	}}
 
-rand_rot :: proc() -> Quaternion {return linalg.normalize(
+rand_rot :: proc() -> spat.Quaternion {return linalg.normalize(
 		linalg.quaternion_from_forward_and_up(rand_vector(), rand_vector()),
 	)}
 
-key_to_corner_location :: proc(vec: ^Hash_Key) -> Vector {
+key_to_corner_location :: proc(vec: ^Hash_Key) -> spat.Vector {
 	x := cast(f32)(vec.x * HASH_CELL_SIZE_METERS)
 	y := cast(f32)(vec.y * HASH_CELL_SIZE_METERS)
 	z := cast(f32)(vec.z * HASH_CELL_SIZE_METERS)
 	return {x, y, z}
 }
 
-calculate_hash_cell_width_location :: proc(hash_key: ^Hash_Key) -> (location: Vector) {
+calculate_hash_cell_width_location :: proc(hash_key: ^Hash_Key) -> (location: spat.Vector) {
 	x := cast(f32)(hash_key.x * HASH_CELL_SIZE_METERS)
 	y := cast(f32)(hash_key.y * HASH_CELL_SIZE_METERS)
 	z := cast(f32)(hash_key.z * HASH_CELL_SIZE_METERS)
@@ -230,7 +162,7 @@ Unhash_Coordinate :: proc(hash: Hash_Int) -> f32 {
 	return cast(f32)hash * HASH_CELL_SIZE_METERS
 }
 
-Hash_Location :: proc(vec: Vector) -> (ret_val: Hash_Key) {
+Hash_Location :: proc(vec: spat.Vector) -> (ret_val: Hash_Key) {
 	ret_val.x = Hash_Coordinate(vec.x)
 	ret_val.y = Hash_Coordinate(vec.y)
 	ret_val.z = Hash_Coordinate(vec.z)
@@ -242,18 +174,18 @@ Hash_Location :: proc(vec: Vector) -> (ret_val: Hash_Key) {
 	return
 }
 
-Unhash_Location :: proc(hash_key: Hash_Key) -> (location: Vector) {
+Unhash_Location :: proc(hash_key: Hash_Key) -> (location: spat.Vector) {
 	location.x = Unhash_Coordinate(hash_key.x)
 	location.y = Unhash_Coordinate(hash_key.y)
 	location.z = Unhash_Coordinate(hash_key.z)
 	return location
 }
 
-matrix_from_transform_tr :: proc(trans: Transform) -> linalg.Matrix4f32 {
+matrix_from_transform_tr :: proc(trans: spat.Transform) -> linalg.Matrix4f32 {
 	return linalg.matrix4_from_trs(trans.position, trans.rotation, ONE_VEC3)
 }
 
-matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32 {
+matrix_from_transform :: proc(trans: spat.Transform) -> linalg.Matrix4f32 {
 	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
 
 	// translation := linalg.matrix4_translate(trans.position)
@@ -263,7 +195,7 @@ matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32 {
 	// return linalg.mul(scale, linalg.mul(rotation, translation))
 }
 
-get_matrix_from_transform :: proc(trans: Transform) -> rl.Matrix { 	// TODO how to pass by ptr here?
+get_matrix_from_transform :: proc(trans: spat.Transform) -> rl.Matrix { 	// TODO how to pass by ptr here?
 	// return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
 	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
 	matRotation := rl.QuaternionToMatrix(trans.rotation)
@@ -274,7 +206,7 @@ get_matrix_from_transform :: proc(trans: Transform) -> rl.Matrix { 	// TODO how 
 }
 
 // Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
-calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Matrix {
+calculate_matrix_from_loc_rot :: proc(loc: ^spat.Vector, rot: ^spat.Quaternion) -> rlgl.Matrix {
 	matRotation := rl.QuaternionToMatrix(rot^)
 
 	matTranslation := rl.MatrixTranslate(loc.x, loc.y, loc.z)
@@ -287,7 +219,7 @@ calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Ma
 }
 
 
-draw_collision_shape :: proc(collision_shape: Collision_Shape, color: ^rl.Color) {
+draw_collision_shape :: proc(collision_shape: spat.Collision_Shape, color: ^rl.Color) {
 
 	bounds := get_bounds(collision_shape)
 	//fmt.println(bounds)
@@ -330,7 +262,10 @@ draw_hash_grid_bounds_populated_cells :: proc(
 }
 
 
-box_get_tris :: proc(box: ^Box, shape: Collision_Shape) -> [dynamic]Collision_Triangle {
+box_get_tris :: proc(
+	box: ^spat.Box,
+	shape: spat.Collision_Shape,
+) -> [dynamic]spat.Collision_Triangle {
 
 	x := shape.transform.scale.x * box.size.x / 2.0
 	y := shape.transform.scale.y * box.size.y / 2.0
@@ -353,38 +288,38 @@ box_get_tris :: proc(box: ^Box, shape: Collision_Shape) -> [dynamic]Collision_Tr
 
 	// for p, i in points {
 	// 	transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
-	// 	pp: Vector = transformed_p.xyz
+	// 	pp: spat.Vector = transformed_p.xyz
 	// 	transformed_points[i] = pp
 	// }
 
-	tris: [dynamic]Collision_Triangle = {}
+	tris: [dynamic]spat.Collision_Triangle = {}
 
 	// ps := &transformed_points
 	ps := points
 
 	// Top
-	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[5], ps[7]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[1], ps[5], ps[7]}})
 	// Bottom
-	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
 	// Left
-	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
 	// Right
-	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[1], ps[2]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[6], ps[0], ps[2]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[0], ps[1], ps[2]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[6], ps[0], ps[2]}})
 	// Forward
-	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[3], ps[2]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[1], ps[7]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[1], ps[3], ps[2]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[3], ps[1], ps[7]}})
 	// Backward
-	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[4], ps[5]}})
-	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[6], ps[4]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[0], ps[4], ps[5]}})
+	append(&tris, spat.Collision_Triangle{[3]Vector{ps[0], ps[6], ps[4]}})
 
 	return tris
 }
 
-get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
+get_bounds :: proc(collision_shape: spat.Collision_Shape) -> (bound: spat.Bound) { 	// Todo reference
 
 	// using collision_shape.transform
 	srtMatrix := get_matrix_from_transform(collision_shape.transform)
@@ -422,17 +357,17 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 			minZ = min(minZ, transformed_p.z)
 		}
 
-		bound.min = Vector{minX, minY, minZ}
-		bound.max = Vector{maxX, maxY, maxZ}
+		bound.min = spat.Vector{minX, minY, minZ}
+		bound.max = spat.Vector{maxX, maxY, maxZ}
 	// bound.min = translation - (shape.size.xyz * scale.xyz / 2.0)
 	// bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
 	case Sphere:
 		r := shape.radius
 		scale := collision_shape.transform.scale
 		bound.min =
-			collision_shape.transform.position - Vector{r * scale.x, r * scale.y, r * scale.z}
+			collision_shape.transform.position - spat.Vector{r * scale.x, r * scale.y, r * scale.z}
 		bound.max =
-			collision_shape.transform.position + Vector{r * scale.x, r * scale.y, r * scale.z}
+			collision_shape.transform.position + spat.Vector{r * scale.x, r * scale.y, r * scale.z}
 	case Cylinder:
 		x := shape.radius
 		y := shape.height / 2.0
@@ -462,13 +397,13 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 			maxZ = max(maxZ, transformed_p.z)
 			minZ = min(minZ, transformed_p.z)
 		}
-		bound.min = Vector{minX, minY, minZ}
-		bound.max = Vector{maxX, maxY, maxZ}
+		bound.min = spat.Vector{minX, minY, minZ}
+		bound.max = spat.Vector{maxX, maxY, maxZ}
 
 	/*
 
-		bound.min = Vector{minX, minY, minZ}
-		bound.max = Vector{maxX, maxY, maxZ}
+		bound.min = spat.Vector{minX, minY, minZ}
+		bound.max = spat.Vector{maxX, maxY, maxZ}
 		bound.min =
 			translation -
 			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
@@ -482,7 +417,10 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 	return
 
 }
-is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Triangle) -> bool {
+is_any_vertex_in_bound :: proc(
+	hash_key: ^Hash_Key,
+	tris: [dynamic]spat.Collision_Triangle,
+) -> bool {
 	for &collision_triangle in tris {
 		for &p in collision_triangle.points {
 			if Hash_Location(p) == hash_key^ do return true
@@ -491,7 +429,7 @@ is_any_vertex_in_bound :: proc(hash_key: ^Hash_Key, tris: [dynamic]Collision_Tri
 	return false
 }
 
-transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: ^Transform) {
+transform_triangles :: proc(tris: ^[dynamic]spat.Collision_Triangle, transform: ^spat.Transform) {
 	mat := get_matrix_from_transform(transform^)
 	for &tri in tris {
 		/*#unroll*/for &p in tri.points { 	// todo how to unroll
@@ -501,15 +439,15 @@ transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: ^Tran
 }
 
 calculate_bounds_from_tris_transform :: proc(
-	tris: [dynamic]Collision_Triangle,
-	transform: Transform,
-) -> Bound {
+	tris: [dynamic]spat.Collision_Triangle,
+	transform: spat.Transform,
+) -> spat.Bound {
 	// TODO REMOVE
 
-	bound: Bound = {}
+	bound: spat.Bound = {}
 
-	bound.min = Vector{max(f32), max(f32), max(f32)}
-	bound.max = Vector{min(f32), min(f32), min(f32)}
+	bound.min = spat.Vector{max(f32), max(f32), max(f32)}
+	bound.max = spat.Vector{min(f32), min(f32), min(f32)}
 
 	mat := get_matrix_from_transform(transform)
 	for &tri in tris {
@@ -530,12 +468,12 @@ calculate_bounds_from_tris_transform :: proc(
 	return bound
 }
 
-calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
+calculate_bounds_from_tris :: proc(tris: [dynamic]spat.Collision_Triangle) -> spat.Bound {
 
-	bound: Bound = {}
+	bound: spat.Bound = {}
 
-	bound.min = Vector{max(f32), max(f32), max(f32)}
-	bound.max = Vector{min(f32), min(f32), min(f32)}
+	bound.min = spat.Vector{max(f32), max(f32), max(f32)}
+	bound.max = spat.Vector{min(f32), min(f32), min(f32)}
 
 	for &tri in tris {
 		/*#unroll*/for p in tri.points { 	// todo how to unroll
@@ -559,43 +497,7 @@ calculate_overlapping_cells :: proc {
 	calculate_hashes_by_sphere_trace,
 }
 
-calculate_overlapping_cells3 :: proc(bound: Bound, hash_keys: ^map[Hash_Key]bool) {
-	min_hash := Hash_Location(bound.min)
-	hash_keys[min_hash] = true
-	max_hash := Hash_Location(bound.max)
-	hash_keys[max_hash] = true
-
-	// Early bail if bound is contained within one cell
-	// Todo is this actually more efficient? Have to test
-	// if min_hash == max_hash do return
-	//
-	// // need to walk to the max cell, and go through every path
-	//
-	// minX, maxX: i32 = min_hash.x, max_hash.x
-	// minY, maxY: i32 = min_hash.y, max_hash.y
-	// minZ, maxZ: i32 = min_hash.z, max_hash.z
-	//
-	//
-	// // fmt.println("printing new cells for min: ", min_hash, " max: ", max_hash)
-	// for x := minX; x <= maxX; x += 1 {
-	//
-	// 	//new_hash := Hash_Key{x, y, z}
-	// 	//hash_keys[new_hash] = true
-	// 	for y := minY; y <= maxY; y += 1 {
-	//
-	// 		//new_hash := Hash_Key{x, y, z}
-	// 		//hash_keys[new_hash] = true
-	// 		for z := minZ; z <= maxZ; z += 1 {
-	//
-	// 			new_hash := Hash_Key{x, y, z}
-	// 			hash_keys[new_hash] = true
-	// 			// fmt.println("\t", new_hash)
-	// 		}
-	// 	}
-	// }
-}
-
-calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]bool) {
+calculate_overlapping_cells2 :: proc(bound: spat.Bound) -> (hash_keys: map[Hash_Key]bool) {
 	min_hash := Hash_Location(bound.min)
 	hash_keys[min_hash] = true
 	max_hash := Hash_Location(bound.max)
@@ -631,10 +533,6 @@ calculate_overlapping_cells2 :: proc(bound: Bound) -> (hash_keys: map[Hash_Key]b
 
 	return hash_keys
 }
-
-Collision_Object_Handle_Map :: distinct
-hms.Handle_Map(Collision_Object_Data_Runtime, Collision_Object_Id, 1024)
-
 
 notify_object_transform_changed :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
@@ -711,8 +609,8 @@ add_shape_to_hash_map :: proc(
 create_and_add_collision_object_from_tris_transform :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^Spatial_Hash_Grid,
-	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
-	transform: Transform,
+	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
+	transform: spat.Transform,
 	blocking: cc.Responses = cc.BLOCK_ALL,
 ) -> Collision_Object_Id {
 
@@ -816,7 +714,7 @@ add_to_finish_volumes :: proc(
 does_location_overlap_finish_volume :: proc(
 	finish_volumes: ^map[Collision_Object_Id]bool,
 	collision_object_map: ^Collision_Object_Handle_Map,
-	location: ^Vector,
+	location: ^spat.Vector,
 ) -> Collision_Object_Id {
 	for finish_volume_object_id in finish_volumes {
 		found_object := hms.get(collision_object_map, finish_volume_object_id)
@@ -859,7 +757,7 @@ remove_from_level :: proc(
 create_and_add_collision_object_from_tris :: proc(
 	collision_object_map: ^Collision_Object_Handle_Map,
 	spatial_hash_grid: ^Spatial_Hash_Grid,
-	tris: [dynamic]Collision_Triangle, // todo this is by ref right???
+	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
 	blocking: cc.Responses = cc.BLOCK_ALL,
 ) {
 	bounds := calculate_bounds_from_tris(tris) // todo defaults to  ref right hehe??
@@ -892,7 +790,7 @@ shape_to_collision_object :: proc(
 ) -> (
 	collision_object_data: Collision_Object_Data,
 ) {
-	tris: [dynamic]Collision_Triangle
+	tris: [dynamic]spat.Collision_Triangle
 	switch &s in shape.shape {
 	case Box:
 		collision_object_data.tris = box_get_tris(&s, shape)
@@ -911,13 +809,17 @@ shape_to_collision_object :: proc(
 
 is_inside_object :: proc(
 	collision_object: ^Collision_Object_Data_Runtime,
-	location: ^Vector,
+	location: ^spat.Vector,
 ) -> bool {
-	// If we shoot a ray straight up, that is longer than the longest size of the Bounds. If we hit a odd number of tris, we are inside it.
+	// If we shoot a ray straight up, that is longer than the longest size of the spat.Bounds. If we hit a odd number of tris, we are inside it.
 
-	bounds: Bound = calculate_bounds_from_tris(collision_object.tris)
+	bounds: spat.Bound = calculate_bounds_from_tris(collision_object.tris)
 	longest_size := linalg.length(bounds.max - bounds.min)
-	ray: Ray = make_ray_with_origin_direction_distance(location^, Vector{0, 1, 0}, longest_size)
+	ray: Ray = make_ray_with_origin_direction_distance(
+		location^,
+		spat.Vector{0, 1, 0},
+		longest_size,
+	)
 	hits := ray_trace_object_multi(&ray, collision_object)
 	defer delete(hits)
 
@@ -931,7 +833,7 @@ ray_trace_object_single :: proc(
 	collision_object: ^Collision_Object_Data_Runtime,
 ) -> (
 	hit: bool,
-	location: Vector,
+	location: spat.Vector,
 ) {
 
 	for &tri in collision_object.tris {
@@ -969,192 +871,120 @@ ray_trace_object_multi :: proc(
 	return hits
 }
 
+calculate_hashes_by_sphere :: proc(
+	radius: f32,
+	location: ^Vector,
+) -> (
+	hash_keys: map[Hash_Key]bool,
+) {
+	assert(radius >= 0)
+	rad := radius
+	rad_bigger := rad * 1.3 // 30% percent bigger for now
+	radius_vector := Vector{rad, rad, rad}
+	bound := Bound {
+		min = location^ - radius_vector,
+		max = location^ + radius_vector,
+	}
 
-ray_plane_intersect :: proc(
-	ray: ^Ray,
-	plane_normal, point_on_plane: Vector,
+	return calculate_overlapping_cells(bound)
+
+}
+calculate_hashes_by_rays :: proc(rays: ^[dynamic]Ray) -> (hashes: map[Hash_Key]bool) {
+	for &ray in rays {
+		new_hashes := calculate_hashes_by(ray)
+		defer delete(new_hashes)
+
+		for hash in &new_hashes {
+			hashes[hash] = true
+		}
+	}
+
+	return hashes
+}
+
+// TODO create testing
+@(test)
+test_calculate_hashes_by_sphere :: proc(t: ^testing.T) {
+	zero_vec := ZERO_VEC3
+
+	hash_keys: map[Hash_Key]bool = calculate_hashes_by_sphere(5, &zero_vec)
+	defer delete(hash_keys)
+
+	some_arr: [dynamic]i32 = make([dynamic]i32)
+	defer delete(some_arr)
+	append_elem(&some_arr, 757)
+
+	// some_arr2 :[dynamic]i32
+	// defer delete(some_arr2)
+
+	testing.expect(t, 1 == 1)
+}
+
+calculate_hashes_by_sphere_trace :: proc(
+	sphere_trace: ^Sphere_Trace,
+) -> (
+	cells: map[Hash_Key]bool,
+) {
+	rays := calculate_rays_by_sphere_trace(sphere_trace)
+	defer delete(rays)
+
+	hashes := calculate_hashes_by_rays(&rays)
+	return hashes
+
+	// // To start out with, we use a sphere that is 30 % bigger that the original
+	// trace_length := ray_length(&sphere_trace.ray)
+	// trace_direction := ray_direction(sphere_trace.ray)
+	// rad := sphere_trace.radius
+	// rad_bigger := rad * 1.3 // 30% percent bigger for now
+	//
+	//
+	// walk_distance := math.sqrt(rad_bigger * rad_bigger - rad * rad) // Application of Pythagoras
+	//
+	// current_dist: f32 = 0.0
+	//
+	// for current_dist < trace_length {
+	// 	current_location := sphere_trace.ray.origin + trace_direction * current_dist
+	// 	new_cells := calculate_hashes_by_sphere(rad, &current_location)
+	// 	defer delete(new_cells)
+	//
+	// 	for cell in &new_cells {
+	// 		cells[cell] = true
+	// 	}
+	//
+	// 	current_dist += walk_distance
+	// }
+	//
+	// return cells
+}
+
+
+sphere_trace_spatial_hash_grid :: proc(
+	sphere_trace: ^Sphere_Trace,
+	shg: ^Spatial_Hash_Grid,
+	com: ^Collision_Object_Handle_Map,
 ) -> (
 	hit: bool,
+	id: Collision_Object_Id,
 	location: Vector,
 ) {
-	ray_dir := linalg.vector_normalize(ray.end - ray.origin)
-	ray_pos := ray.origin
+	rays := calculate_rays_by_sphere_trace(sphere_trace)
+	defer delete(rays)
 
-	ray_tri_normal_dot := linalg.vector_dot(ray_dir, plane_normal)
-	if abs(ray_tri_normal_dot) < 0.0001 do return false, Vector{}
+	hashes := calculate_hashes_by_rays(&rays)
+	defer delete(hashes)
 
-	t :=
-		(linalg.vector_dot(point_on_plane - ray_pos, plane_normal)) /
-		linalg.vector_dot(ray_dir, plane_normal)
-
-	intersection_point := ray_pos + ray_dir * t
-	return true, intersection_point
-}
-
-ray_triangle_intersect :: proc(
-	ray: ^Ray,
-	tri: ^Collision_Triangle,
-) -> (
-	valid: bool,
-	location: Vector,
-) {
-	ray_dir := linalg.vector_normalize(ray.end - ray.origin)
-	ray_pos := ray.origin
-
-	ab := tri.points.y - tri.points.x
-	ac := tri.points.z - tri.points.x
-	cb := tri.points.y - tri.points.z
-	some_point_on_triangle := tri.points.x
-
-	tri_normal := linalg.vector_cross3(ab, ac)
-
-	success, p := ray_plane_intersect(ray, tri_normal, some_point_on_triangle)
-	if !success do return false, Vector{}
-
-	A_to_point := p - tri.points.x
-	B_to_point := p - tri.points.y
-	C_to_point := p - tri.points.z
-
-	// Barycentic coordinates
-
-	t1 := linalg.vector_cross3(A_to_point, ac)
-	t2 := linalg.vector_cross3(B_to_point, -ab)
-	t3 := linalg.vector_cross3(C_to_point, cb)
-
-	hit :=
-		linalg.vector_dot(tri_normal, t1) > 0 &&
-		linalg.vector_dot(tri_normal, t2) > 0 &&
-		linalg.vector_dot(tri_normal, t3) > 0
-
-	// if hit do rl.DrawSphere(p, 2.0, rl.RED) // TODO REMOVE!!!		
-	valid = hit
-	location = p
-	return valid, location
-}
-
-// Real Time collision detection 5.1.5
-closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
-	// Check if P in vertex region outside A
-	ab := b - a
-	ac := c - a
-	ap := p - a
-	d1 := linalg.dot(ab, ap)
-	d2 := linalg.dot(ac, ap)
-	if d1 <= 0.0 && d2 <= 0.0 do return a // barycentric coordinates (1,0,0)
-	// Check if P in vertex region outside B
-	bp := p - b
-	d3 := linalg.dot(ab, bp)
-	d4 := linalg.dot(ac, bp)
-	if d3 >= 0.0 && d4 <= d3 do return b // barycentric coordinates (0,1,0)
-	// Check if P in edge region of AB, if so return projection of P onto AB
-	vc := d1 * d4 - d3 * d2
-	if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
-		v := d1 / (d1 - d3)
-		return a + v * ab // barycentric coordinates (1-v,v,0)
-	}
-	// Check if P in vertex region outside C
-	cp := p - c
-	d5 := linalg.dot(ab, cp)
-	d6 := linalg.dot(ac, cp)
-	if d6 >= 0.0 && d5 <= d6 do return c // barycentric coordinates (0,0,1)
-	// Check if P in edge region of AC, if so return projection of P onto AC
-	vb := d5 * d2 - d1 * d6
-	if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
-		w := d2 / (d2 - d6)
-		return a + w * ac // barycentric coordinates (1-w,0,w)
-	}
-	// Check if P in edge region of BC, if so return projection of P onto BC
-	va := d3 * d6 - d5 * d4
-	if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
-		w := (d4 - d3) / ((d4 - d3) + (d5 - d6))
-		return b + w * (c - b) // barycentric coordinates (0,1-w,w)
-	}
-	// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-	denom := 1.0 / (va + vb + vc)
-	v := vb * denom
-	w := vc * denom
-	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
-}
-
-distance_to_tri :: proc(t: ^Collision_Triangle, position: ^Vector) -> (dist: f32, normal: Vector) {
-	closest := closest_point_on_triangle(position^, t.points[0], t.points[1], t.points[2])
-	diff := position^ - closest
-
-	dist = linalg.length(diff)
-	normal = diff / dist
-	return
-}
-
-reflect_dampen :: proc(vector, normal: Vector, dampen: f32) -> Vector {
-	assert(dampen >= 0 && dampen <= 1)
-	b := normal * (2 * linalg.dot(normal, vector) * (dampen * 0.5 + 0.5))
-	return vector - b
-}
+	for hash_key in &hashes {
+		object_ids, ok := shg[hash_key]
+		if ok {
+			for object_id in &object_ids.objects_ids {
+				object := hms.get(com, object_id)
+				for &tri in &object.tris {
 
 
-// NOTE this has keep the momentum if you collide at a certain angle.
-collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position)
-
-	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
-
-	if dist < radius {
-		position^ += normal * (radius - dist)
-		// project velocity to the normal plane, if moving towards it
-		vel_normal_dot: f32 = linalg.dot(vel^, normal)
-
-		angles_euler := linalg.to_degrees(
-			linalg.angle_between(linalg.cross(linalg.cross(normal, vel^), normal), vel^),
-		)
-		should_keep_momentum := angles_euler < 20
-		velocity_length := linalg.length(vel^)
-
-		if vel_normal_dot < 0 {
-			diff := (vel^ - normal * vel_normal_dot) - vel^
-			acceleration := diff / dt
-			//verlet_component.acceleration += acceleration
-			vel^ -= normal * vel_normal_dot
-
-			if should_keep_momentum {
-				vel^ = linalg.normalize(vel^) * velocity_length
+				}
 			}
 		}
 	}
-}
 
-// NOTE this has keep the momentum if you collide at a certain angle.
-clamp_to_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position)
-
-	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
-
-	if dist < radius {
-		position^ += normal * (radius - dist)
-		// project velocity to the normal plane, if moving towards it
-
-		vel_normal_dot: f32 = linalg.dot(vel^, normal)
-
-		velocity_length := linalg.length(vel^)
-
-		if vel_normal_dot < 0 {
-			diff := (vel^ - normal * vel_normal_dot) - vel^
-			acceleration := diff / dt
-			vel^ -= normal * vel_normal_dot
-
-		}
-	}
-}
-
-collide_with_tri_continous :: proc(
-	t: ^Collision_Triangle,
-	velocity, position, position_last_update: ^Vector,
-	radius, dt: f32,
-) {
-	trace := Sphere_Trace {
-		ray = Ray{origin = position_last_update^, end = position^},
-		radius = radius,
-	}
-
-	// calculate_hashes_by_sphere_trace(trace, )
-
+	return
 }

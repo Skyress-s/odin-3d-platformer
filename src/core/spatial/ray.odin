@@ -1,6 +1,5 @@
 package Spatial
 
-import hms "../handle_map/handle_map_static"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
@@ -87,7 +86,7 @@ ray_intersect_spatial_hash_grid :: proc(
 }
 
 
-// Watch "One Lone Coder"s tutorial for how to improve this. 
+// Watch "One Lone Coder"s tutorial for how to improve this.
 // https://github.com/OneLoneCoder/Javidx9/blob/master/PixelGameEngine/SmallerProjects/OneLoneCoder_PGE_RayCastDDA.cpp
 // todo this can probably return a array of hashes. So we can searsh through the closest cells first.
 calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
@@ -166,7 +165,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 }
 
 
-// there is something funky happening here. Assert is triggering 
+// there is something funky happening here. Assert is triggering
 calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
@@ -254,7 +253,7 @@ calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		fmt.printfln("current length {} {} {}", length_X, length_Y, length_Z)
 		*/
 
-		// TODO this is way more comparisons than we need, this is just to get it working 
+		// TODO this is way more comparisons than we need, this is just to get it working
 		if (!math.is_nan(vector_length_one_hash_cell_walked.x) &&
 			   !(length_X > length_Y || length_X > length_Z)) {
 			// current_point = current_point + (gradient * (length_X / gradient.x))
