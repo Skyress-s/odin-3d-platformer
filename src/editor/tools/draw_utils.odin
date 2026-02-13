@@ -370,7 +370,7 @@ ray_axis_bars_intersect :: proc(
 }
 
 draw_tooltip :: proc(
-	collision_object_map: ^spat.Collision_Object_Handle_Map,
+	collision_object_map: ^spat.gent.Game_Entity_Handle_Map,
 	tool: ^Transform_Tool_Data,
 	player_pos: spat.Vector,
 ) {

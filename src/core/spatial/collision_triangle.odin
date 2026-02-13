@@ -7,6 +7,7 @@ Collision_Triangle :: struct {
 	points: [3]Vector,
 }
 
+
 collision_triangle_normal :: proc(coll_tri: ^Collision_Triangle) -> Vector {
 	return linalg.normalize(
 		linalg.cross(coll_tri.points.z - coll_tri.points.y, coll_tri.points.x - coll_tri.points.y),
@@ -14,7 +15,7 @@ collision_triangle_normal :: proc(coll_tri: ^Collision_Triangle) -> Vector {
 }
 
 collision_triangle_center :: proc(coll_tri: ^Collision_Triangle) -> Vector {
-	return (coll_tri.points.x+ coll_tri.points.y+ coll_tri.points.z) / 3
+	return (coll_tri.points.x + coll_tri.points.y + coll_tri.points.z) / 3
 }
 
 // This function uses the Dan Sunday's algorithm.

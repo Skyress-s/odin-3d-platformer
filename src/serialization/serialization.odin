@@ -31,7 +31,7 @@ Serializable_Collision_Object_Data :: distinct struct {
 	collision_channels: cc.Response_Size,
 	transform:          Serializable_Transform,
 	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
-	id:                 spat.Collision_Object_Id,
+	id:                 spat.hent.Entity_Handle,
 }
 
 @(private)
@@ -40,9 +40,9 @@ Level_Serialization_Data :: struct {
 	objects:              [dynamic]Serializable_Collision_Object_Data,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
-	finish_volumes_ids:   [dynamic]spat.Collision_Object_Id,
-	kill_volume_ids:      [dynamic]spat.Collision_Object_Id,
-	grapple_volume_ids:   [dynamic]spat.Collision_Object_Id,
+	finish_volumes_ids:   [dynamic]spat.hent.Entity_Handle,
+	kill_volume_ids:      [dynamic]spat.hent.Entity_Handle,
+	grapple_volume_ids:   [dynamic]spat.hent.Entity_Handle,
 	author_time:          f64,
 
 	//objects: [dynamic]int,
@@ -183,9 +183,9 @@ load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
 
 
 		add_to_identifier_array_if_exists :: proc(
-			old_arr: ^[dynamic]spat.Collision_Object_Id,
-			target_map: ^map[spat.Collision_Object_Id]bool,
-			old_id, new_id: spat.Collision_Object_Id,
+			old_arr: ^[dynamic]spat.hent.Entity_Handle,
+			target_map: ^map[spat.hent.Entity_Handle]bool,
+			old_id, new_id: spat.hent.Entity_Handle,
 		) {
 			for id in old_arr^ {
 				if id == old_id {

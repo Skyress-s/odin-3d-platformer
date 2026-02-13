@@ -290,3 +290,164 @@ calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Ma
 	// transform :=  matRotation * matTranslation
 	return transform
 }
+
+get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Todo reference
+
+	// using collision_shape.transform
+	srtMatrix := get_matrix_from_transform(collision_shape.transform)
+
+	switch shape in collision_shape.shape {
+	case Box:
+		// vec1trans := srtMatrix * {vec1.x, vec1.y, vec1.z, 1.0}
+		// using shape
+		x := shape.size.x
+		y := shape.size.y
+		z := shape.size.z
+		points := [8]Vector {
+			Vector{x, y, z} / 2,
+			Vector{-x, y, z} / 2,
+			Vector{-x, -y, z} / 2,
+			Vector{-x, -y, -z} / 2,
+			Vector{x, -y, -z} / 2,
+			Vector{x, y, -z} / 2,
+			Vector{x, -y, z} / 2,
+			Vector{-x, y, -z} / 2,
+		}
+
+		maxX, maxY, maxZ, minX, minY, minZ: f32 =
+			min(f32), min(f32), min(f32), max(f32), max(f32), max(f32)
+		for p in points {
+			transformed_p := srtMatrix * linalg.Vector4f32{p.x, p.y, p.z, 1}
+
+			maxX = max(maxX, transformed_p.x)
+			minX = min(minX, transformed_p.x)
+
+			maxY = max(maxY, transformed_p.y)
+			minY = min(minY, transformed_p.y)
+
+			maxZ = max(maxZ, transformed_p.z)
+			minZ = min(minZ, transformed_p.z)
+		}
+
+		bound.min = Vector{minX, minY, minZ}
+		bound.max = Vector{maxX, maxY, maxZ}
+	// bound.min = translation - (shape.size.xyz * scale.xyz / 2.0)
+	// bound.max = translation + (shape.size.xyz * scale.xyz / 2.0)
+	case Sphere:
+		r := shape.radius
+		scale := collision_shape.transform.scale
+		bound.min =
+			collision_shape.transform.position - Vector{r * scale.x, r * scale.y, r * scale.z}
+		bound.max =
+			collision_shape.transform.position + Vector{r * scale.x, r * scale.y, r * scale.z}
+	case Cylinder:
+		x := shape.radius
+		y := shape.height / 2.0
+		z := shape.radius
+		points := [8]Vector {
+			Vector{x, y, z},
+			Vector{-x, y, z},
+			Vector{-x, -y, z},
+			Vector{-x, -y, -z},
+			Vector{x, -y, -z},
+			Vector{x, y, -z},
+			Vector{x, -y, z},
+			Vector{-x, y, -z},
+		}
+
+		maxX, maxY, maxZ, minX, minY, minZ: f32 =
+			min(f32), min(f32), min(f32), max(f32), max(f32), max(f32)
+		for p in points {
+			transformed_p := srtMatrix * linalg.Vector4f32{p.x, p.y, p.z, 1}
+
+			maxX = max(maxX, transformed_p.x)
+			minX = min(minX, transformed_p.x)
+
+			maxY = max(maxY, transformed_p.y)
+			minY = min(minY, transformed_p.y)
+
+			maxZ = max(maxZ, transformed_p.z)
+			minZ = min(minZ, transformed_p.z)
+		}
+		bound.min = Vector{minX, minY, minZ}
+		bound.max = Vector{maxX, maxY, maxZ}
+
+	/*
+
+		bound.min = spat.Vector{minX, minY, minZ}
+		bound.max = spat.Vector{maxX, maxY, maxZ}
+		bound.min =
+			translation -
+			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
+		bound.max =
+			translation +
+			Vector{shape.radius * scale.x, shape.height * 0.5 * scale.x, shape.radius * scale.z}
+
+		*/
+	}
+
+	return
+
+}
+
+transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: ^Transform) {
+	mat := get_matrix_from_transform(transform^)
+	for &tri in tris {
+		/*#unroll*/for &p in tri.points { 	// todo how to unroll
+			p = (mat * rl.Vector4{p.x, p.y, p.z, 1}).xyz
+		}
+	}
+}
+
+calculate_bounds_from_tris_transform :: proc(
+	tris: [dynamic]Collision_Triangle,
+	transform: Transform,
+) -> Bound {
+	// TODO REMOVE
+
+	bound: Bound = {}
+
+	bound.min = Vector{max(f32), max(f32), max(f32)}
+	bound.max = Vector{min(f32), min(f32), min(f32)}
+
+	mat := get_matrix_from_transform(transform)
+	for &tri in tris {
+		/*#unroll*/for p in tri.points { 	// todo how to unroll
+			p2 := mat * rl.Vector4{p.x, p.y, p.z, 1}
+			// p2 :=  rl.Vector4{p.x, p.y, p.z, 1} * mat
+			if p2.x > bound.max.x do bound.max.x = p2.x
+			if p2.x < bound.min.x do bound.min.x = p2.x
+
+			if p2.y > bound.max.y do bound.max.y = p2.y
+			if p2.y < bound.min.y do bound.min.y = p2.y
+
+			if p2.z > bound.max.z do bound.max.z = p2.z
+			if p2.z < bound.min.z do bound.min.z = p2.z
+		}
+	}
+
+	return bound
+}
+
+calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
+
+	bound: Bound = {}
+
+	bound.min = Vector{max(f32), max(f32), max(f32)}
+	bound.max = Vector{min(f32), min(f32), min(f32)}
+
+	for &tri in tris {
+		/*#unroll*/for p in tri.points { 	// todo how to unroll
+			if p.x > bound.max.x do bound.max.x = p.x
+			if p.x < bound.min.x do bound.min.x = p.x
+
+			if p.y > bound.max.y do bound.max.y = p.y
+			if p.y < bound.min.y do bound.min.y = p.y
+
+			if p.z > bound.max.z do bound.max.z = p.z
+			if p.z < bound.min.z do bound.min.z = p.z
+		}
+	}
+
+	return bound
+}

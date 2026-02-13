@@ -1,12 +1,23 @@
 package collision_scene
 
+import gent "../../game/game_entities/"
+import hent "../entity_handle/"
+import spat "../spatial/"
+
+
+import hm "core:container/handle_map"
+import "core:fmt"
+import "core:math"
+import "core:math/linalg"
+import rl "vendor:raylib"
+
 // Watch "One Lone Coder"s tutorial for how to improve this.
 // https://github.com/OneLoneCoder/Javidx9/blob/master/PixelGameEngine/SmallerProjects/OneLoneCoder_PGE_RayCastDDA.cpp
 // todo this can probably return a array of hashes. So we can searsh through the closest cells first.
-calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
-	direction := ray_direction(ray)
+calculate_hashes_by_ray :: proc(ray: spat.Ray) -> (cells: map[Hash_Key]bool) {
+	direction := spat.ray_direction(ray)
 
-	ray_length_per_axis_unit := Vector {
+	ray_length_per_axis_unit := spat.Vector {
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.x),
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.y),
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
@@ -38,7 +49,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 		cells[current_hash] = true
 
-		current_percents: Vector = {}
+		current_percents: spat.Vector = {}
 
 		current_percents.x =
 			(current_position.x - Unhash_Coordinate(current_hash.x)) / HASH_CELL_SIZE_METERS_FLOAT
@@ -80,7 +91,7 @@ calculate_hashes_by_ray :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 
 // there is something funky happening here. Assert is triggering
-calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
+calculate_hashes_by :: proc(ray: spat.Ray) -> (cells: map[Hash_Key]bool) {
 	hash_start := Hash_Location(ray.origin)
 	hash_end := Hash_Location(ray.end)
 	cells[hash_start] = true
@@ -102,7 +113,7 @@ calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 		direction.z > 0.0 ? 1 : -1,
 	}
 
-	vector_length_one_hash_cell_walked := Vector {
+	vector_length_one_hash_cell_walked := spat.Vector {
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.x),
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.y),
 		linalg.vector_length(direction * HASH_CELL_SIZE_METERS_FLOAT / direction.z),
@@ -221,12 +232,12 @@ calculate_hashes_by :: proc(ray: Ray) -> (cells: map[Hash_Key]bool) {
 
 ray_intersect_spatial_hash_grid :: proc(
 	hash_grid: ^Spatial_Hash_Grid,
-	collision_object_map: ^Collision_Object_Handle_Map,
-	ray: ^Ray,
+	collision_object_map: ^gent.Game_Entity_Handle_Map,
+	ray: ^spat.Ray,
 ) -> (
 	hit: bool,
-	id: Collision_Object_Id,
-	location: Vector,
+	id: hent.Entity_Handle,
+	location: spat.Vector,
 ) {
 
 	dist: f32 = max(f32)
@@ -241,12 +252,14 @@ ray_intersect_spatial_hash_grid :: proc(
 		if !ok do continue
 		for &object_id in hash_cell.objects_ids {
 
-			found_object := hms.get(collision_object_map, object_id)
-			mat := get_matrix_from_transform(found_object.transform)
+			found_object: ^gent.Entity = hm.get(collision_object_map, object_id)
+			if gent.Trait.Collider not_in found_object.traits do continue
+
+			mat := spat.get_matrix_from_transform(found_object.transform)
 			for tri in found_object.tris {
 				new_tri := tri
 				for &t in &new_tri.points {
-					trans_point := (mat * Vector4{t.x, t.y, t.z, 1})
+					trans_point := (mat * spat.Vector4{t.x, t.y, t.z, 1})
 					t.x = trans_point.x
 					t.y = trans_point.y
 					t.z = trans_point.z

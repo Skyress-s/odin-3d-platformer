@@ -173,7 +173,7 @@ render :: proc(
 		}
 	}
 
-	drawn_collision_objects_ids: map[spat.Collision_Object_Id]bool
+	drawn_collision_objects_ids: map[spat.hent.Entity_Handle]bool
 	defer delete(drawn_collision_objects_ids)
 
 	for star_id, picked_up in level.collsion_scene.stars {

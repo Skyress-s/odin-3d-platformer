@@ -1,16 +1,26 @@
 package game_entities
 
-import spat "../../Spatial/"
-import enth "../../core/entity_handle/"
+import col_mesh "../../core/collision_mesh/"
+import hent "../../core/entity_handle/"
+import spat "../../core/spatial/"
 import hm "core:container/handle_map"
-import ilist "core:container/intrusive/list"
+// import ilist "core:container/intrusive/list"
 
 // This hole system is very much inspired by Wookash's great interview of Anton Mikhailov: https://www.youtube.com/watch?v=ShSGHb65f3M
 
 Entity :: struct {
-	handle:             enth.Entity_Handle,
-	traits:             Traits,
-	collision_scene_id: spat.Collision_Object_Id,
+	handle:              hent.Entity_Handle,
+	traits:              Traits,
+	transform_component: Transform_Component,
+	collision_component: Collision_Component,
+}
+
+Transform_Component :: struct {
+	transform: spat.Transform,
+}
+
+Collision_Component :: struct {
+	mesh_id: col_mesh.Mesh_Handle,
 }
 
 Traits :: bit_set[Trait]
@@ -29,4 +39,4 @@ Trait :: enum {
 Player_Data :: struct {}
 
 
-Game_Entity_Handle_Map :: hm.Static_Handle_Map(1024, Entity, enth.Entity_Handle)
+Game_Entity_Handle_Map :: hm.Static_Handle_Map(1024, Entity, hent.Entity_Handle)

@@ -6,7 +6,7 @@ import rl "vendor:raylib"
 
 add_debug_level_objects :: proc(
 	level: ^Level,
-	collision_objects: ^spat.Collision_Object_Handle_Map,
+	collision_objects: ^spat.gent.Game_Entity_Handle_Map,
 	spaital_hash_grid: ^map[spat.Hash_Key]spat.Hash_Cell,
 ) {
 

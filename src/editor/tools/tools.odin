@@ -43,7 +43,7 @@ Transform_Tool_Data :: distinct struct {
 	start_transform:           spat.Transform,
 	// start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
-	target_object_id:          spat.Collision_Object_Id,
+	target_object_id:          spat.hent.Entity_Handle,
 	local_tranform:            bool,
 }
 
@@ -149,7 +149,7 @@ on_click_position_tool :: proc(
 
 		}
 	} else { 	// Hit nothing, stop tool
-		transform_tool.target_object_id = spat.Collision_Object_Id{}
+		transform_tool.target_object_id = spat.hent.Entity_Handle{}
 	}
 }
 
@@ -174,7 +174,7 @@ on_click_rotation_tool :: proc(
 		active_tool.axis = plane_normal
 
 		//continue
-	} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
+	} else do transform_tool.target_object_id = spat.hent.Entity_Handle{}
 
 }
 
@@ -203,7 +203,7 @@ on_click_scale_tool :: proc(
 		)
 
 		//continue
-	} else do transform_tool.target_object_id = spat.Collision_Object_Id{}
+	} else do transform_tool.target_object_id = spat.hent.Entity_Handle{}
 
 }
 update_transform_tool :: proc(
@@ -211,7 +211,7 @@ update_transform_tool :: proc(
 	cam: ^rl.Camera3D,
 	left_mouse_button_pressed: bool,
 	left_mouse_button_down: bool,
-	object_map: ^spat.Collision_Object_Handle_Map,
+	object_map: ^spat.gent.Game_Entity_Handle_Map,
 	ray: spat.Ray,
 ) {
 	if !data.dragging do return
