@@ -11,62 +11,6 @@ Sphere_Trace :: distinct struct {
 }
 
 
-calculate_rays_by_sphere_trace :: proc(
-	sphere_trace: ^Sphere_Trace,
-) -> (
-	rays: [dynamic]Ray, // cells: map[Hash_Key]bool,
-) {
-
-	ray := &sphere_trace.ray
-	ray_length := ray_length(ray)
-	forward := ray_direction(ray^)
-
-	up := linalg.normalize0(linalg.cross(forward, UP_VEC3))
-
-	if up == ZERO_VEC3 {
-		up = FORWARD_VEC3
-	}
-
-
-	right := linalg.normalize(linalg.cross(forward, up))
-
-	start_location_center :=
-		ray.origin -
-		forward * sphere_trace.radius -
-		sphere_trace.radius * up -
-		sphere_trace.radius * right
-	end_location_center :=
-		ray.end +
-		forward * sphere_trace.radius -
-		sphere_trace.radius * up -
-		sphere_trace.radius * right
-
-	num_rays_per_side := i32(math.ceil(sphere_trace.radius * 2 / HASH_CELL_SIZE_METERS)) + 1
-
-	for i: i32 = 0; i < num_rays_per_side * num_rays_per_side; i += 1 {
-		x := f32((i % num_rays_per_side)) * (sphere_trace.radius * 2 / f32(num_rays_per_side - 1))
-		y := f32(i / num_rays_per_side) * (sphere_trace.radius * 2 / f32(num_rays_per_side - 1))
-
-
-		offset := right * f32(x) + up * f32(y)
-
-		newt_gun_ray := Ray {
-			origin = start_location_center + offset,
-			end    = end_location_center + offset,
-		}
-
-		append_elem(&rays, newt_gun_ray)
-
-		// cells_hit_by_ray := calculate_hashes_by(newt_gun_ray)
-		// for key, _ in &cells_hit_by_ray{
-		// 	cells[key] = true
-		// }
-	}
-
-	return rays
-}
-
-
 sphere_trace_triangle_intersect :: proc(
 	sphere_trace: ^Sphere_Trace,
 	tri: ^Collision_Triangle,

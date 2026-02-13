@@ -1,11 +1,6 @@
 package Spatial
 
-import cc "../../Physics/collision_channel"
-import "core:fmt"
-import "core:math"
 import "core:math/linalg"
-import "core:math/rand"
-import "core:testing"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
@@ -257,4 +252,41 @@ collide_with_tri_continous :: proc(
 
 	// calculate_hashes_by_sphere_trace(trace, )
 
+}
+
+matrix_from_transform_tr :: proc(trans: Transform) -> linalg.Matrix4f32 {
+	return linalg.matrix4_from_trs(trans.position, trans.rotation, ONE_VEC3)
+}
+
+matrix_from_transform :: proc(trans: Transform) -> linalg.Matrix4f32 {
+	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
+
+	// translation := linalg.matrix4_translate(trans.position)
+	// rotation := linalg.matrix4_from_quaternion(trans.rotation)
+	// scale := linalg.matrix4_scale(trans.scale)
+	// return linalg.mul(translation, linalg.mul(rotation, scale))
+	// return linalg.mul(scale, linalg.mul(rotation, translation))
+}
+
+get_matrix_from_transform :: proc(trans: Transform) -> rl.Matrix { 	// TODO how to pass by ptr here?
+	// return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
+	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
+	matRotation := rl.QuaternionToMatrix(trans.rotation)
+	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
+
+	return matTranslation * matRotation * matScale
+	// return  matTranslation * matScale
+}
+
+// Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
+calculate_matrix_from_loc_rot :: proc(loc: ^Vector, rot: ^Quaternion) -> rlgl.Matrix {
+	matRotation := rl.QuaternionToMatrix(rot^)
+
+	matTranslation := rl.MatrixTranslate(loc.x, loc.y, loc.z)
+
+	// Combine them: Scale -> Rotate -> Translate
+	// Order matters: S * R * T
+	transform := matTranslation * matRotation
+	// transform :=  matRotation * matTranslation
+	return transform
 }

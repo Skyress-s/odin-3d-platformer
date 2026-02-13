@@ -181,43 +181,6 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: spat.Vector) {
 	return location
 }
 
-matrix_from_transform_tr :: proc(trans: spat.Transform) -> linalg.Matrix4f32 {
-	return linalg.matrix4_from_trs(trans.position, trans.rotation, ONE_VEC3)
-}
-
-matrix_from_transform :: proc(trans: spat.Transform) -> linalg.Matrix4f32 {
-	return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
-
-	// translation := linalg.matrix4_translate(trans.position)
-	// rotation := linalg.matrix4_from_quaternion(trans.rotation)
-	// scale := linalg.matrix4_scale(trans.scale)
-	// return linalg.mul(translation, linalg.mul(rotation, scale))
-	// return linalg.mul(scale, linalg.mul(rotation, translation))
-}
-
-get_matrix_from_transform :: proc(trans: spat.Transform) -> rl.Matrix { 	// TODO how to pass by ptr here?
-	// return linalg.matrix4_from_trs(trans.position, trans.rotation, trans.scale)
-	matScale := rl.MatrixScale(trans.scale.x, trans.scale.y, trans.scale.z)
-	matRotation := rl.QuaternionToMatrix(trans.rotation)
-	matTranslation := rl.MatrixTranslate(trans.position.x, trans.position.y, trans.position.z)
-
-	return matTranslation * matRotation * matScale
-	// return  matTranslation * matScale
-}
-
-// Typical usecase of the return value:  rlgl.MultMatrixf(auto_cast &matrix_data)
-calculate_matrix_from_loc_rot :: proc(loc: ^spat.Vector, rot: ^spat.Quaternion) -> rlgl.Matrix {
-	matRotation := rl.QuaternionToMatrix(rot^)
-
-	matTranslation := rl.MatrixTranslate(loc.x, loc.y, loc.z)
-
-	// Combine them: Scale -> Rotate -> Translate
-	// Order matters: S * R * T
-	transform := matTranslation * matRotation
-	// transform :=  matRotation * matTranslation
-	return transform
-}
-
 
 draw_collision_shape :: proc(collision_shape: spat.Collision_Shape, color: ^rl.Color) {
 
@@ -987,4 +950,58 @@ sphere_trace_spatial_hash_grid :: proc(
 	}
 
 	return
+}
+calculate_rays_by_sphere_trace :: proc(
+	sphere_trace: ^Sphere_Trace,
+) -> (
+	rays: [dynamic]Ray, // cells: map[Hash_Key]bool,
+) {
+
+	ray := &sphere_trace.ray
+	ray_length := ray_length(ray)
+	forward := ray_direction(ray^)
+
+	up := linalg.normalize0(linalg.cross(forward, UP_VEC3))
+
+	if up == ZERO_VEC3 {
+		up = FORWARD_VEC3
+	}
+
+
+	right := linalg.normalize(linalg.cross(forward, up))
+
+	start_location_center :=
+		ray.origin -
+		forward * sphere_trace.radius -
+		sphere_trace.radius * up -
+		sphere_trace.radius * right
+	end_location_center :=
+		ray.end +
+		forward * sphere_trace.radius -
+		sphere_trace.radius * up -
+		sphere_trace.radius * right
+
+	num_rays_per_side := i32(math.ceil(sphere_trace.radius * 2 / HASH_CELL_SIZE_METERS)) + 1
+
+	for i: i32 = 0; i < num_rays_per_side * num_rays_per_side; i += 1 {
+		x := f32((i % num_rays_per_side)) * (sphere_trace.radius * 2 / f32(num_rays_per_side - 1))
+		y := f32(i / num_rays_per_side) * (sphere_trace.radius * 2 / f32(num_rays_per_side - 1))
+
+
+		offset := right * f32(x) + up * f32(y)
+
+		newt_gun_ray := Ray {
+			origin = start_location_center + offset,
+			end    = end_location_center + offset,
+		}
+
+		append_elem(&rays, newt_gun_ray)
+
+		// cells_hit_by_ray := calculate_hashes_by(newt_gun_ray)
+		// for key, _ in &cells_hit_by_ray{
+		// 	cells[key] = true
+		// }
+	}
+
+	return rays
 }
