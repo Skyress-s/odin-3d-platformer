@@ -2,6 +2,7 @@ package query
 
 import col_scene "../"
 import gent "../../../game/game_entities/"
+import l "../../../level/"
 import cc "../../collision_channel/"
 import cm "../../collision_mesh/"
 import cs "../../collision_scene/"
@@ -18,11 +19,17 @@ import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
 notify_object_transform_changed :: proc(
+	level: ^l.Level,
 	collision_object_map: ^gent.Game_Entity_Handle_Map,
 	collision_meshes: ^cm.Map,
 	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
 	collision_object_id: hent.Entity_Handle,
 ) -> hent.Entity_Handle {
+
+
+	collision_object_map := &level.entities
+	collision_meshes := &level.collsion_scene.collision_meshes
+	spatial_hash_grid := &level.collsion_scene.spatial_hash_grid
 
 	found_object: ^gent.Entity = hm.get(collision_object_map, collision_object_id)
 	if gent.Trait.Transform not_in found_object.traits do return {}
@@ -93,35 +100,37 @@ add_shape_to_hash_map :: proc(
 
 	collision_object_data := col_scene.shape_to_collision_object(shape)
 
-	id := add_to_object_map(collision_object_map, collision_object_data)
+	// id := add_to_object_map(collision_object_map, collision_object_data)
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
 
 	return id
 }
-create_and_add_collision_object_from_tris_transform :: proc(
-	collision_object_map: ^gent.Game_Entity_Handle_Map,
-	spatial_hash_grid: ^Spatial_Hash_Grid,
-	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
-	transform: spat.Transform,
-	blocking: cc.Responses = cc.BLOCK_ALL,
-) -> hent.Entity_Handle {
 
-	data := Collision_Object_Data {
-		collision_channels = blocking,
-		transform          = transform,
-		tris               = tris,
-	}
-
-	collision_object_id := add_to_object_map(collision_object_map, data)
-	runtime_data := Collision_Object_Data_Runtime {
-		data   = data,
-		handle = collision_object_id,
-	}
-
-	add_to_spatial_hash_grid(spatial_hash_grid, runtime_data, collision_object_id)
-
-	return collision_object_id
-}
+// create_and_add_collision_object_from_tris_transform :: proc(
+// 	collision_scene: ^col_scene.Collision_Scene,
+// 	collision_object_map: ^gent.Game_Entity_Handle_Map,
+// 	spatial_hash_grid: ^Spatial_Hash_Grid,
+// 	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
+// 	transform: spat.Transform,
+// 	blocking: cc.Responses = cc.BLOCK_ALL,
+// ) -> hent.Entity_Handle {
+//
+// 	data := Collision_Object_Data {
+// 		collision_channels = blocking,
+// 		transform          = transform,
+// 		tris               = tris,
+// 	}
+//
+// 	collision_object_id := add_to_object_map(collision_object_map, data)
+// 	runtime_data := Collision_Object_Data_Runtime {
+// 		data   = data,
+// 		handle = collision_object_id,
+// 	}
+//
+// 	add_to_spatial_hash_grid(spatial_hash_grid, runtime_data, collision_object_id)
+//
+// 	return collision_object_id
+// }
 
 add_to_spatial_hash_grid :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
