@@ -47,5 +47,4 @@ Game_Entity_Handle_Map :: hm.Static_Handle_Map(1024, Entity, hent.Entity_Handle)
 
 has_traits :: proc(wanted_traits: Traits, actual_traits: Traits) -> bool {
 	return wanted_traits & actual_traits == wanted_traits
-
 }
