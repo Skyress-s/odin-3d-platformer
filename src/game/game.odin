@@ -7,9 +7,11 @@ import hms "../handle_map/handle_map_static"
 import "../render"
 import hm "core:container/handle_map"
 
-import verlet "../Physics/verlet"
-import spat "../Spatial"
 import camera "../camera"
+import cs "../core/collision_scene/"
+import csq "../core/collision_scene/query/"
+import verlet "../core/physics/verlet"
+import spat "../core/spatial"
 import ddu "../debug_draw_utils/"
 import "../editor_player"
 import gs "../game_state"
@@ -60,8 +62,8 @@ update :: proc(
 		// if !mouse_over_ui {
 		if position_transform_tool.dragging == true {
 			position_transform_tool.dragging = false
-			position_transform_tool.target_object_id = spat.notify_object_transform_changed(
-				&gc.current_level.collsion_scene.collision_object_map,
+			position_transform_tool.target_object_id = csq.notify_object_transform_changed(
+				&gc.current_level.entities,
 				&gc.current_level.collsion_scene.spatial_hash_grid,
 				position_transform_tool.target_object_id,
 			)

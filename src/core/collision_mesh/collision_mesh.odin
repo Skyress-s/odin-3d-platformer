@@ -12,3 +12,7 @@ Mesh :: struct {
 Mesh_Handle :: hm.Handle32
 
 Map :: distinct hm.Static_Handle_Map(1024, Mesh, Mesh_Handle)
+
+init :: proc(mesh_map: ^Map) {
+
+}

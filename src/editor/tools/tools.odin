@@ -1,8 +1,11 @@
 package tools
 
-import spat "../../Spatial"
-import hms "../../handle_map/handle_map_static"
+// import qspat "../../core/collision_scene/query/"
+import cs "../../core/collision_scene/"
+import hent "../../core/entity_handle/"
+import spat "../../core/spatial"
 import l "../../level"
+import hm "core:container/handle_map"
 import "core:fmt"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -43,7 +46,7 @@ Transform_Tool_Data :: distinct struct {
 	start_transform:           spat.Transform,
 	// start_mouse_position:      spat.Vector2,
 	start_ray_plane_intersect: spat.Vector,
-	target_object_id:          spat.hent.Entity_Handle,
+	target_object_id:          hent.Entity_Handle,
 	local_tranform:            bool,
 }
 
@@ -71,16 +74,13 @@ on_click :: proc(
 	ray := ray
 	ray.end = ray.origin + (ray.end - ray.origin) * 100000 // augh
 
-	found_object := hms.get(
-		&current_level.collsion_scene.collision_object_map,
-		transform_tool.target_object_id,
-	)
+	found_object := hm.get(&current_level.entities, transform_tool.target_object_id)
 
 	if found_object == nil {
-		hit_object, id, position := spat.ray_intersect_spatial_hash_grid(
+		hit_object, id, position := cs.ray_intersect_spatial_hash_grid(
 			&current_level.collsion_scene.spatial_hash_grid,
-			&current_level.collsion_scene.collision_object_map,
-			&ray,
+			&current_level.entities,
+			ray,
 		)
 
 		if hit_object {

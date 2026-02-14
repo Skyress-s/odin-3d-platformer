@@ -1,8 +1,8 @@
 package players
 
 import character "../Character"
-import verlet "../Physics/verlet"
-import spat "../Spatial"
+import verlet "../core/physics/verlet"
+import spat "../core/spatial/"
 import editor_player "../editor_player"
 
 

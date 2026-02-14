@@ -1,8 +1,9 @@
 #+feature dynamic-literals
 package serialization
 
-import cc "../Physics/collision_channel/"
-import spat "../Spatial"
+import cc "../core/collision_channel/"
+import hent "../core/entity_handle/"
+import spat "../core/spatial"
 import l "../level"
 import "../logs"
 
@@ -31,7 +32,7 @@ Serializable_Collision_Object_Data :: distinct struct {
 	collision_channels: cc.Response_Size,
 	transform:          Serializable_Transform,
 	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
-	id:                 spat.hent.Entity_Handle,
+	id:                 hent.Entity_Handle,
 }
 
 @(private)
@@ -40,9 +41,9 @@ Level_Serialization_Data :: struct {
 	objects:              [dynamic]Serializable_Collision_Object_Data,
 	start_position:       spat.Vector,
 	start_look_direction: spat.Vector,
-	finish_volumes_ids:   [dynamic]spat.hent.Entity_Handle,
-	kill_volume_ids:      [dynamic]spat.hent.Entity_Handle,
-	grapple_volume_ids:   [dynamic]spat.hent.Entity_Handle,
+	finish_volumes_ids:   [dynamic]hent.Entity_Handle,
+	kill_volume_ids:      [dynamic]hent.Entity_Handle,
+	grapple_volume_ids:   [dynamic]hent.Entity_Handle,
 	author_time:          f64,
 
 	//objects: [dynamic]int,
@@ -82,43 +83,33 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	}
 	defer delete_level_serialization_data(&level_serialization_data)
 
-	for id in col_scene.finish_volumes {
-		append_elem(&level_serialization_data.finish_volumes_ids, id)
-	}
-	for id in col_scene.kill_volumes {
-		append_elem(&level_serialization_data.kill_volume_ids, id)
-	}
-	for id in col_scene.grappable {
-		append_elem(&level_serialization_data.grapple_volume_ids, id)
-	}
-
 	/*
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
 	*/
 	// Could not get the iter to work, a but perhaps?
-	for &i in col_scene.collision_object_map.items {
-		if hms.skip(i) do continue
-
-		rot := i.transform.rotation
-
-		serializable_transform := Serializable_Transform {
-			position = i.transform.position,
-			// rotation = transmute([4]f32)i.transform.rotation,
-			rotation = {real(rot), imag(rot), jmag(rot), kmag(rot)},
-			scale    = i.transform.scale,
-		}
-
-		append_elem(
-			&level_serialization_data.objects,
-			Serializable_Collision_Object_Data {
-				collision_channels = transmute(cc.Response_Size)i.collision_channels,
-				transform = serializable_transform,
-				tris = i.tris,
-				id = i.handle,
-			},
-		)
-	}
+	// for &i in col_scene.collision_object_map.items {
+	// 	if hms.skip(i) do continue
+	//
+	// 	rot := i.transform.rotation
+	//
+	// 	serializable_transform := Serializable_Transform {
+	// 		position = i.transform.position,
+	// 		// rotation = transmute([4]f32)i.transform.rotation,
+	// 		rotation = {real(rot), imag(rot), jmag(rot), kmag(rot)},
+	// 		scale    = i.transform.scale,
+	// 	}
+	//
+	// 	append_elem(
+	// 		&level_serialization_data.objects,
+	// 		Serializable_Collision_Object_Data {
+	// 			collision_channels = transmute(cc.Response_Size)i.collision_channels,
+	// 			transform = serializable_transform,
+	// 			tris = i.tris,
+	// 			id = i.handle,
+	// 		},
+	// 	)
+	// }
 
 
 	data, err := json.marshal(level_serialization_data, {pretty = true})

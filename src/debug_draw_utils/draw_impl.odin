@@ -1,8 +1,8 @@
 package debug_draw_utils
 
-import "core:math/linalg"
+import spat "../core/spatial"
 import "core:math"
-import spat "../Spatial"
+import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
@@ -13,8 +13,8 @@ draw_circle :: proc(ins: ^Circle_Ins) {
 draw_cyllinder :: proc(ins: ^Wire_Cyllinder_Ins) {
 
 	ray_direction := spat.ray_direction(ins.ray)
-	rotate_axis := linalg.normalize(linalg.cross(spat.UP_VEC3, ray_direction)) 
-	rotate_angles :=  math.to_degrees(linalg.vector_angle_between(spat.UP_VEC3, ray_direction))
+	rotate_axis := linalg.normalize(linalg.cross(spat.UP_VEC3, ray_direction))
+	rotate_angles := math.to_degrees(linalg.vector_angle_between(spat.UP_VEC3, ray_direction))
 	ray_origin := ins.ray.origin
 
 	rlgl.Translatef(ray_origin.x, ray_origin.y, ray_origin.z)
@@ -24,6 +24,13 @@ draw_cyllinder :: proc(ins: ^Wire_Cyllinder_Ins) {
 	rl.DrawCylinderWires(spat.ZERO_VEC3, ins.radius, ins.radius, ray_length, 16, ins.color)
 }
 
-draw_capsule_wires :: proc(ins: ^Wire_Capsule_Ins){
-	rl.DrawCapsuleWires(ins.sphere_trace.origin, ins.sphere_trace.end, ins.radius, 16, 2, ins.color)
+draw_capsule_wires :: proc(ins: ^Wire_Capsule_Ins) {
+	rl.DrawCapsuleWires(
+		ins.sphere_trace.origin,
+		ins.sphere_trace.end,
+		ins.radius,
+		16,
+		2,
+		ins.color,
+	)
 }

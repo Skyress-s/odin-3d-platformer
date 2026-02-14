@@ -1,8 +1,10 @@
 package query
 
 import col_scene "../"
-import cc "../../../Physics/collision_channel/"
 import gent "../../../game/game_entities/"
+import cc "../../collision_channel/"
+import cm "../../collision_mesh/"
+import cs "../../collision_scene/"
 import hent "../../entity_handle/"
 import spat "../../spatial/"
 
@@ -17,15 +19,21 @@ import rlgl "vendor:raylib/rlgl"
 
 notify_object_transform_changed :: proc(
 	collision_object_map: ^gent.Game_Entity_Handle_Map,
+	collision_meshes: ^cm.Map,
 	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
 	collision_object_id: hent.Entity_Handle,
 ) -> hent.Entity_Handle {
 
 	found_object: ^gent.Entity = hm.get(collision_object_map, collision_object_id)
-	data := found_object
-	bounds := col_scene.calculate_bounds_from_tris_transform(
-		found_object.transform_component.tris,
-		found_object.transform,
+	if gent.Trait.Transform not_in found_object.traits do return {}
+	if gent.Trait.Collision not_in found_object.traits do return {}
+
+	collision_mesh := hm.get(collision_meshes, found_object.collision_component.mesh_id)
+	assert(collision_mesh != nil)
+
+	bounds := spat.calculate_bounds_from_tris_transform(
+		collision_mesh.tris,
+		found_object.transform_component.transform,
 	)
 
 	test :: struct {
@@ -81,9 +89,9 @@ add_shape_to_hash_map :: proc(
 	shape: spat.Collision_Shape,
 	blocking_geo: bool = true,
 ) -> hent.Entity_Handle {
-	bounds := get_bounds(shape)
+	bounds := spat.get_bounds(shape)
 
-	collision_object_data := shape_to_collision_object(shape)
+	collision_object_data := col_scene.shape_to_collision_object(shape)
 
 	id := add_to_object_map(collision_object_map, collision_object_data)
 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
@@ -310,4 +318,24 @@ ray_trace_object_multi :: proc(
 	}
 
 	return hits
+}
+is_inside_object :: proc(
+	collision_object: ^Collision_Object_Data_Runtime,
+	location: ^spat.Vector,
+) -> bool {
+	// If we shoot a ray straight up, that is longer than the longest size of the spat.Bounds. If we hit a odd number of tris, we are inside it.
+
+	bounds: spat.Bound = spat.calculate_bounds_from_tris(collision_object.tris)
+	longest_size := linalg.length(bounds.max - bounds.min)
+	ray: Ray = make_ray_with_origin_direction_distance(
+		location^,
+		spat.Vector{0, 1, 0},
+		longest_size,
+	)
+	hits := ray_trace_object_multi(&ray, collision_object)
+	defer delete(hits)
+
+	// fmt.printfln("num tris {}", len(collision_object.tris))
+	// fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)
+	return (len(hits) % 2) == 1
 }

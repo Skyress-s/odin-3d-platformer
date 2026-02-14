@@ -53,13 +53,21 @@ Cylinder :: struct {
 	radius: f32,
 }
 
+Shape :: enum {
+	Box,
+	Sphere,
+	Cylinder,
+}
+
+Shape_Union :: union {
+	Box,
+	Sphere,
+	Cylinder,
+}
+
 Collision_Shape :: struct {
 	transform: Transform,
-	shape:     union {
-		Box,
-		Sphere,
-		Cylinder,
-	},
+	shape:     Shape_Union,
 }
 
 Bound :: rl.BoundingBox
@@ -450,4 +458,77 @@ calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 	}
 
 	return bound
+}
+shape_to_collision_triangles :: proc(
+	shape: Collision_Shape,
+) -> (
+	tris: [dynamic]Collision_Triangle,
+	transform: Transform,
+) {
+	switch &s in shape.shape {
+	case Box:
+		tris = box_get_tris(&s, shape)
+	case Sphere:
+		panic("Not implemented shape_get_collision_tris for Sphere")
+	case Cylinder:
+		panic("Not implemented shape_get_collision_tris for Cylinder")
+	}
+
+	transform = shape.transform
+
+	return tris, transform
+
+}
+box_get_tris :: proc(box: ^Box, shape: Collision_Shape) -> [dynamic]Collision_Triangle {
+
+	x := shape.transform.scale.x * box.size.x / 2.0
+	y := shape.transform.scale.y * box.size.y / 2.0
+	z := shape.transform.scale.z * box.size.z / 2.0
+
+	points := [8]Vector {
+		Vector{x, y, z}, // 0
+		Vector{-x, y, z}, // 1
+		Vector{-x, -y, z}, // 2
+		Vector{-x, -y, -z}, // 3
+		Vector{x, -y, -z}, // 4
+		Vector{x, y, -z}, // 5
+		Vector{x, -y, z}, // 6
+		Vector{-x, y, -z}, // 7
+	}
+
+	// mat := get_matrix_from_transform(shape.transform)
+
+	transformed_points: [8]Vector = {}
+
+	// for p, i in points {
+	// 	transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
+	// 	pp: spat.Vector = transformed_p.xyz
+	// 	transformed_points[i] = pp
+	// }
+
+	tris: [dynamic]Collision_Triangle = {}
+
+	// ps := &transformed_points
+	ps := points
+
+	// Top
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[5], ps[1]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[5], ps[7]}})
+	// Bottom
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[3], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[2], ps[4], ps[6]}})
+	// Left
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[5], ps[4]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[7], ps[5]}})
+	// Right
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[1], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[6], ps[0], ps[2]}})
+	// Forward
+	append(&tris, Collision_Triangle{[3]Vector{ps[1], ps[3], ps[2]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[3], ps[1], ps[7]}})
+	// Backward
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[4], ps[5]}})
+	append(&tris, Collision_Triangle{[3]Vector{ps[0], ps[6], ps[4]}})
+
+	return tris
 }

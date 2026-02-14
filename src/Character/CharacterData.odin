@@ -1,8 +1,10 @@
 package Character
-import cc "../Physics/collision_channel"
-import verlet "../Physics/verlet"
-import spat "../Spatial"
 import col "../color"
+import cc "../core/collision_channel"
+import cs "../core/collision_scene/"
+import csq "../core/collision_scene/query/"
+import verlet "../core/physics/verlet"
+import spat "../core/spatial"
 import ddu "../debug_draw_utils"
 import gent "../game/game_entities/"
 import "../game_state"
@@ -103,12 +105,16 @@ update_character :: proc(
 				linalg.vector_normalize(forward),
 				1000.0,
 			)
-			ok, id, hook_hit_location := spat.ray_intersect_spatial_hash_grid(
+			ok, id, hook_hit_location := cs.ray_intersect_spatial_hash_grid(
 				&level.collsion_scene.spatial_hash_grid,
-				&level.collsion_scene.collision_object_map,
+				&level.entities,
+				&level.collsion_scene.collision_meshes,
 				&ray,
 			)
-			_, is_grappable := level.collsion_scene.grappable[id]
+			entity: ^gent.Entity = hm.get(&level.entities, id)
+			assert(entity != nil)
+
+			is_grappable := gent.Trait.Grabable in entity.traits
 			if ok && is_grappable {
 
 				character_data.hooked_position = hook_hit_location
@@ -129,9 +135,10 @@ update_character :: proc(
 			character_data.radius + 0.5,
 		)
 
-		ok, id, location := spat.ray_intersect_spatial_hash_grid(
+		ok, id, location := cs.ray_intersect_spatial_hash_grid(
 			&level.collsion_scene.spatial_hash_grid,
-			&level.collsion_scene.collision_object_map,
+			&level.entities,
+			&level.collsion_scene.collision_meshes,
 			&ray,
 		)
 
@@ -163,7 +170,7 @@ notify_level_loaded :: proc(character_data: ^CharacternData) {
 update_character_physics :: proc(
 	character_data: ^CharacternData,
 	level: ^l.Level,
-	player_hash_cells: ^map[spat.Hash_Key]bool,
+	player_hash_cells: ^map[cs.Hash_Key]bool,
 	dt: f32,
 ) {
 	copy_comp: verlet.Velocity_Verlet_Component = character_data.verlet_component

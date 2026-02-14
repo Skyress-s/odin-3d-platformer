@@ -1,5 +1,6 @@
 package game_entities
 
+import cc "../../core/collision_channel/"
 import col_mesh "../../core/collision_mesh/"
 import hent "../../core/entity_handle/"
 import spat "../../core/spatial/"
@@ -20,23 +21,31 @@ Transform_Component :: struct {
 }
 
 Collision_Component :: struct {
-	mesh_id: col_mesh.Mesh_Handle,
+	mesh_id:            col_mesh.Mesh_Handle,
+	collision_response: cc.Responses,
 }
 
 Traits :: bit_set[Trait]
 Trait :: enum {
 	// Game specific
 	Star,
+	Transform,
 	Finish,
 	Player,
 	Physics,
+	Grabable,
 
 	// General
 	StaticMesh,
-	Collider,
+	Collision,
 }
 
 Player_Data :: struct {}
 
 
 Game_Entity_Handle_Map :: hm.Static_Handle_Map(1024, Entity, hent.Entity_Handle)
+
+has_traits :: proc(wanted_traits: Traits, actual_traits: Traits) -> bool {
+	return wanted_traits & actual_traits == wanted_traits
+
+}

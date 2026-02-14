@@ -1,6 +1,6 @@
 package debug_draw_utils
 
-import spat "../Spatial"
+import spat "../core/spatial"
 import "core:log"
 
 
@@ -25,13 +25,13 @@ ins_handle_map := Handle_Map_Type{}
 
 ins_map: Map_Type
 
-Id_Type : u32
+Id_Type: u32
 
 @(private)
-id_counter :u32 = 0
+id_counter: u32 = 0
 
 @(private)
-get_next_id :: proc() -> u32{
+get_next_id :: proc() -> u32 {
 	id_counter += 1
 	return id_counter
 }
@@ -97,11 +97,11 @@ Wire_Cyllinder_Ins :: distinct struct {
 }
 
 Capsule_Ins :: distinct struct {
-	using instruction: Cyllinder_Ins
+	using instruction: Cyllinder_Ins,
 }
 
 Wire_Capsule_Ins :: distinct struct {
-	using instruction: Cyllinder_Ins
+	using instruction: Cyllinder_Ins,
 }
 
 Circle_Ins :: distinct struct {
@@ -215,6 +215,6 @@ enqueue_ins :: proc(draw_ins: $T, dur: f32 = 0.0) {
 		id, ok := hms.add(&ins_handle_map, data)
 		assert(ok, "ddu handle map full. Please increase the size")
 	} else {
-		
+
 	}
 }

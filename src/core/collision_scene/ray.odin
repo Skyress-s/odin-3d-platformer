@@ -1,6 +1,7 @@
 package collision_scene
 
 import gent "../../game/game_entities/"
+import col_mesh "../collision_mesh/"
 import hent "../entity_handle/"
 import spat "../spatial/"
 
@@ -233,6 +234,7 @@ calculate_hashes_by :: proc(ray: spat.Ray) -> (cells: map[Hash_Key]bool) {
 ray_intersect_spatial_hash_grid :: proc(
 	hash_grid: ^Spatial_Hash_Grid,
 	collision_object_map: ^gent.Game_Entity_Handle_Map,
+	collision_meshes: ^col_mesh.Map,
 	ray: ^spat.Ray,
 ) -> (
 	hit: bool,
@@ -240,23 +242,32 @@ ray_intersect_spatial_hash_grid :: proc(
 	location: spat.Vector,
 ) {
 
-	dist: f32 = max(f32)
 	hashes := calculate_hashes_by_ray(ray^)
 	defer delete(hashes)
+
 	ray_length := linalg.distance(ray.origin, ray.end)
 	ray_direction := linalg.vector_normalize(ray.end - ray.origin)
 
 
+	dist: f32 = max(f32)
 	for hash in hashes {
 		hash_cell, ok := &hash_grid[hash]
 		if !ok do continue
 		for &object_id in hash_cell.objects_ids {
 
 			found_object: ^gent.Entity = hm.get(collision_object_map, object_id)
-			if gent.Trait.Collider not_in found_object.traits do continue
+			assert(found_object != nil)
+			if gent.Trait.Collision not_in found_object.traits do continue
+			if gent.Trait.Transform not_in found_object.traits do continue
+			coliision_component := found_object.collision_component
+			transform_component := found_object.transform_component
 
-			mat := spat.get_matrix_from_transform(found_object.transform)
-			for tri in found_object.tris {
+			collision_mesh: ^col_mesh.Mesh = hm.get(collision_meshes, coliision_component.mesh_id)
+			assert(collision_mesh != nil)
+
+
+			mat := spat.get_matrix_from_transform(transform_component.transform)
+			for tri in collision_mesh.tris {
 				new_tri := tri
 				for &t in &new_tri.points {
 					trans_point := (mat * spat.Vector4{t.x, t.y, t.z, 1})
@@ -265,7 +276,7 @@ ray_intersect_spatial_hash_grid :: proc(
 					t.z = trans_point.z
 				}
 
-				ok, intersect_location := ray_triangle_intersect(ray, &new_tri)
+				ok, intersect_location := spat.ray_triangle_intersect(ray, &new_tri)
 				if ok {
 					is_in_front := linalg.vector_dot(
 						ray_direction,

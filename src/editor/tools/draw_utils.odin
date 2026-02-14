@@ -1,8 +1,9 @@
 package tools
 
-import spat "../../Spatial/"
 import col "../../color"
-import hms "../../handle_map/handle_map_static"
+import spat "../../core/spatial/"
+import gent "../../game/game_entities/"
+import hm "core:container/handle_map"
 import "core:log"
 import "core:math"
 import "core:math/linalg"
@@ -142,7 +143,6 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 }
 
 
-
 ray_axis_planes_intersect :: proc(
 	ray: ^spat.Ray,
 	planes_bounded: ^[3]spat.Plane_Bounded,
@@ -159,12 +159,10 @@ ray_axis_planes_intersect :: proc(
 
 	shortest_dist: f32 = max(f32)
 	int_plane: Interacted_Plane
-	s_norm : spat.Vector
-	s_loc : spat.Vector
-	
+	s_norm: spat.Vector
+	s_loc: spat.Vector
 
 
-	
 	hit, loc, norm := spat.intersect_plane_bounded(ray, &planes_bounded.x)
 	// if hit != .None do return .X, loc, norm
 	if hit {
@@ -182,8 +180,8 @@ ray_axis_planes_intersect :: proc(
 		if new_dist < shortest_dist {
 			shortest_dist = new_dist
 			int_plane = .Y
-		s_norm = norm
-		s_loc = loc
+			s_norm = norm
+			s_loc = loc
 		}
 	}
 
@@ -195,8 +193,8 @@ ray_axis_planes_intersect :: proc(
 		if new_dist < shortest_dist {
 			shortest_dist = new_dist
 			int_plane = .Z
-		s_norm = norm
-		s_loc = loc
+			s_norm = norm
+			s_loc = loc
 		}
 	}
 
@@ -370,11 +368,11 @@ ray_axis_bars_intersect :: proc(
 }
 
 draw_tooltip :: proc(
-	collision_object_map: ^spat.gent.Game_Entity_Handle_Map,
+	collision_object_map: ^gent.Game_Entity_Handle_Map,
 	tool: ^Transform_Tool_Data,
 	player_pos: spat.Vector,
 ) {
-	found_object := hms.get(collision_object_map, tool.target_object_id)
+	found_object: ^gent.Entity = hm.get(collision_object_map, tool.target_object_id)
 	if found_object != nil {
 
 		switch &active_tool in tool.active_tool {

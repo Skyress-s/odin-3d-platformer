@@ -1,12 +1,14 @@
 package level
 
-import spat "../Spatial"
+import col_scene "../core/collision_scene/"
+import spat "../core/spatial"
 import gent "../game/game_entities/"
 
 Level :: distinct struct {
 	name:                 string,
-	collsion_scene:       spat.Collision_Scene,
+	collsion_scene:       col_scene.Collision_Scene,
 	entities:             gent.Game_Entity_Handle_Map,
+
 
 	// Player Start
 	start_position:       spat.Vector,
@@ -20,6 +22,6 @@ Level :: distinct struct {
 delete_level :: proc(l: ^Level) {
 	delete(l.name)
 
-	spat.delete_collision_scene(&l.collsion_scene)
+	col_scene.delete_collision_scene(&l.collsion_scene)
 
 }

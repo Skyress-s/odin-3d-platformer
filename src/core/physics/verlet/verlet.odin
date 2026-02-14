@@ -1,6 +1,6 @@
 package verlet
 
-import spat "../../Spatial"
+import spat "../../spatial/"
 
 
 Velocity_Verlet_Component :: struct {
@@ -18,7 +18,7 @@ velocity_verlet_leap :: proc(component: ^Velocity_Verlet_Component, dt: f32) {
 // Do the second half of the timestep of leapfrog
 velocity_verlet_frog :: proc(component: ^Velocity_Verlet_Component, dt: f32) {
 
-	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen, 
+	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen,
 	// og bruk den til å beregne ny hastighet
 	component.velocity += component.acceleration * dt
 
@@ -37,9 +37,9 @@ velocity_verlet_homegenus_gravity :: proc(
 	// beregn ny posisjon et halvt tick fram i tid:
 	component.position += component.velocity * dt / 2
 
-	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen, 
+	// beregn a(x) utifra kollisjoner og krefter ved nye posisjonen,
 	// og bruk den til å beregne ny hastighet
-	component.velocity += gravity * dt // todo this is dogshit 
+	component.velocity += gravity * dt // todo this is dogshit
 
 	// beregn den faktiske nye posisjonen et halvt tick til fram i tid
 	component.position += component.velocity * dt / 2

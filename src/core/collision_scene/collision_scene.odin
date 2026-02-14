@@ -1,8 +1,10 @@
 package collision_scene
 
-import cc "../../Physics/collision_channel/"
+import cc "../collision_channel/"
+import cm "../collision_mesh/"
 import hent "../entity_handle/"
 import spat "../spatial/"
+import "core:reflect"
 
 
 import hm "core:container/handle_map"
@@ -15,6 +17,11 @@ import rlgl "vendor:raylib/rlgl"
 
 Collision_Scene :: struct {
 	spatial_hash_grid: Spatial_Hash_Grid,
+	collision_meshes:  cm.Map,
+}
+
+init_collision_scene :: proc(col_scene: ^Collision_Scene) {
+	// add basic primitives
 }
 
 delete_collision_scene :: proc(scene: ^Collision_Scene) {
@@ -27,12 +34,6 @@ delete_collision_scene :: proc(scene: ^Collision_Scene) {
 
 }
 
-
-Collision_Object_Data :: distinct struct {
-	collision_channels: cc.Responses,
-	transform:          spat.Transform,
-	tris:               [dynamic]spat.Collision_Triangle,
-}
 
 Hash_Cell :: struct {
 	objects_ids: [dynamic]hent.Entity_Handle,
@@ -182,7 +183,7 @@ Unhash_Location :: proc(hash_key: Hash_Key) -> (location: spat.Vector) {
 
 draw_collision_shape :: proc(collision_shape: spat.Collision_Shape, color: ^rl.Color) {
 
-	bounds := get_bounds(collision_shape)
+	bounds := spat.get_bounds(collision_shape)
 	//fmt.println(bounds)
 	rl.DrawBoundingBox(bounds, rl.YELLOW)
 
@@ -222,63 +223,6 @@ draw_hash_grid_bounds_populated_cells :: proc(
 	}
 }
 
-
-box_get_tris :: proc(
-	box: ^spat.Box,
-	shape: spat.Collision_Shape,
-) -> [dynamic]spat.Collision_Triangle {
-
-	x := shape.transform.scale.x * box.size.x / 2.0
-	y := shape.transform.scale.y * box.size.y / 2.0
-	z := shape.transform.scale.z * box.size.z / 2.0
-
-	points := [8]spat.Vector {
-		spat.Vector{x, y, z}, // 0
-		spat.Vector{-x, y, z}, // 1
-		spat.Vector{-x, -y, z}, // 2
-		spat.Vector{-x, -y, -z}, // 3
-		spat.Vector{x, -y, -z}, // 4
-		spat.Vector{x, y, -z}, // 5
-		spat.Vector{x, -y, z}, // 6
-		spat.Vector{-x, y, -z}, // 7
-	}
-
-	// mat := get_matrix_from_transform(shape.transform)
-
-	transformed_points: [8]spat.Vector = {}
-
-	// for p, i in points {
-	// 	transformed_p := mat * linalg.Vector4f32{p.x, p.y, p.z, 1}
-	// 	pp: spat.Vector = transformed_p.xyz
-	// 	transformed_points[i] = pp
-	// }
-
-	tris: [dynamic]spat.Collision_Triangle = {}
-
-	// ps := &transformed_points
-	ps := points
-
-	// Top
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[0], ps[5], ps[1]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[1], ps[5], ps[7]}})
-	// Bottom
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[2], ps[3], ps[4]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[2], ps[4], ps[6]}})
-	// Left
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[3], ps[5], ps[4]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[3], ps[7], ps[5]}})
-	// Right
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[0], ps[1], ps[2]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[6], ps[0], ps[2]}})
-	// Forward
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[1], ps[3], ps[2]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[3], ps[1], ps[7]}})
-	// Backward
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[0], ps[4], ps[5]}})
-	append(&tris, spat.Collision_Triangle{[3]spat.Vector{ps[0], ps[6], ps[4]}})
-
-	return tris
-}
 
 is_any_vertex_in_bound :: proc(
 	hash_key: ^Hash_Key,
@@ -337,50 +281,6 @@ calculate_overlapping_cells2 :: proc(bound: spat.Bound) -> (hash_keys: map[Hash_
 }
 
 
-shape_to_collision_object :: proc(
-	shape: spat.Collision_Shape,
-) -> (
-	collision_object_data: Collision_Object_Data,
-) {
-	tris: [dynamic]spat.Collision_Triangle
-	switch &s in shape.shape {
-	case spat.Box:
-		collision_object_data.tris = box_get_tris(&s, shape)
-	case spat.Sphere:
-		panic("Not implemented shape_get_collision_tris for Sphere")
-	case spat.Cylinder:
-		panic("Not implemented shape_get_collision_tris for Cylinder")
-	}
-
-	collision_object_data.transform = shape.transform
-	collision_object_data.collision_channels = cc.BLOCK_ALL
-
-	return collision_object_data
-
-}
-
-is_inside_object :: proc(
-	collision_object: ^Collision_Object_Data_Runtime,
-	location: ^spat.Vector,
-) -> bool {
-	// If we shoot a ray straight up, that is longer than the longest size of the spat.Bounds. If we hit a odd number of tris, we are inside it.
-
-	bounds: spat.Bound = calculate_bounds_from_tris(collision_object.tris)
-	longest_size := linalg.length(bounds.max - bounds.min)
-	ray: Ray = make_ray_with_origin_direction_distance(
-		location^,
-		spat.Vector{0, 1, 0},
-		longest_size,
-	)
-	hits := ray_trace_object_multi(&ray, collision_object)
-	defer delete(hits)
-
-	// fmt.printfln("num tris {}", len(collision_object.tris))
-	// fmt.printfln("nun hits {}, length of ray {}, bounds {}", len(hits), longest_size, bounds)
-	return (len(hits) % 2) == 1
-}
-
-
 calculate_hashes_by_sphere :: proc(
 	radius: f32,
 	location: ^spat.Vector,
@@ -415,7 +315,7 @@ calculate_hashes_by_rays :: proc(rays: ^[dynamic]spat.Ray) -> (hashes: map[Hash_
 // TODO create testing
 @(test)
 test_calculate_hashes_by_sphere :: proc(t: ^testing.T) {
-	zero_vec := ZERO_VEC3
+	zero_vec := spat.ZERO_VEC3
 
 	hash_keys: map[Hash_Key]bool = calculate_hashes_by_sphere(5, &zero_vec)
 	defer delete(hash_keys)
@@ -475,13 +375,13 @@ calculate_rays_by_sphere_trace :: proc(
 ) {
 
 	ray := &sphere_trace.ray
-	ray_length := ray_length(ray)
-	forward := ray_direction(ray^)
+	ray_length := spat.ray_length(ray)
+	forward := spat.ray_direction(ray^)
 
-	up := linalg.normalize0(linalg.cross(forward, UP_VEC3))
+	up := linalg.normalize0(linalg.cross(forward, spat.UP_VEC3))
 
-	if up == ZERO_VEC3 {
-		up = FORWARD_VEC3
+	if up == spat.ZERO_VEC3 {
+		up = spat.FORWARD_VEC3
 	}
 
 
@@ -507,7 +407,7 @@ calculate_rays_by_sphere_trace :: proc(
 
 		offset := right * f32(x) + up * f32(y)
 
-		newt_gun_ray := Ray {
+		newt_gun_ray := spat.Ray {
 			origin = start_location_center + offset,
 			end    = end_location_center + offset,
 		}

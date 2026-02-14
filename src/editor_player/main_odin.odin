@@ -1,6 +1,6 @@
 package editor_player
 
-import spat "../Spatial"
+import spat "../core/spatial"
 import e_tools "../editor/tools"
 import "../input"
 import player_data "../player_data/"
