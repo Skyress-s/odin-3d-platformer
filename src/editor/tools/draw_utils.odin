@@ -144,7 +144,7 @@ get_normal_from_interacted_plane :: proc(interacted_plane: Interacted_Plane) -> 
 
 
 ray_axis_planes_intersect :: proc(
-	ray: ^spat.Ray,
+	ray: spat.Ray,
 	planes_bounded: ^[3]spat.Plane_Bounded,
 ) -> (
 	interacter_plane: Interacted_Plane,
@@ -278,7 +278,7 @@ scale_bars_to_tris :: proc(
 }
 
 ray_axis_bars_intersect :: proc(
-	ray: ^spat.Ray,
+	ray: spat.Ray,
 	scale_bars: ^[3]spat.Box_Better,
 ) -> (
 	interacter_bar: spat.Axis,
@@ -288,7 +288,7 @@ ray_axis_bars_intersect :: proc(
 	tris := scale_bars_to_tris(scale_bars)
 
 	ray_intersect_6 :: proc(
-		ray: ^spat.Ray,
+		ray: spat.Ray,
 		tris: ^[12]spat.Collision_Triangle,
 	) -> (
 		hit: bool,
@@ -297,7 +297,7 @@ ray_axis_bars_intersect :: proc(
 		dist := max(f32)
 		loc := spat.ZERO_VEC3
 		for &t in tris {
-			hit, new_location := spat.ray_triangle_intersect(ray, &t)
+			hit, new_location := spat.ray_triangle_intersect(ray, t)
 			new_dist := linalg.distance(new_location, ray.origin)
 			if hit && (new_dist < dist) {
 				dist = new_dist
@@ -374,23 +374,24 @@ draw_tooltip :: proc(
 ) {
 	found_object: ^gent.Entity = hm.get(collision_object_map, tool.target_object_id)
 	if found_object != nil {
+		ent_transform := found_object.transform_component.transform
 
 		switch &active_tool in tool.active_tool {
 		case Position_Tool:
 			axis_planes := generate_axis_planes(player_pos)
-			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
+			transform_axis_planes(&axis_planes, ent_transform, tooltip_local)
 			draw_position_tooltip_new(axis_planes)
 
 			axis_boxes := generate_axis_bars()
-			transform_axis_bars(&axis_boxes, found_object.transform, tooltip_local)
+			transform_axis_bars(&axis_boxes, ent_transform, tooltip_local)
 			draw_scale_boxes(axis_boxes)
 		case Rotation_Tool:
 			axis_planes := generate_axis_planes(player_pos)
-			transform_axis_planes(&axis_planes, found_object.transform, tooltip_local)
+			transform_axis_planes(&axis_planes, ent_transform, tooltip_local)
 			draw_position_tooltip_new(axis_planes)
 		case Scale_Tool:
 			scale_bars := generate_axis_bars()
-			transform_axis_bars(&scale_bars, found_object.transform, true) // Only makes sense to use local with scaling bars.
+			transform_axis_bars(&scale_bars, ent_transform, true) // Only makes sense to use local with scaling bars.
 			draw_scale_boxes(scale_bars)
 		}
 	}

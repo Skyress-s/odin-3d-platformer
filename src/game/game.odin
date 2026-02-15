@@ -2,8 +2,8 @@ package game
 
 import character "../Character"
 import col "../color"
+import cmq "../core/collision_scene/query/"
 import gent "../game/game_entities/"
-import hms "../handle_map/handle_map_static"
 import "../render"
 import hm "core:container/handle_map"
 
@@ -62,11 +62,11 @@ update :: proc(
 		// if !mouse_over_ui {
 		if position_transform_tool.dragging == true {
 			position_transform_tool.dragging = false
-			position_transform_tool.target_object_id = csq.notify_object_transform_changed(
-				gc.current_level,
-				position_transform_tool.target_object_id,
-			)
-			//position_transform_tool.target_object_id.idx = 0
+			// position_transform_tool.target_object_id = csq.notify_object_transform_changed(
+			// 	gc.current_level,
+			// 	position_transform_tool.target_object_id,
+			// )
+			// TODO: FIX RECONSTRUCT Spatial Hash Grid
 		}
 		// }
 
@@ -176,23 +176,34 @@ update :: proc(
 	}
 
 
-	overlapping_star_volume := spat.does_location_overlap_finish_volume(
-		&gc.current_level.collsion_scene.stars,
-		&gc.current_level.collsion_scene.collision_object_map,
-		&gc.players.game.verlet_component.position,
+	ents_in_player_position_cell := cmq.entities_in_bound(
+		level.entities,
+		level.collsion_scene.spatial_hash_grid,
+		spat.make_bound_by_position(gc.players.game.verlet_component.position),
+		context.temp_allocator,
 	)
 
-	if (overlapping_star_volume != spat.INVALID_OBJECT_ID) {
-		gc.current_level.collsion_scene.stars[overlapping_star_volume] = true
-	}
 
-	overlapping_finish_volume := spat.does_location_overlap_finish_volume(
-		&gc.current_level.collsion_scene.finish_volumes,
-		&gc.current_level.collsion_scene.collision_object_map,
-		&gc.players.game.verlet_component.position,
-	)
+	overlapping_finish_volume :=
+		cmq.any_entity_in_bound_has_traits(
+			level.entities,
+			level.collsion_scene.spatial_hash_grid,
+			spat.make_bound_by_position(gc.players.game.verlet_component.position),
+			{.Finish},
+			context.temp_allocator,
+		) !=
+		{}
+	// overlapping_star_volume := cmq.does_location_overlap_finish_volume(
+	// 	&gc.current_level.collsion_scene.stars,
+	// 	&gc.current_level.collsion_scene.collision_object_map,
+	// 	&gc.players.game.verlet_component.position,
+	// )
+	//
+	// if (overlapping_star_volume != spat.INVALID_OBJECT_ID) {
+	// 	gc.current_level.collsion_scene.stars[overlapping_star_volume] = true
+	// }
 
-	if overlapping_finish_volume != spat.INVALID_OBJECT_ID {
+	if overlapping_finish_volume {
 		gc.game_state.finished_level = true
 		character.pause_speedrun(&gc.players.game)
 		run_time := character.get_current_speedrun_time(&gc.players.game)
@@ -203,12 +214,17 @@ update :: proc(
 	}
 
 	// Kill volumes
-	overlapping_kill_volumes := spat.does_location_overlap_finish_volume(
-		&gc.current_level.collsion_scene.kill_volumes,
-		&gc.current_level.collsion_scene.collision_object_map,
-		&gc.players.game.verlet_component.position,
-	)
-	if overlapping_kill_volumes != spat.INVALID_OBJECT_ID {
+
+	overlapping_kill_volumes :=
+		cmq.any_entity_in_bound_has_traits(
+			level.entities,
+			level.collsion_scene.spatial_hash_grid,
+			spat.make_bound_by_position(gc.players.game.verlet_component.position),
+			{.Kill},
+			context.temp_allocator,
+		) !=
+		{}
+	if overlapping_kill_volumes {
 		character.reset_run(
 			&gc.players.game,
 			&gc.current_level.start_position,
@@ -221,10 +237,10 @@ update :: proc(
 		gc.players.game.verlet_component.position - spat.ONE_VEC3 * gc.players.game.radius,
 		gc.players.game.verlet_component.position + spat.ONE_VEC3 * gc.players.game.radius,
 	}
-	player_overlapping_cells := spat.calculate_overlapping_cells2(player_bounds)
+	player_overlapping_cells := cs.calculate_overlapping_cells_by_bound(player_bounds)
 	defer delete(player_overlapping_cells)
 
-	active_hash_key := spat.Hash_Location(gc.players.game.verlet_component.position)
+	active_hash_key := cs.Hash_Location(gc.players.game.verlet_component.position)
 	active_cell := gc.current_level.collsion_scene.spatial_hash_grid[active_hash_key]
 
 	// Collide with cubes / planes
@@ -343,7 +359,7 @@ update_entities :: proc(level: ^l.Level) {
 	entities := &level.entities
 
 	itr := hm.iterator_make(entities)
-	player_bit_set: gent.Traits = {.Player, .Physics, .Collider}
+	player_bit_set: gent.Traits = {.Player, .Physics, .Collision}
 	for ent in hm.iterate(&itr) {
 		if player_bit_set & ent.traits == player_bit_set {
 

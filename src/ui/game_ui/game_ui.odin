@@ -20,7 +20,6 @@ import spat "../../core/spatial/"
 import et "../../editor/tools/"
 import gs "../../game_state/"
 import gctx "../../global_context"
-import hms "../../handle_map/handle_map_static/"
 import l "../../level/"
 import lfu "../../level_flow_utils/"
 import "../../logs/"
@@ -30,6 +29,7 @@ import vmouse "../../virtual_mouse/"
 import clay "../clay-odin/"
 import layout2 "../layout2/"
 import ui_rr "../raylib/"
+import hm "core:container/handle_map"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
@@ -463,126 +463,126 @@ layout_details_panel :: proc(
 	col_scene := &level.collsion_scene
 
 	@(static) object_manip_dropdown := false
-	if current_id != spat.INVALID_OBJECT_ID {
-		current_coll_obj := hms.get(&level.collsion_scene.collision_object_map, current_id)
+	if current_id != {} {
+		current_coll_obj := hm.get(&level.entities, current_id)
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
-			ui.layout_dynamic_text_entry(fmt.tprint(current_id))
-			if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
-				if current_coll_obj != nil {
-					new_id := spat.add_to_level(
-						&col_scene.collision_object_map,
-						&col_scene.spatial_hash_grid,
-						current_coll_obj.data,
-					)
+			// ui.layout_dynamic_text_entry(fmt.tprint(current_id))
+			// if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
+			// 	if current_coll_obj != nil {
+			// 		new_id := spat.add_to_level(
+			// 			&col_scene.collision_object_map,
+			// 			&col_scene.spatial_hash_grid,
+			// 			current_coll_obj.data,
+			// 		)
+			//
+			// 		_, is_kill_volume := col_scene.kill_volumes[current_id]
+			// 		if is_kill_volume {
+			// 			col_scene.kill_volumes[new_id] = true
+			// 		}
+			//
+			// 		_, is_grappable := col_scene.grappable[current_id]
+			// 		if is_grappable {
+			// 			col_scene.grappable[new_id] = true
+			// 		}
+			// 	}
+			// }
+			// if ui.layout_button_immediate(ctx, fmt.tprint("Delete")) {
+			// 	if current_coll_obj != nil {
+			// 		spat.remove_from_level(
+			// 			&col_scene.collision_object_map,
+			// 			&col_scene.spatial_hash_grid,
+			// 			current_id,
+			// 		)
+			// 		players.editor.transform_tool.target_object_id = {}
+			//
+			// 		logs.debug(.UI, "id {}", current_id)
+			// 		logs.debug(.UI, "kill_volumes {}", col_scene.kill_volumes)
+			// 		logs.debug(.UI, "before {}", len(col_scene.kill_volumes))
+			// 		delete_key(&col_scene.kill_volumes, current_id)
+			// 		logs.debug(.UI, "after {}", len(col_scene.kill_volumes))
+			// 		delete_key(&col_scene.grappable, current_id)
+			// 		delete_key(&col_scene.finish_volumes, current_id)
+			// 		return
+			// 	}
+			// }
+			//
+			//
+			// {
+			// 	_, is_kill_volume := col_scene.kill_volumes[current_id]
+			//
+			// 	if ui.layout_checkbox_immediate(ctx, fmt.tprint("Kill Volume"), &is_kill_volume) {
+			// 		if is_kill_volume do col_scene.kill_volumes[current_id] = true
+			// 		else do delete_key(&col_scene.kill_volumes, current_id)
+			// 	}
+			// }
+			//
+			// {
+			// 	_, grappable := col_scene.grappable[current_id]
+			//
+			// 	if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Grappable"), &grappable) {
+			// 		if grappable do col_scene.grappable[current_id] = true
+			// 		else do delete_key(&col_scene.grappable, current_id)
+			// 	}
+			// }
+			//
+			// {
+			// 	_, stareable := col_scene.stars[current_id]
+			//
+			// 	if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Star"), &stareable) {
+			// 		if stareable {
+			// 			col_scene.stars[current_id] = false
+			//
+			// 			// TODO: This is disgusting.
+			// 			delete_key(&col_scene.kill_volumes, current_id)
+			// 			delete_key(&col_scene.grappable, current_id)
+			// 			delete_key(&col_scene.finish_volumes, current_id)
+			// 		} else do delete_key(&col_scene.stars, current_id)
+			//
+			//
+			// 	}
+			// }
 
-					_, is_kill_volume := col_scene.kill_volumes[current_id]
-					if is_kill_volume {
-						col_scene.kill_volumes[new_id] = true
-					}
-
-					_, is_grappable := col_scene.grappable[current_id]
-					if is_grappable {
-						col_scene.grappable[new_id] = true
-					}
-				}
-			}
-			if ui.layout_button_immediate(ctx, fmt.tprint("Delete")) {
-				if current_coll_obj != nil {
-					spat.remove_from_level(
-						&col_scene.collision_object_map,
-						&col_scene.spatial_hash_grid,
-						current_id,
-					)
-					players.editor.transform_tool.target_object_id = {}
-
-					logs.debug(.UI, "id {}", current_id)
-					logs.debug(.UI, "kill_volumes {}", col_scene.kill_volumes)
-					logs.debug(.UI, "before {}", len(col_scene.kill_volumes))
-					delete_key(&col_scene.kill_volumes, current_id)
-					logs.debug(.UI, "after {}", len(col_scene.kill_volumes))
-					delete_key(&col_scene.grappable, current_id)
-					delete_key(&col_scene.finish_volumes, current_id)
-					return
-				}
-			}
-
-
-			{
-				_, is_kill_volume := col_scene.kill_volumes[current_id]
-
-				if ui.layout_checkbox_immediate(ctx, fmt.tprint("Kill Volume"), &is_kill_volume) {
-					if is_kill_volume do col_scene.kill_volumes[current_id] = true
-					else do delete_key(&col_scene.kill_volumes, current_id)
-				}
-			}
-
-			{
-				_, grappable := col_scene.grappable[current_id]
-
-				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Grappable"), &grappable) {
-					if grappable do col_scene.grappable[current_id] = true
-					else do delete_key(&col_scene.grappable, current_id)
-				}
-			}
-
-			{
-				_, stareable := col_scene.stars[current_id]
-
-				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Star"), &stareable) {
-					if stareable {
-						col_scene.stars[current_id] = false
-
-						// TODO: This is disgusting.
-						delete_key(&col_scene.kill_volumes, current_id)
-						delete_key(&col_scene.grappable, current_id)
-						delete_key(&col_scene.finish_volumes, current_id)
-					} else do delete_key(&col_scene.stars, current_id)
-
-
-				}
-			}
-
-			{
-				// is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
-				is_colliding := current_coll_obj.collision_channels.player == cc.BLOCK
-				if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Colliding"), &is_colliding) {
-					current_coll_obj.collision_channels = current_coll_obj.collision_channels
-					// is_colliding ? cc.get_blocking() : cc.get_non_blocking()
-					// TODO we should also activate kill volumes when we get a normal collision.
-				}
-			}
-
-			{
-				if ui.layout_button_immediate(ctx, fmt.tprint("Reset Rotation")) {
-					current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
-				}
-				if ui.layout_button_immediate(ctx, fmt.tprint("Random Rotation")) {
-					current_coll_obj.transform.rotation = spat.rand_rot()
-				}
-			}
-
-			{
-				if ui.layout_button_immediate(ctx, fmt.tprintf("Spawn Cube")) {
-
-					_, forward, _ := pd.calculate_direction_from_look(&players.editor.look_data)
-					spawn_position := players.editor.position + forward * 4
-
-					new_ent_handle := sent.spawn_empty_entity(&level.entities)
-
-					col_shape := spat.Collision_Shape {
-						spat.Transform{spawn_position, spat.QUATERNION_IDENTITY, spat.ONE_VEC3},
-						spat.Box{spat.ONE_VEC3 * 4},
-					}
-
-					sent.add_static_mesh_trait(
-						&level.entities,
-						new_ent_handle,
-						&level.collsion_scene,
-						col_shape,
-					)
-				}
-			}
+			// {
+			// 	// is_colliding := cc.is_blocking(current_coll_obj.collision_channels)
+			// 	is_colliding := current_coll_obj.collision_channels.player == cc.BLOCK
+			// 	if ui.layout_checkbox_immediate(ctx, fmt.aprintf("Colliding"), &is_colliding) {
+			// 		current_coll_obj.collision_channels = current_coll_obj.collision_channels
+			// 		// is_colliding ? cc.get_blocking() : cc.get_non_blocking()
+			// 		// TODO we should also activate kill volumes when we get a normal collision.
+			// 	}
+			// }
+			//
+			// {
+			// 	if ui.layout_button_immediate(ctx, fmt.tprint("Reset Rotation")) {
+			// 		current_coll_obj.transform.rotation = spat.QUATERNION_IDENTITY
+			// 	}
+			// 	if ui.layout_button_immediate(ctx, fmt.tprint("Random Rotation")) {
+			// 		current_coll_obj.transform.rotation = spat.rand_rot()
+			// 	}
+			// }
+			//
+			// {
+			// 	if ui.layout_button_immediate(ctx, fmt.tprintf("Spawn Cube")) {
+			//
+			// 		_, forward, _ := pd.calculate_direction_from_look(&players.editor.look_data)
+			// 		spawn_position := players.editor.position + forward * 4
+			//
+			// 		new_ent_handle := sent.spawn_empty_entity(&level.entities)
+			//
+			// 		col_shape := spat.Collision_Shape {
+			// 			spat.Transform{spawn_position, spat.QUATERNION_IDENTITY, spat.ONE_VEC3},
+			// 			spat.Box{spat.ONE_VEC3 * 4},
+			// 		}
+			//
+			// 		sent.add_static_mesh_trait(
+			// 			&level.entities,
+			// 			new_ent_handle,
+			// 			&level.collsion_scene,
+			// 			col_shape,
+			// 		)
+			// 	}
+			// }
 
 		}
 	}

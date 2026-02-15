@@ -6,6 +6,7 @@ import cs "core/collision_scene"
 import csq "core/collision_scene/query"
 import spat "core/spatial"
 import "core:c"
+import hm "core:container/handle_map"
 import "core:debug/trace"
 import "core:fmt"
 import "core:log"
@@ -373,12 +374,17 @@ make_basic_level :: proc() -> (level: l.Level) {
 	cm.init(&level.collsion_scene.collision_meshes)
 	ents := &level.entities
 	new_ent_handle := sgent.spawn_empty_entity(ents)
+	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
+
 	sgent.add_trait_transform(
 		ents,
 		new_ent_handle,
 		{position = spat.ONE_VEC3 * 5, rotation = spat.QUATERNION_IDENTITY, scale = spat.ONE_VEC3},
 	)
 	sgent.add_trait_collision_shape(&level, new_ent_handle, .Box)
+
+	new_ent.traits += {.Grabable}
+
 
 	return level
 }

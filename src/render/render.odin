@@ -177,7 +177,7 @@ render :: proc(
 		assert(entity != nil)
 
 		collision_mesh: ^cm.Mesh = hm.static_get(
-			&level.collsion_scene.collision_meshes,
+			&level.collsion_scene.collision_meshes.mesh_map,
 			entity.collision_component.mesh_id,
 		)
 		assert(collision_mesh != nil)

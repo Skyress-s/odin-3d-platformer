@@ -239,12 +239,24 @@ is_any_vertex_in_bound :: proc(
 
 
 calculate_overlapping_cells :: proc {
-	calculate_overlapping_cells2,
+	calculate_overlapping_cells_by_bound,
 	calculate_hashes_by_ray,
 	calculate_hashes_by_sphere_trace,
+	calculate_overlapping_cells_by_location,
 }
 
-calculate_overlapping_cells2 :: proc(bound: spat.Bound) -> (hash_keys: map[Hash_Key]bool) {
+calculate_overlapping_cells_by_location :: proc(loc: spat.Vector) -> map[Hash_Key]bool {
+
+	return calculate_overlapping_cells_by_bound(spat.Bound{loc, loc})
+}
+
+calculate_overlapping_cells_by_bound :: proc(
+	bound: spat.Bound,
+	allocator := context.allocator,
+) -> map[Hash_Key]bool {
+
+	hash_keys := make(map[Hash_Key]bool, allocator)
+
 	min_hash := Hash_Location(bound.min)
 	hash_keys[min_hash] = true
 	max_hash := Hash_Location(bound.max)
@@ -424,12 +436,13 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
+// TODO: Move in spatial has grid? Or just remake every frame?
 add_to_spatial_hash_grid :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
 	id: hent.Entity_Handle,
 	bounds: spat.Bound,
 ) {
-	potential_hash_keys := calculate_overlapping_cells2(bounds)
+	potential_hash_keys := calculate_overlapping_cells_by_bound(bounds)
 	defer delete(potential_hash_keys)
 	for hash_key in potential_hash_keys {
 		cell := &spatial_hash_grid[hash_key]
@@ -441,5 +454,3 @@ add_to_spatial_hash_grid :: proc(
 		append_elem(&cell.objects_ids, id)
 	}
 }
-
-// TODO: Move in spatial has grid? Or just remake every frame?

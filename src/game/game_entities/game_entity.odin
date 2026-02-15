@@ -28,9 +28,10 @@ Collision_Component :: struct {
 Traits :: bit_set[Trait]
 Trait :: enum {
 	// Game specific
-	Star,
 	Transform,
+	Star,
 	Finish,
+	Kill,
 	Player,
 	Physics,
 	Grabable,

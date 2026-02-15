@@ -122,101 +122,102 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 }
 
 load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
-	data, success := os.read_entire_file(filepath)
-	defer delete(data)
-
-	assert(
-		success == true,
-		fmt.aprint(
-			"load_from_file_level() failed, filepath does not point to existing file?: ",
-			filepath,
-		),
-	)
-	loaded_serialized_level_data: Level_Serialization_Data
-	defer delete_level_serialization_data(&loaded_serialized_level_data)
-
-	err := json.unmarshal(data, &loaded_serialized_level_data)
-	assert(err == nil, fmt.aprint(err))
-
-
-	loaded_level.name = loaded_serialized_level_data.name
-	loaded_level.start_position = loaded_serialized_level_data.start_position
-	loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
-
-	// In case somebody loads an old level (author_time will be laoded as 0)
-
-	for &obj in loaded_serialized_level_data.objects {
-		// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
-		loaded_rot := obj.transform.rotation
-		new_loaded_rotation: spat.Quaternion = quaternion(
-			real = loaded_rot.x,
-			imag = loaded_rot.y,
-			jmag = loaded_rot.z,
-			kmag = loaded_rot.w,
-		)
-		new_loaded_transform := spat.Transform {
-			position = obj.transform.position,
-			rotation = new_loaded_rotation,
-			scale    = obj.transform.scale,
-		}
-		new_loaded_object := spat.Collision_Object_Data {
-			collision_channels = transmute(cc.Responses)obj.collision_channels,
-			transform          = new_loaded_transform,
-			tris               = obj.tris,
-		}
-
-
-		new_id := spat.add_to_level(
-			&loaded_level.collsion_scene.collision_object_map,
-			&loaded_level.collsion_scene.spatial_hash_grid,
-			new_loaded_object,
-		)
-
-
-		add_to_identifier_array_if_exists :: proc(
-			old_arr: ^[dynamic]spat.hent.Entity_Handle,
-			target_map: ^map[spat.hent.Entity_Handle]bool,
-			old_id, new_id: spat.hent.Entity_Handle,
-		) {
-			for id in old_arr^ {
-				if id == old_id {
-					target_map[new_id] = true
-					break
-				}
-			}
-		}
-		collision_scene := &loaded_level.collsion_scene
-		add_to_identifier_array_if_exists(
-			&loaded_serialized_level_data.finish_volumes_ids,
-			&collision_scene.finish_volumes,
-			obj.id,
-			new_id,
-		)
-		add_to_identifier_array_if_exists(
-			&loaded_serialized_level_data.kill_volume_ids,
-			&collision_scene.kill_volumes,
-			obj.id,
-			new_id,
-		)
-		add_to_identifier_array_if_exists(
-			&loaded_serialized_level_data.grapple_volume_ids,
-			&collision_scene.grappable,
-			obj.id,
-			new_id,
-		)
-
-
-		// spat.create_and_add_collision_object_from_tris(
-		// 	&loaded_level.collision_object_map,
-		// 	&loaded_level.spatial_hash_grid,
-		// 	obj.tris,
-		// 	cc.is_blocking(obj.collision_channels),
-		// )
-	}
-
-	logs.infof(.Serialization, "success loading level at path: {}", filepath)
-
+	// data, success := os.read_entire_file(filepath)
+	// defer delete(data)
+	//
+	// assert(
+	// 	success == true,
+	// 	fmt.aprint(
+	// 		"load_from_file_level() failed, filepath does not point to existing file?: ",
+	// 		filepath,
+	// 	),
+	// )
+	// loaded_serialized_level_data: Level_Serialization_Data
+	// defer delete_level_serialization_data(&loaded_serialized_level_data)
+	//
+	// err := json.unmarshal(data, &loaded_serialized_level_data)
+	// assert(err == nil, fmt.aprint(err))
+	//
+	//
+	// loaded_level.name = loaded_serialized_level_data.name
+	// loaded_level.start_position = loaded_serialized_level_data.start_position
+	// loaded_level.start_look_direction = loaded_serialized_level_data.start_look_direction
+	//
+	// // In case somebody loads an old level (author_time will be laoded as 0)
+	//
+	// for &obj in loaded_serialized_level_data.objects {
+	// 	// new_loaded_rotation :spat.Quaternion= spat.Quaternion{x = obj.transform.rotation.x, y = obj.transform.rotation.y, z = obj.transform.rotation.z, w = obj.transform.rotation.w}
+	// 	loaded_rot := obj.transform.rotation
+	// 	new_loaded_rotation: spat.Quaternion = quaternion(
+	// 		real = loaded_rot.x,
+	// 		imag = loaded_rot.y,
+	// 		jmag = loaded_rot.z,
+	// 		kmag = loaded_rot.w,
+	// 	)
+	// 	new_loaded_transform := spat.Transform {
+	// 		position = obj.transform.position,
+	// 		rotation = new_loaded_rotation,
+	// 		scale    = obj.transform.scale,
+	// 	}
+	// 	new_loaded_object := spat.Collision_Object_Data {
+	// 		collision_channels = transmute(cc.Responses)obj.collision_channels,
+	// 		transform          = new_loaded_transform,
+	// 		tris               = obj.tris,
+	// 	}
+	//
+	//
+	// 	new_id := spat.add_to_level(
+	// 		&loaded_level.collsion_scene.collision_object_map,
+	// 		&loaded_level.collsion_scene.spatial_hash_grid,
+	// 		new_loaded_object,
+	// 	)
+	//
+	//
+	// 	add_to_identifier_array_if_exists :: proc(
+	// 		old_arr: ^[dynamic]spat.hent.Entity_Handle,
+	// 		target_map: ^map[spat.hent.Entity_Handle]bool,
+	// 		old_id, new_id: spat.hent.Entity_Handle,
+	// 	) {
+	// 		for id in old_arr^ {
+	// 			if id == old_id {
+	// 				target_map[new_id] = true
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// 	collision_scene := &loaded_level.collsion_scene
+	// 	add_to_identifier_array_if_exists(
+	// 		&loaded_serialized_level_data.finish_volumes_ids,
+	// 		&collision_scene.finish_volumes,
+	// 		obj.id,
+	// 		new_id,
+	// 	)
+	// 	add_to_identifier_array_if_exists(
+	// 		&loaded_serialized_level_data.kill_volume_ids,
+	// 		&collision_scene.kill_volumes,
+	// 		obj.id,
+	// 		new_id,
+	// 	)
+	// 	add_to_identifier_array_if_exists(
+	// 		&loaded_serialized_level_data.grapple_volume_ids,
+	// 		&collision_scene.grappable,
+	// 		obj.id,
+	// 		new_id,
+	// 	)
+	//
+	//
+	// 	// spat.create_and_add_collision_object_from_tris(
+	// 	// 	&loaded_level.collision_object_map,
+	// 	// 	&loaded_level.spatial_hash_grid,
+	// 	// 	obj.tris,
+	// 	// 	cc.is_blocking(obj.collision_channels),
+	// 	// )
+	// }
+	//
+	// logs.infof(.Serialization, "success loading level at path: {}", filepath)
+	//
 	return loaded_level
+
 }
 
 save_to_file :: proc {

@@ -1,6 +1,7 @@
 package Character
 import col "../color"
 import cc "../core/collision_channel"
+import cm "../core/collision_mesh/"
 import cs "../core/collision_scene/"
 import csq "../core/collision_scene/query/"
 import verlet "../core/physics/verlet"
@@ -8,9 +9,9 @@ import spat "../core/spatial"
 import ddu "../debug_draw_utils"
 import gent "../game/game_entities/"
 import "../game_state"
-import hms "../handle_map/handle_map_static"
 import "../input"
 import l "../level"
+import logs "../logs"
 import "../player_data"
 import hm "core:container/handle_map"
 import "core:math/linalg"
@@ -109,21 +110,24 @@ update_character :: proc(
 				&level.collsion_scene.spatial_hash_grid,
 				&level.entities,
 				&level.collsion_scene.collision_meshes,
-				&ray,
+				ray,
 			)
 			entity: ^gent.Entity = hm.get(&level.entities, id)
-			assert(entity != nil)
+			if entity != nil {
+				logs.debugf(.Gamelogic, "hit object")
+				is_grappable := gent.Trait.Grabable in entity.traits
+				if ok && is_grappable {
 
-			is_grappable := gent.Trait.Grabable in entity.traits
-			if ok && is_grappable {
+					character_data.hooked_position = hook_hit_location
+					character_data.is_hooked = true
+					character_data.start_distance_to_hook = linalg.distance(
+						character_data.hooked_position,
+						player_position,
+					)
+				}
 
-				character_data.hooked_position = hook_hit_location
-				character_data.is_hooked = true
-				character_data.start_distance_to_hook = linalg.distance(
-					character_data.hooked_position,
-					player_position,
-				)
 			}
+
 		}
 
 	}
@@ -139,7 +143,7 @@ update_character :: proc(
 			&level.collsion_scene.spatial_hash_grid,
 			&level.entities,
 			&level.collsion_scene.collision_meshes,
-			&ray,
+			ray,
 		)
 
 		if ok {
@@ -199,24 +203,30 @@ update_character_physics :: proc(
 
 	collided_this_frame: bool = false
 
-	movement_hash_cells := spat.calculate_hashes_by_sphere_trace(&movement_sphere_trace)
+	movement_hash_cells := cs.calculate_hashes_by_sphere_trace(&movement_sphere_trace)
 	defer delete(movement_hash_cells)
 
 	for hash_key in movement_hash_cells {
 		object_ids := level.collsion_scene.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
 
-			coll_obj := hms.get(&level.collsion_scene.collision_object_map, collision_object_id)
-			// if !cc.is_blocking(coll_obj.collision_channels) do continue
-			if coll_obj.collision_channels.player != cc.BLOCK do continue
+			ent: ^gent.Entity = hm.get(&level.entities, collision_object_id)
+			assert(ent != nil)
+			assert(gent.has_traits({.Transform, .Collision}, ent^))
+			col_mesh: ^cm.Mesh = hm.get(
+				&level.collsion_scene.collision_meshes.mesh_map,
+				ent.collision_component.mesh_id,
+			)
+			assert(col_mesh != nil)
+			if ent.collision_component.collision_response.player != cc.BLOCK do continue
 
-			transform_matrix := spat.get_matrix_from_transform(coll_obj.transform)
+			transform_matrix := spat.get_matrix_from_transform(ent.transform_component.transform)
 
 
 			point := spat.Vector4{1, 1, 1, 1}
 			new_point := point * transform_matrix
 
-			for &t in coll_obj.tris {
+			for &t in col_mesh.tris {
 				// TODO: also implement rotations when the time comes
 				tri := t
 				for &p in tri.points {

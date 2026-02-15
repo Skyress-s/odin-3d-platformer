@@ -88,10 +88,13 @@ Collision_Shape :: struct {
 }
 
 Bound :: rl.BoundingBox
+make_bound_by_position :: proc(pos: Vector) -> Bound {
+	return Bound{pos, pos}
+}
 
 
 ray_plane_intersect :: proc(
-	ray: ^Ray,
+	ray: Ray,
 	plane_normal, point_on_plane: Vector,
 ) -> (
 	hit: bool,
@@ -112,8 +115,8 @@ ray_plane_intersect :: proc(
 }
 
 ray_triangle_intersect :: proc(
-	ray: ^Ray,
-	tri: ^Collision_Triangle,
+	ray: Ray,
+	tri: Collision_Triangle,
 ) -> (
 	valid: bool,
 	location: Vector,
@@ -415,12 +418,30 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 
 }
 
-transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: ^Transform) {
-	mat := get_matrix_from_transform(transform^)
+transform_triangle_by_matrix :: proc(
+	tri: Collision_Triangle,
+	mat: rl.Matrix,
+) -> (
+	ret_tri: Collision_Triangle,
+) {
+	for &p in ret_tri.points {
+		p = (mat * rl.Vector4{p.x, p.y, p.z, 1}).xyz
+	}
+	return ret_tri
+}
+
+transform_triangle_by_transform :: proc(
+	tri: Collision_Triangle,
+	transform: Transform,
+) -> Collision_Triangle {
+	mat := get_matrix_from_transform(transform)
+	return transform_triangle_by_matrix(tri, mat)
+}
+
+transform_triangles :: proc(tris: ^[dynamic]Collision_Triangle, transform: Transform) {
+	mat := get_matrix_from_transform(transform)
 	for &tri in tris {
-		/*#unroll*/for &p in tri.points { 	// todo how to unroll
-			p = (mat * rl.Vector4{p.x, p.y, p.z, 1}).xyz
-		}
+		tri = transform_triangle_by_matrix(tri, mat)
 	}
 }
 

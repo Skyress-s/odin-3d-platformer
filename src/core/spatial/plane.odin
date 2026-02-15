@@ -39,12 +39,18 @@ Plane_Bounded :: distinct struct {
 	center, normal, forward: Vector,
 	lenghts:                 Vector2,
 }
-intersect_plane_bounded :: proc(ray: ^Ray, plane: ^Plane_Bounded) -> (hit_plane: bool, hit_loc, hit_norm: Vector) {
+intersect_plane_bounded :: proc(
+	ray: Ray,
+	plane: ^Plane_Bounded,
+) -> (
+	hit_plane: bool,
+	hit_loc, hit_norm: Vector,
+) {
 	coll_tris := make_collision_tris_from_plane_bounded(plane)
-	hit, loc := ray_triangle_intersect(ray, &coll_tris.x)
+	hit, loc := ray_triangle_intersect(ray, coll_tris.x)
 	if hit do return true, loc, plane.normal
 
-	hit, loc = ray_triangle_intersect(ray, &coll_tris.y)
+	hit, loc = ray_triangle_intersect(ray, coll_tris.y)
 	if hit do return true, loc, plane.normal
 	return false, ZERO_VEC3, ZERO_VEC3
 }

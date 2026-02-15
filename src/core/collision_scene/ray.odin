@@ -234,15 +234,15 @@ calculate_hashes_by :: proc(ray: spat.Ray) -> (cells: map[Hash_Key]bool) {
 ray_intersect_spatial_hash_grid :: proc(
 	hash_grid: ^Spatial_Hash_Grid,
 	collision_object_map: ^gent.Game_Entity_Handle_Map,
-	collision_meshes: ^col_mesh.Map,
-	ray: ^spat.Ray,
+	col_ctx: ^col_mesh.Collider_Mesh_Context,
+	ray: spat.Ray,
 ) -> (
 	hit: bool,
 	id: hent.Entity_Handle,
 	location: spat.Vector,
 ) {
 
-	hashes := calculate_hashes_by_ray(ray^)
+	hashes := calculate_hashes_by_ray(ray)
 	defer delete(hashes)
 
 	ray_length := linalg.distance(ray.origin, ray.end)
@@ -262,7 +262,7 @@ ray_intersect_spatial_hash_grid :: proc(
 			coliision_component := found_object.collision_component
 			transform_component := found_object.transform_component
 
-			collision_mesh: ^col_mesh.Mesh = hm.get(collision_meshes, coliision_component.mesh_id)
+			collision_mesh: ^col_mesh.Mesh = hm.get(&col_ctx.mesh_map, coliision_component.mesh_id)
 			assert(collision_mesh != nil)
 
 
@@ -276,7 +276,7 @@ ray_intersect_spatial_hash_grid :: proc(
 					t.z = trans_point.z
 				}
 
-				ok, intersect_location := spat.ray_triangle_intersect(ray, &new_tri)
+				ok, intersect_location := spat.ray_triangle_intersect(ray, new_tri)
 				if ok {
 					is_in_front := linalg.vector_dot(
 						ray_direction,
