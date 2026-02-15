@@ -18,6 +18,12 @@ Collider_Mesh_Context :: struct {
 	primitive_ids: [len(spat.Shape)]Mesh_Handle,
 }
 
+get_mesh_checked :: proc(ctx: ^Collider_Mesh_Context, handle: Mesh_Handle) -> ^Mesh {
+	found_mesh := hm.get(&ctx.mesh_map, handle)
+	assert(found_mesh != nil)
+	return found_mesh
+}
+
 
 init :: proc(ctx: ^Collider_Mesh_Context) {
 

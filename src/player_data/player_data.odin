@@ -14,7 +14,7 @@ calculate_look_to_stuff :: proc(rot: spat.Quaternion) {
 }
 // todo terrible name
 calculate_direction_from_look :: proc(
-	look_data: ^Player_Look_Data,
+	look_data: Player_Look_Data,
 ) -> (
 	rot: linalg.Quaternionf32,
 	forward, right: linalg.Vector3f32,

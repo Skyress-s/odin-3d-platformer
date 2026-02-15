@@ -5,7 +5,9 @@ import cs "../../core/collision_scene/"
 import hent "../../core/entity_handle/"
 import spat "../../core/spatial"
 import gent "../../game/game_entities/"
+import sent "../../game/spawn_entities/"
 import l "../../level"
+import logs "../../logs/"
 import hm "core:container/handle_map"
 import "core:fmt"
 import "core:math/linalg"
@@ -93,6 +95,7 @@ on_click :: proc(
 		}
 		return
 	}
+
 
 	// Have target from this point
 	switch &active_tool in transform_tool.active_tool {
@@ -228,7 +231,7 @@ update_transform_tool :: proc(
 	found_object: ^gent.Entity = hm.get(object_map, data.target_object_id)
 	assert(found_object != nil)
 
-	ent_transform := found_object.transform_component.transform
+	ent_transform := &found_object.transform_component.transform
 
 	switch &active_tool in data.active_tool {
 	case Position_Tool:
@@ -316,8 +319,6 @@ update_transform_tool :: proc(
 		case .Z:
 			ent_transform.scale.z = (data.start_transform.scale.z + dot * scale_scale)
 		}
-
-	// fmt.printfln("updates scale!: {}", found_object.transform.scale)
 
 	}
 	// TODO: Resume here

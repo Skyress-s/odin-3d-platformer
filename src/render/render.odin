@@ -101,7 +101,7 @@ render :: proc(
 		}
 
 	case plrs.Player_Mode.Editor:
-		_, forward, _ := player_data.calculate_direction_from_look(&players.game.look_angles)
+		_, forward, _ := player_data.calculate_direction_from_look(players.game.look_angles)
 		player_verlet := &players.game.verlet_component
 
 		rl.DrawCylinder(

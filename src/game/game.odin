@@ -14,6 +14,7 @@ import verlet "../core/physics/verlet"
 import spat "../core/spatial"
 import ddu "../debug_draw_utils/"
 import "../editor_player"
+import sent "../game/spawn_entities/"
 import gs "../game_state"
 import gctx "../global_context"
 import l "../level"
@@ -66,9 +67,9 @@ update :: proc(
 			// 	gc.current_level,
 			// 	position_transform_tool.target_object_id,
 			// )
-			// TODO: FIX RECONSTRUCT Spatial Hash Grid
+			//
+			sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, level.entities)
 		}
-		// }
 
 
 	}
@@ -281,9 +282,7 @@ update :: proc(
 	// Update Camera
 	switch gc.players.mode {
 	case plrs.Player_Mode.Game:
-		_, forward, right := player_data.calculate_direction_from_look(
-			&gc.players.game.look_angles,
-		)
+		_, forward, right := player_data.calculate_direction_from_look(gc.players.game.look_angles)
 
 		camera.update_transform(
 			&gc.camera_state,
@@ -292,9 +291,7 @@ update :: proc(
 			right,
 		)
 	case plrs.Player_Mode.Editor:
-		_, forward, right := player_data.calculate_direction_from_look(
-			&gc.players.editor.look_data,
-		)
+		_, forward, right := player_data.calculate_direction_from_look(gc.players.editor.look_data)
 
 		camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
 	// gc.cam.position = gc.players.editor.position
@@ -304,7 +301,7 @@ update :: proc(
 
 	player_loction := gc.players.game.verlet_component.position
 	_, player_look_direction, _ := player_data.calculate_direction_from_look(
-		&gc.players.game.look_angles,
+		gc.players.game.look_angles,
 	)
 
 	// sphere_trace := spat.Sphere_Trace {

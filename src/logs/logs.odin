@@ -28,6 +28,7 @@ System :: enum {
 	Base,
 	Physics,
 	UI,
+	Editor,
 	Gamelogic,
 	Serialization,
 }

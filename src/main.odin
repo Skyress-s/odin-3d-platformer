@@ -12,7 +12,7 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import gent "game/game_entities"
-import sgent "game/spawn_entities"
+import sent "game/spawn_entities"
 
 import character "Character"
 import camera "camera"
@@ -370,23 +370,12 @@ setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout2.Layout
 	}
 }
 
-spawn_box :: proc(transform: spat.Transform, level: ^l.Level) -> ^gent.Entity {
-	ents := &level.entities
-
-	new_ent_handle := sgent.spawn_empty_entity(ents)
-	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
-
-	sgent.add_trait_transform(ents, new_ent_handle, transform)
-	sgent.add_trait_collision_shape(level, new_ent_handle, .Box)
-
-	return new_ent
-}
 
 make_basic_level :: proc() -> (level: l.Level) {
 	cm.init(&level.collsion_scene.collision_meshes)
 	ents := &level.entities
 
-	ent1 := spawn_box(
+	ent1 := sent.spawn_box(
 		{
 			position = spat.ONE_VEC3 * 5,
 			rotation = spat.QUATERNION_IDENTITY,
@@ -396,7 +385,7 @@ make_basic_level :: proc() -> (level: l.Level) {
 	)
 	gent.add_traits_checked({.Grabable}, ent1)
 
-	spawn_box(
+	sent.spawn_box(
 		{
 			position = -spat.UP_VEC3 * 8,
 			rotation = spat.QUATERNION_IDENTITY,

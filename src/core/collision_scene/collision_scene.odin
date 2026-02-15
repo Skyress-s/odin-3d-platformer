@@ -86,6 +86,12 @@ Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
 //
 // 	delete_spatial_hash_grid(&shg)
 // }
+clear_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid) {
+	for key, &cell in shg {
+		clear(&cell.objects_ids)
+	}
+	clear(shg)
+}
 
 delete_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid) {
 	for key, &hash_cell in shg {

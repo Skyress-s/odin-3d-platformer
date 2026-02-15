@@ -46,6 +46,12 @@ Player_Data :: struct {}
 
 Game_Entity_Handle_Map :: hm.Static_Handle_Map(1024, Entity, hent.Entity_Handle)
 
+get_entity_checked :: proc(ents: ^Game_Entity_Handle_Map, handle: hent.Entity_Handle) -> ^Entity {
+	found_ent := hm.get(ents, handle)
+	assert(found_ent != nil)
+	return found_ent
+}
+
 has_traits :: proc {
 	has_traits_entity_handle,
 	has_traits_entity,

@@ -1,7 +1,7 @@
 package game_ui
 
+import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities"
-import pd "../../player_data/"
 import "core:c"
 import "core:fmt"
 import "core:math"
@@ -23,6 +23,7 @@ import gctx "../../global_context"
 import l "../../level/"
 import lfu "../../level_flow_utils/"
 import "../../logs/"
+import player_data "../../player_data/"
 import plrs "../../players/"
 import "../../serialization/"
 import vmouse "../../virtual_mouse/"
@@ -458,14 +459,42 @@ layout_details_panel :: proc(
 	active_elems: ^layout2.Active_Elements,
 ) {
 	current_id := players.editor.transform_tool.target_object_id
+	player_pos := players.editor.position
+	_, player_forward, _ := player_data.calculate_direction_from_look(players.editor.look_data)
 
 
 	col_scene := &level.collsion_scene
 
+	@(static) spawn_entities_drowdown := false
+	if ui.layout_dropdown(ctx, fmt.tprintf("Spawn Entities"), &spawn_entities_drowdown) {
+		if ui.layout_button_immediate(ctx, fmt.tprintf("Spawn Cube")) {
+			sent.spawn_box(
+				{
+					position = player_pos + player_forward * 10,
+					rotation = spat.QUATERNION_IDENTITY,
+					scale = spat.ONE_VEC3,
+				},
+				level,
+			)
+
+		}
+
+	}
+
 	@(static) object_manip_dropdown := false
 	if current_id != {} {
-		current_coll_obj := hm.get(&level.entities, current_id)
+		ent: ^gent.Entity = hm.get(&level.entities, current_id)
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
+
+			if !gent.has_traits({.Grabable}, ent^) {
+				if ui.layout_button_immediate(ctx, fmt.tprintf("Add Grabbable Component")) {
+					ent.traits += {.Grabable}
+				}
+			} else {
+				if ui.layout_button_immediate(ctx, fmt.tprintf("Remove Grabbable Component")) {
+					ent.traits -= {.Grabable}
+				}
+			}
 
 			// ui.layout_dynamic_text_entry(fmt.tprint(current_id))
 			// if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
@@ -649,13 +678,6 @@ layout_details_panel :: proc(
 
 	}
 
-	// ui.set_focus(ctx, "ui_playground")
-	if ui.layout_dropdown(ctx, fmt.tprintf("ui_playground"), &object_manip_dropdown) {
-		@(static) text_buf: [512]byte = {}
-		@(static) text_buf_length: int = 0
-		ui.layout_textbox_immediate2(ctx, text_buf[:], &text_buf_length) // , clay.GetElementId(clay.MakeString("ui_playground")).id
-	}
-
 
 	layout_editor_options(ctx)
 }
@@ -826,7 +848,6 @@ setup_initial_window_layout :: proc(
 	game_handle: layout2.Layout_Item_Handle,
 ) {
 	layout_ctx := &gc.ui_context.layout_ctx
-
 	game_window_item := make_game_window_node(layout_ctx, gc)
 	game_window_handle := layout2.add_layout_node(
 		&layout_ctx.lic,
@@ -837,7 +858,32 @@ setup_initial_window_layout :: proc(
 	{
 		ui_layout_item := layout2.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
 		ui_layout_item.size_percent = {0.5, 0.5}
-		layout2.add_layout_node(&layout_ctx.lic, layout_ctx.root, 0, ui_layout_item)
+		ui_layout_handle := layout2.add_layout_node(
+			&layout_ctx.lic,
+			layout_ctx.root,
+			0,
+			ui_layout_item,
+		)
+
+
+		cheats_layout_item := layout2.make_layout_item(
+			layout_ctx,
+			"cheats",
+			gc,
+			layout_game_cheats_window,
+		)
+		cheats_layout_item.size_percent = {0.5, 0.5}
+		cheats_layout_handle := layout2.add_to_context(layout_ctx, cheats_layout_item)
+
+		layout2.insert_item_same_level(
+			layout_ctx,
+			{0.5, 0.5},
+			0,
+			.Top,
+			ui_layout_handle,
+			cheats_layout_handle,
+		)
+
 	}
 	{
 		log_layout_item := layout2.make_layout_item(layout_ctx, "log", gc, layout_log_window)
