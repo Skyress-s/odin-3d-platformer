@@ -64,10 +64,10 @@ init :: proc(
 
 	// root node
 	{
-		root := Layout_Item{}
-		root.id = "Root"
-		root.size_percent = {1, 1}
+
+		root := make_layout_item(&ctx, "root")
 		root.layout_dir = .LeftToRight
+		root.size_percent = {1, 1}
 		handle, _ := hms.add(&ctx.lic, root)
 
 		ctx.root = handle

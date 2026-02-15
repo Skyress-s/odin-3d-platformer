@@ -869,7 +869,5 @@ setup_initial_window_layout :: proc(
 			editor_default_layout_item_handle,
 		)
 	}
-	{
-	}
 	return game_window_handle
 }
