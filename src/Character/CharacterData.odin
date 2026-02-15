@@ -112,6 +112,7 @@ update_character :: proc(
 				&level.collsion_scene.collision_meshes,
 				ray,
 			)
+			ddu.enqueue_ins(&ddu.Line_Ins{ray, rl.WHITE}, 5)
 			entity: ^gent.Entity = hm.get(&level.entities, id)
 			if entity != nil {
 				logs.debugf(.Gamelogic, "hit object")

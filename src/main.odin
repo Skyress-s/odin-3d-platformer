@@ -385,6 +385,5 @@ make_basic_level :: proc() -> (level: l.Level) {
 
 	new_ent.traits += {.Grabable}
 
-
 	return level
 }

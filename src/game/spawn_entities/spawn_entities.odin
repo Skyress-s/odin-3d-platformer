@@ -5,6 +5,7 @@ import cs "../../core/collision_scene/"
 import hent "../../core/entity_handle"
 import spat "../../core/spatial/"
 import l "../../level/"
+import logs "../../logs"
 import gent "../game_entities/"
 import hm "core:container/handle_map"
 
@@ -36,7 +37,11 @@ spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Ha
 // 	)
 // }
 
-add_trait_collision_shape :: proc(level: ^l.Level, handle: hent.Entity_Handle, shape: spat.Shape) {
+add_trait_collision_shape :: proc(
+	level: ^l.Level,
+	handle: hent.Entity_Handle,
+	shape: spat.Shape,
+) -> cm.Mesh_Handle {
 	ents: ^gent.Game_Entity_Handle_Map = &level.entities
 	col_scene: ^cs.Collision_Scene = &level.collsion_scene
 	col_meshes: ^cm.Collider_Mesh_Context = &col_scene.collision_meshes
@@ -66,6 +71,10 @@ add_trait_collision_shape :: proc(level: ^l.Level, handle: hent.Entity_Handle, s
 		ent.transform_component.transform,
 	)
 	cs.add_to_spatial_hash_grid(&level.collsion_scene.spatial_hash_grid, handle, bounds)
+
+	logs.debugf(.Gamelogic, "Spatial Hash Grid {}", level.collsion_scene.spatial_hash_grid)
+
+	return box_id
 }
 
 
