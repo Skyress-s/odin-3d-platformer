@@ -4,6 +4,7 @@ import cc "../collision_channel/"
 import cm "../collision_mesh/"
 import hent "../entity_handle/"
 import spat "../spatial/"
+import "core:log"
 import "core:reflect"
 
 
@@ -17,7 +18,7 @@ import rlgl "vendor:raylib/rlgl"
 
 Collision_Scene :: struct {
 	spatial_hash_grid: Spatial_Hash_Grid,
-	collision_meshes:  cm.Map,
+	collision_meshes:  cm.Collider_Mesh_Context,
 }
 
 init_collision_scene :: proc(col_scene: ^Collision_Scene) {
@@ -422,3 +423,23 @@ calculate_rays_by_sphere_trace :: proc(
 
 	return rays
 }
+
+add_to_spatial_hash_grid :: proc(
+	spatial_hash_grid: ^Spatial_Hash_Grid,
+	id: hent.Entity_Handle,
+	bounds: spat.Bound,
+) {
+	potential_hash_keys := calculate_overlapping_cells2(bounds)
+	defer delete(potential_hash_keys)
+	for hash_key in potential_hash_keys {
+		cell := &spatial_hash_grid[hash_key]
+		if cell == nil {
+			spatial_hash_grid[hash_key] = Hash_Cell{}
+			cell = &spatial_hash_grid[hash_key]
+		}
+
+		append_elem(&cell.objects_ids, id)
+	}
+}
+
+// TODO: Move in spatial has grid? Or just remake every frame?

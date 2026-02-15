@@ -63,8 +63,7 @@ update :: proc(
 		if position_transform_tool.dragging == true {
 			position_transform_tool.dragging = false
 			position_transform_tool.target_object_id = csq.notify_object_transform_changed(
-				&gc.current_level.entities,
-				&gc.current_level.collsion_scene.spatial_hash_grid,
+				gc.current_level,
 				position_transform_tool.target_object_id,
 			)
 			//position_transform_tool.target_object_id.idx = 0
@@ -165,7 +164,7 @@ update :: proc(
 							&cam,
 							rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
 							rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-							&gc.current_level.collsion_scene.collision_object_map,
+							&gc.current_level.entities,
 							ray,
 						)
 					}

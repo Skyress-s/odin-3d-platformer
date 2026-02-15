@@ -83,7 +83,7 @@ Shape_Union :: union {
 }
 
 Collision_Shape :: struct {
-	transform: Transform,
+	transform: Transform, // TODO: Remove?
 	shape:     Shape_Union,
 }
 

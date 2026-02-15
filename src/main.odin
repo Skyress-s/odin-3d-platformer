@@ -1,11 +1,17 @@
 package main
 
 import "base:runtime"
+import cm "core/collision_mesh"
+import cs "core/collision_scene"
+import csq "core/collision_scene/query"
+import spat "core/spatial"
 import "core:c"
 import "core:debug/trace"
 import "core:fmt"
 import "core:log"
 import "core:mem"
+import gent "game/game_entities"
+import sgent "game/spawn_entities"
 
 import character "Character"
 import camera "camera"
@@ -125,7 +131,8 @@ main :: proc() {
 	defer logs.deinit()
 	defer log.destroy_console_logger(context.logger)
 
-	current_level := serialization.load_from_file_level("content/levels/2.I.map")
+	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
+	current_level := make_basic_level()
 
 	players := plrs.init_players()
 
@@ -360,4 +367,18 @@ setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout2.Layout
 		)
 		vmouse.hide_cursor(&gc.virtual_mouse_ctx)
 	}
+}
+
+make_basic_level :: proc() -> (level: l.Level) {
+	cm.init(&level.collsion_scene.collision_meshes)
+	ents := &level.entities
+	new_ent_handle := sgent.spawn_empty_entity(ents)
+	sgent.add_trait_transform(
+		ents,
+		new_ent_handle,
+		{position = spat.ONE_VEC3 * 5, rotation = spat.QUATERNION_IDENTITY, scale = spat.ONE_VEC3},
+	)
+	sgent.add_trait_collision_shape(&level, new_ent_handle, .Box)
+
+	return level
 }

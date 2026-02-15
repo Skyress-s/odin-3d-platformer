@@ -20,9 +20,6 @@ import rlgl "vendor:raylib/rlgl"
 
 notify_object_transform_changed :: proc(
 	level: ^l.Level,
-	collision_object_map: ^gent.Game_Entity_Handle_Map,
-	collision_meshes: ^cm.Map,
-	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
 	collision_object_id: hent.Entity_Handle,
 ) -> hent.Entity_Handle {
 
@@ -32,10 +29,11 @@ notify_object_transform_changed :: proc(
 	spatial_hash_grid := &level.collsion_scene.spatial_hash_grid
 
 	found_object: ^gent.Entity = hm.get(collision_object_map, collision_object_id)
+	assert(found_object != nil)
 	if gent.Trait.Transform not_in found_object.traits do return {}
 	if gent.Trait.Collision not_in found_object.traits do return {}
 
-	collision_mesh := hm.get(collision_meshes, found_object.collision_component.mesh_id)
+	collision_mesh := hm.get(&collision_meshes.mesh_map, found_object.collision_component.mesh_id)
 	assert(collision_mesh != nil)
 
 	bounds := spat.calculate_bounds_from_tris_transform(
@@ -90,21 +88,21 @@ notify_object_transform_changed :: proc(
 	return found_object.handle
 }
 
-add_shape_to_hash_map :: proc(
-	collision_object_map: ^gent.Game_Entity_Handle_Map,
-	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
-	shape: spat.Collision_Shape,
-	blocking_geo: bool = true,
-) -> hent.Entity_Handle {
-	bounds := spat.get_bounds(shape)
-
-	collision_object_data := col_scene.shape_to_collision_object(shape)
-
-	// id := add_to_object_map(collision_object_map, collision_object_data)
-	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
-
-	return id
-}
+// add_shape_to_hash_map :: proc(
+// 	collision_object_map: ^gent.Game_Entity_Handle_Map,
+// 	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
+// 	shape: spat.Collision_Shape,
+// 	blocking_geo: bool = true,
+// ) -> hent.Entity_Handle {
+// 	bounds := spat.get_bounds(shape)
+//
+// 	collision_object_data := col_scene.shape_to_collision_object(shape)
+//
+// 	// id := add_to_object_map(collision_object_map, collision_object_data)
+// 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
+//
+// 	return id
+// }
 
 // create_and_add_collision_object_from_tris_transform :: proc(
 // 	collision_scene: ^col_scene.Collision_Scene,
@@ -132,26 +130,6 @@ add_shape_to_hash_map :: proc(
 // 	return collision_object_id
 // }
 
-add_to_spatial_hash_grid :: proc(
-	spatial_hash_grid: ^Spatial_Hash_Grid,
-	data: Collision_Object_Data,
-	id: hent.Entity_Handle,
-) {
-
-	bounds := calculate_bounds_from_tris_transform(data.tris, data.transform) // todo defaults to  ref right hehe??
-	potential_hash_keys := calculate_overlapping_cells2(bounds)
-	defer delete(potential_hash_keys)
-	for hash_key in potential_hash_keys {
-		cell := &spatial_hash_grid[hash_key]
-		if cell == nil {
-			// log.warnf("Emty cell, creating new one...")
-			spatial_hash_grid[hash_key] = col_scene.Hash_Cell{}
-			cell = &spatial_hash_grid[hash_key]
-		}
-
-		append_elem(&cell.objects_ids, id)
-	}
-}
 
 remove_from_spatial_hash_grid :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
@@ -204,8 +182,9 @@ does_location_overlap_finish_volume :: proc(
 }
 
 add_to_level :: proc(
-	collision_object_map: ^gent.Game_Entity_Handle_Map,
-	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
+	level: ^l.Level,
+	// collision_object_map: ^gent.Game_Entity_Handle_Map,
+	// spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
 	collision_object_data: col_scene.Collision_Object_Data,
 ) -> hent.Entity_Handle {
 	id := add_to_object_map(collision_object_map, collision_object_data)

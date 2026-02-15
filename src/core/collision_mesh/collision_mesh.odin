@@ -1,7 +1,6 @@
 package collision_mesh
 
 import spat "../spatial/"
-import "core:reflect"
 
 import hm "core:container/handle_map"
 
@@ -20,14 +19,12 @@ Collider_Mesh_Context :: struct {
 }
 
 
-init :: proc(mesh_map: ^Map) {
+init :: proc(ctx: ^Collider_Mesh_Context) {
 
-	for shape_type in spat.Shape {
-
-		tris := spat.get_box_tris()
-
-
+	box_tris := spat.get_box_tris()
+	box_mesh: Mesh = {
+		tris = box_tris,
 	}
 
-
+	ctx.primitive_ids[spat.Shape.Box] = hm.add(&ctx.mesh_map, box_mesh)
 }
