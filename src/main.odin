@@ -370,20 +370,40 @@ setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout2.Layout
 	}
 }
 
-make_basic_level :: proc() -> (level: l.Level) {
-	cm.init(&level.collsion_scene.collision_meshes)
+spawn_box :: proc(transform: spat.Transform, level: ^l.Level) -> ^gent.Entity {
 	ents := &level.entities
+
 	new_ent_handle := sgent.spawn_empty_entity(ents)
 	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
 
-	sgent.add_trait_transform(
-		ents,
-		new_ent_handle,
-		{position = spat.ONE_VEC3 * 5, rotation = spat.QUATERNION_IDENTITY, scale = spat.ONE_VEC3},
-	)
-	sgent.add_trait_collision_shape(&level, new_ent_handle, .Box)
+	sgent.add_trait_transform(ents, new_ent_handle, transform)
+	sgent.add_trait_collision_shape(level, new_ent_handle, .Box)
 
-	new_ent.traits += {.Grabable}
+	return new_ent
+}
+
+make_basic_level :: proc() -> (level: l.Level) {
+	cm.init(&level.collsion_scene.collision_meshes)
+	ents := &level.entities
+
+	ent1 := spawn_box(
+		{
+			position = spat.ONE_VEC3 * 5,
+			rotation = spat.QUATERNION_IDENTITY,
+			scale = spat.ONE_VEC3 * 4,
+		},
+		&level,
+	)
+	gent.add_traits_checked({.Grabable}, ent1)
+
+	spawn_box(
+		{
+			position = -spat.UP_VEC3 * 8,
+			rotation = spat.QUATERNION_IDENTITY,
+			scale = spat.ONE_VEC3 + spat.Vector{1, 0, 1} * 8,
+		},
+		&level,
+	)
 
 	return level
 }

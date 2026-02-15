@@ -195,8 +195,14 @@ render :: proc(
 
 	itr := hm.iterator_make(&level.entities)
 	for entity in hm.iterate(&itr) {
-		// draw
+		if !gent.has_traits({.Transform, .Collision}, entity^) do continue
 
+		col := rl.WHITE
+		if gent.has_traits({.Finish}, entity^) do col = rl.YELLOW
+		else if gent.has_traits({.Grabable}, entity^) do col = rl.SKYBLUE
+		else if gent.has_traits({.Kill}, entity^) do col = rl.RED
+
+		draw_collision_object(entity.handle, level, col, rl.WHITE)
 	}
 
 
@@ -273,10 +279,10 @@ render :: proc(
 
 
 	// Draw coorinate axis
-	rl.DrawCube({0, 0, 0}, 0.1, 0.1, 0.1, rl.WHITE)
-	rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
-	rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
-	rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
+	// rl.DrawCube({0, 0, 0}, 0.1, 0.1, 0.1, rl.WHITE)
+	// rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
+	// rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
+	// rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
 
 	if game_state.cheat_state.draw_bounds {

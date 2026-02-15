@@ -337,14 +337,14 @@ update :: proc(
 	// 	)
 	// }
 
-	ddu.enqueue_ins(
-		&ddu.Cube_Ins {
-			location = spat.Vector{5, 0, 0},
-			rot = spat.QUATERNION_IDENTITY,
-			size = spat.ONE_VEC3 * 5,
-			color = col.DARKBROWN,
-		},
-	)
+	// ddu.enqueue_ins(
+	// 	&ddu.Cube_Ins {
+	// 		location = spat.Vector{5, 0, 0},
+	// 		rot = spat.QUATERNION_IDENTITY,
+	// 		size = spat.ONE_VEC3 * 5,
+	// 		color = col.DARKBROWN,
+	// 	},
+	// )
 
 
 	debug_draw_data.active_cell = player_overlapping_cells

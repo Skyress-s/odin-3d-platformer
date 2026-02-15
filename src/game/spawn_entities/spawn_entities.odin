@@ -1,5 +1,6 @@
 package spawn_entities
 
+import cc "../../core/collision_channel/"
 import cm "../../core/collision_mesh/"
 import cs "../../core/collision_scene/"
 import hent "../../core/entity_handle"
@@ -52,11 +53,10 @@ add_trait_collision_shape :: proc(
 	assert(gent.has_traits({.Transform}, ent^)) // not sure I like this
 
 	gent.add_traits_checked({.Collision}, ent)
+	ent.collision_component.collision_response = cc.BLOCK_ALL
+	assert(shape == .Box) // TODO: Currently only support boxes
 
 	// Assign collision mesh
-	// TODO: Currently only support boxes
-	assert(shape == .Box)
-
 	box_id := col_meshes.primitive_ids[spat.Shape.Box]
 	ent.collision_component.mesh_id = box_id
 
@@ -71,8 +71,6 @@ add_trait_collision_shape :: proc(
 		ent.transform_component.transform,
 	)
 	cs.add_to_spatial_hash_grid(&level.collsion_scene.spatial_hash_grid, handle, bounds)
-
-	logs.debugf(.Gamelogic, "Spatial Hash Grid {}", level.collsion_scene.spatial_hash_grid)
 
 	return box_id
 }
