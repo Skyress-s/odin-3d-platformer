@@ -118,7 +118,10 @@ on_click_position_tool :: proc(
 	ray: spat.Ray,
 ) {
 	ray := ray
-	planes := generate_axis_planes(cam_position)
+	planes := generate_axis_planes_with_distance_scaling(
+		cam_position,
+		found_ent.transform_component.transform.position,
+	)
 
 	ent_transform := found_ent.transform_component.transform
 

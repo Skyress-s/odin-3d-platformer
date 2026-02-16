@@ -55,12 +55,27 @@ transform_axis_planes :: proc(
 	}
 }
 
+generate_axis_planes_with_distance_scaling :: proc(
+	camera_location: spat.Vector,
+	tool_location: spat.Vector,
+) -> (
+	planes_bounded: [3]spat.Plane_Bounded,
+) {
+	distance := linalg.distance(camera_location, tool_location)
+	axis_planes := generate_axis_planes(camera_location)
+	for &plane in axis_planes {
+		plane.lenghts *= distance // TODO: Not finshed
+	}
+
+	return axis_planes
+
+}
+
 generate_axis_planes :: proc(
 	camera_location: spat.Vector,
 ) -> (
 	planes_bounded: [3]spat.Plane_Bounded,
 ) {
-
 	tooltip_location := spat.ZERO_VEC3
 	// dirs: spat.Vector = calculate_dirs(tooltip_location, camera_location)
 	dirs: spat.Vector = spat.ONE_VEC3
