@@ -848,6 +848,7 @@ setup_initial_window_layout :: proc(
 	game_handle: layout2.Layout_Item_Handle,
 ) {
 	layout_ctx := &gc.ui_context.layout_ctx
+
 	game_window_item := make_game_window_node(layout_ctx, gc)
 	game_window_handle := layout2.add_layout_node(
 		&layout_ctx.lic,
@@ -855,9 +856,23 @@ setup_initial_window_layout :: proc(
 		0,
 		game_window_item,
 	)
+
+	{
+		log_layout_item := layout2.make_layout_item(layout_ctx, "log", gc, layout_log_window)
+		log_layout_item.size_percent = {1, 0.2}
+		log_layout_handle := layout2.add_to_context(layout_ctx, log_layout_item)
+		layout2.insert_item_new_level(
+			layout_ctx,
+			{.5, .2},
+			0,
+			.Bottom,
+			game_window_handle,
+			log_layout_handle,
+		)
+	}
 	{
 		ui_layout_item := layout2.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
-		ui_layout_item.size_percent = {0.5, 0.5}
+		ui_layout_item.size_percent = {0.5, 0.2}
 		ui_layout_handle := layout2.add_layout_node(
 			&layout_ctx.lic,
 			layout_ctx.root,
@@ -884,22 +899,13 @@ setup_initial_window_layout :: proc(
 			cheats_layout_handle,
 		)
 
-	}
-	{
-		log_layout_item := layout2.make_layout_item(layout_ctx, "log", gc, layout_log_window)
-		log_layout_handle := layout2.add_layout_node(
-			&layout_ctx.lic,
-			layout_ctx.root,
-			0,
-			log_layout_item,
-		)
-
 		editor_default_layout_item := layout2.make_layout_item(
 			layout_ctx,
 			"editor_details",
 			gc,
 			layout_editor_details,
 		)
+		editor_default_layout_item.size_percent = {1, 0.7}
 
 		editor_default_layout_item_handle := layout2.add_to_context(
 			layout_ctx,
@@ -908,12 +914,13 @@ setup_initial_window_layout :: proc(
 
 		layout2.insert_item_new_level(
 			layout_ctx,
-			{0.5, 0.5},
+			{0.2, 1},
 			0,
 			.Bottom,
-			log_layout_handle,
+			cheats_layout_handle,
 			editor_default_layout_item_handle,
 		)
+
 	}
 	return game_window_handle
 }

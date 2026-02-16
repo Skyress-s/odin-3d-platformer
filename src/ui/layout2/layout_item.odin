@@ -566,7 +566,7 @@ insert_item_new_level :: proc(
 
 	append(&new_parent.child_nodes, item.handle)
 	item.parent_handle = new_parent_handle
-	item.size_percent = avg_size
+	// item.size_percent = avg_size
 	if (is_leaf(&ctx.lic, item.handle)) {
 		item.layout_dir = .TopToBottom
 	} else {
