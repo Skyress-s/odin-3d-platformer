@@ -34,3 +34,10 @@ init :: proc(ctx: ^Collider_Mesh_Context) {
 
 	ctx.primitive_ids[spat.Shape.Box] = hm.add(&ctx.mesh_map, box_mesh)
 }
+
+deinit :: proc(ctx: ^Collider_Mesh_Context) {
+	itr := hm.iterator_make(&ctx.mesh_map)
+	for item in hm.iterate(&itr) {
+		delete(item.tris)
+	}
+}

@@ -657,7 +657,7 @@ layout_details_panel :: proc(
 		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
 			level.author_time = players.game.best_time
-			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len]))) TODO: RE REIMPLEMENT
 		}
 
 		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {

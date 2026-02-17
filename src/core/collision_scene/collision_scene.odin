@@ -27,6 +27,7 @@ init_collision_scene :: proc(col_scene: ^Collision_Scene) {
 
 delete_collision_scene :: proc(scene: ^Collision_Scene) {
 	delete_spatial_hash_grid(&scene.spatial_hash_grid)
+	cm.deinit(&scene.collision_meshes)
 
 	// for item in scene.collision_object_map.items {
 	// 	if hms.skip(item) do continue
@@ -88,7 +89,7 @@ Spatial_Hash_Grid ::  /*distinct*/map[Hash_Key]Hash_Cell
 // }
 clear_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid) {
 	for key, &cell in shg {
-		clear(&cell.objects_ids)
+		delete(cell.objects_ids)
 	}
 	clear(shg)
 }
@@ -442,7 +443,7 @@ calculate_rays_by_sphere_trace :: proc(
 	return rays
 }
 
-// TODO: Move in spatial has grid? Or just remake every frame?
+// TODO: Move in spatial has grid? Or just remake every frame / change?
 add_to_spatial_hash_grid :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
 	id: hent.Entity_Handle,
@@ -450,6 +451,7 @@ add_to_spatial_hash_grid :: proc(
 ) {
 	potential_hash_keys := calculate_overlapping_cells_by_bound(bounds)
 	defer delete(potential_hash_keys)
+
 	for hash_key in potential_hash_keys {
 		cell := &spatial_hash_grid[hash_key]
 		if cell == nil {

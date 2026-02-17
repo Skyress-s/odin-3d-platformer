@@ -103,16 +103,15 @@ spawn_box :: proc(transform: spat.Transform, level: ^l.Level) -> ^gent.Entity {
 
 reconstruct_spatial_hash_grid_from_entities :: proc(
 	col_scene: ^cs.Collision_Scene,
-	ents: gent.Game_Entity_Handle_Map,
+	ents: ^gent.Game_Entity_Handle_Map,
 ) {
 
-	logs.errorf(.Editor, "reconstruct")
+	logs.infof(.Editor, "Reconstruct Spatial Hash Grid")
 	shg: ^cs.Spatial_Hash_Grid = &col_scene.spatial_hash_grid
 	col_ctx: ^cm.Collider_Mesh_Context = &col_scene.collision_meshes
 	cs.clear_spatial_hash_grid(shg)
 
-	ents := ents
-	itr := hm.iterator_make(&ents)
+	itr := hm.iterator_make(ents)
 	for item in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, item^) do return
 

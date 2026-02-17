@@ -23,5 +23,4 @@ delete_level :: proc(l: ^Level) {
 	delete(l.name)
 
 	col_scene.delete_collision_scene(&l.collsion_scene)
-
 }

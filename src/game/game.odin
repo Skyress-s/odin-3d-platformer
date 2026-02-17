@@ -68,7 +68,10 @@ update :: proc(
 			// 	position_transform_tool.target_object_id,
 			// )
 			//
-			sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, level.entities)
+			sent.reconstruct_spatial_hash_grid_from_entities(
+				&level.collsion_scene,
+				&level.entities,
+			)
 		}
 
 

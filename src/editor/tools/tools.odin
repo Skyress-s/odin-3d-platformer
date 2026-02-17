@@ -117,7 +117,6 @@ on_click_position_tool :: proc(
 	found_ent: gent.Entity,
 	ray: spat.Ray,
 ) {
-	logs.warnf(.Editor, "on_click_position_tool")
 	ray := ray
 	// planes := generate_axis_planes_with_distance_scaling(
 	// 	cam_position,
@@ -140,7 +139,6 @@ on_click_position_tool :: proc(
 	plane_hit_closer_than_bars :=
 		bars_hit == .None || (bars_hit != .None && planes_dist < bars_dist)
 	if plane_hit != .None && plane_hit_closer_than_bars {
-		logs.warnf(.Editor, "hit Planes")
 		transform_tool.dragging = true
 		transform_tool.start_transform = ent_transform
 		transform_tool.start_ray_plane_intersect = plane_hit_location
@@ -150,7 +148,6 @@ on_click_position_tool :: proc(
 			normal         = plane_normal,
 		}
 	} else if bars_hit != .None {
-		logs.warnf(.Editor, "hit Bars")
 		transform_tool.dragging = true
 		transform_tool.start_transform = ent_transform
 		transform_tool.start_ray_plane_intersect = bars_hit_location
@@ -164,7 +161,6 @@ on_click_position_tool :: proc(
 
 		}
 	} else { 	// Hit nothing, stop tool
-		logs.warnf(.Editor, "Did not hit anything")
 		transform_tool.target_object_id = {}
 	}
 }

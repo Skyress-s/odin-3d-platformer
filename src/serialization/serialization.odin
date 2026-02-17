@@ -11,18 +11,6 @@ import "core:encoding/json"
 import "core:fmt"
 import os "core:os"
 
-import hms "../handle_map/handle_map_static"
-
-// Can be null, since we dont have the #no_nil tag
-Result :: distinct struct {
-	reason: string,
-}
-
-
-Result_Union :: union {
-	Result,
-}
-
 Serializable_Transform :: struct {
 	position, scale: spat.Vector,
 	rotation:        [4]f32,
@@ -34,6 +22,8 @@ Serializable_Collision_Object_Data :: distinct struct {
 	tris:               [dynamic]spat.Collision_Triangle, // TODO into its own blob?
 	id:                 hent.Entity_Handle,
 }
+
+Serialized_Level :: struct {}
 
 @(private)
 Level_Serialization_Data :: struct {
@@ -47,6 +37,11 @@ Level_Serialization_Data :: struct {
 	author_time:          f64,
 
 	//objects: [dynamic]int,
+}
+
+serialize_level :: proc(level: l.Level) -> Serialized_Level {
+
+	return {}
 }
 
 delete_level_serialization_data :: proc(lsd: ^Level_Serialization_Data) {
@@ -70,19 +65,20 @@ delete_serializable_collision_object_data :: proc(scod: ^Serializable_Collision_
 	delete(scod.tris)
 }
 
+
 // filepath is relative to root of project (where main.odin is)
-save_to_file_level :: proc(level: ^l.Level, filepath: string) {
-	col_scene := &level.collsion_scene
-
-	level_serialization_data := Level_Serialization_Data {
-		name                 = level.name,
-		//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
-		start_position       = level.start_position,
-		start_look_direction = level.start_look_direction,
-		author_time          = level.author_time,
-	}
-	defer delete_level_serialization_data(&level_serialization_data)
-
+save_to_file_level :: proc(level: Serialized_Level, filepath: string) {
+	// col_scene := &level.collsion_scene
+	//
+	// level_serialization_data := Level_Serialization_Data {
+	// 	name                 = level.name,
+	// 	//object {1, 6, 3, 43534, 7, 3, 4, 454, 0},
+	// 	start_position       = level.start_position,
+	// 	start_look_direction = level.start_look_direction,
+	// 	author_time          = level.author_time,
+	// }
+	// defer delete_level_serialization_data(&level_serialization_data)
+	//
 	/*
 	collision_channels: u16,
 	tris:               [dynamic]Collision_Triangle,
@@ -112,13 +108,13 @@ save_to_file_level :: proc(level: ^l.Level, filepath: string) {
 	// }
 
 
-	data, err := json.marshal(level_serialization_data, {pretty = true})
-	defer delete(data)
-	assert(err == nil, fmt.tprint("Json save_to_file_level() error: ", err))
-
-	// data_as_string := "ops"
-	// data_as_bytes := transmute([]byte)(data_as_string) // 'transmute' casts our string to a byte array
-	os.write_entire_file(filepath, data)
+	// data, err := json.marshal(level_serialization_data, {pretty = true})
+	// defer delete(data)
+	// assert(err == nil, fmt.tprint("Json save_to_file_level() error: ", err))
+	//
+	// // data_as_string := "ops"
+	// // data_as_bytes := transmute([]byte)(data_as_string) // 'transmute' casts our string to a byte array
+	// os.write_entire_file(filepath, data)
 }
 
 load_from_file_level :: proc(filepath: string) -> (loaded_level: l.Level) {
