@@ -64,7 +64,7 @@ generate_axis_planes_with_distance_scaling :: proc(
 	distance := linalg.distance(camera_location, tool_location)
 	axis_planes := generate_axis_planes(camera_location)
 	for &plane in axis_planes {
-		plane.lenghts *= distance // TODO: Not finshed
+		plane.lenghts *= distance * 0.1 // TODO: Not finshed
 	}
 
 	return axis_planes
