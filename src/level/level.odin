@@ -6,7 +6,7 @@ import gent "../game/game_entities/"
 
 Level :: distinct struct {
 	name:                 string,
-	collsion_scene:       col_scene.Collision_Scene,
+	// collsion_scene:       col_scene.Collision_Scene,
 	entities:             gent.Game_Entity_Handle_Map,
 
 
@@ -22,5 +22,5 @@ Level :: distinct struct {
 delete_level :: proc(l: ^Level) {
 	delete(l.name)
 
-	col_scene.delete_collision_scene(&l.collsion_scene)
+	// col_scene.delete_collision_scene(&l.collsion_scene)
 }
