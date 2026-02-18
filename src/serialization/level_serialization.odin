@@ -12,6 +12,9 @@ import gent "../game/game_entities"
 import l "../level"
 import hm "core:container/handle_map"
 
+Meshes_Json :: struct {
+}
+
 Level_JSON :: struct {
 	Name:                 string,
 	Start_Position:       [3]f32,
@@ -91,7 +94,7 @@ serialize_level :: proc(level: ^l.Level) -> (data: string, ok: bool) {
 		Entities             = entities[:],
 	}
 
-	json_data, err := json.marshal(level_json)
+	json_data, err := json.marshal(level_json, json.Marshal_Options{pretty = true})
 	if err != nil {
 		fmt.println("Failed to marshal level:", err)
 		return "", false
@@ -100,8 +103,8 @@ serialize_level :: proc(level: ^l.Level) -> (data: string, ok: bool) {
 	return string(json_data), true
 }
 
-unserialize_level::proc(level_json: string, level: ^l.Level) {
-        
+unmarshal_level :: proc(level_json: string, level: ^l.Level) {
+
 
 }
 
@@ -120,6 +123,6 @@ save_to_file :: proc(level: ^l.Level, filepath: string) -> bool {
 }
 
 load_from_file_level :: proc(filepath: string) -> l.Level {
-        
+
 	return l.Level{}
 }
