@@ -2,7 +2,7 @@ package layout2
 
 import "core:fmt"
 
-import hms "../../handle_map/handle_map_static/"
+import hm "core:container/handle_map"
 import clay "../clay-odin/"
 
 COLOR_LEAF_OUTLINE := clay.Color{72, 100, 150, 255}
@@ -27,7 +27,7 @@ DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
 }
 
 layout :: proc(ctx: ^Context) {
-	assert(hms.valid(ctx.lic, ctx.root))
+	assert(hm.get(&ctx.lic, ctx.root) != nil)
 
 	if clay.UI(clay.ID("main"))(
 	{
@@ -102,8 +102,8 @@ layout_floating_item :: proc(ctx: ^Context) {
 
 // TODO: Can we use non ptr?
 layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) {
-	assert(hms.valid(ctx.lic, item_handle))
-	item := hms.get(&ctx.lic, item_handle)
+	assert(hm.get(&ctx.lic, item_handle) != nil)
+	item := hm.get(&ctx.lic, item_handle)
 
 
 	should_draw_debug_background :=

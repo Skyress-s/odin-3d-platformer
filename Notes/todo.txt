@@ -35,7 +35,7 @@ Bernt
 - [x] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
 
 Arian
-- [ ] Don't allow you to close the editor details panel
+- [x] Don't allow you to close the editor details panel
 - [x] Esc ikke lukk spillet
 - [x] COTINOUS COLL DETECTION!!!
 - [x] Change FOV based on speed? 

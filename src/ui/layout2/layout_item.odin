@@ -8,7 +8,7 @@ import "vendor:raylib"
 import mem "core:mem"
 import vmem "core:mem/virtual"
 
-import hms "../../handle_map/handle_map_static/"
+import hm "core:container/handle_map"
 import clay "../clay-odin/"
 
 MIN_WINDOW_SIZE :: 50 // in pixels TODO: Move to Context or settings
@@ -39,9 +39,9 @@ Context :: struct {
 }
 
 Layout_Item :: struct {
-	handle:        hms.Handle, // Must be present for Handle Map.
-	parent_handle: hms.Handle,
-	child_nodes:   [dynamic]hms.Handle,
+	handle:        Layout_Item_Handle, // Must be present for Handle Map.
+	parent_handle: Layout_Item_Handle,
+	child_nodes:   [dynamic]Layout_Item_Handle,
 
 	// Clay stuff
 	id:            string,
@@ -54,9 +54,9 @@ Layout_Item :: struct {
 }
 
 
-Layout_Item_Handle :: hms.Handle
+Layout_Item_Handle :: hm.Handle32
 
-Layout_Item_Container :: hms.Handle_Map(Layout_Item, hms.Handle, 1024)
+Layout_Item_Container :: hm.Static_Handle_Map(1024, Layout_Item, Layout_Item_Handle)
 
 // TODO: no nil? #no_nil
 Edge :: enum {
@@ -74,13 +74,14 @@ Corner :: enum {
 }
 
 get_item_checked :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> ^Layout_Item {
-	assert(hms.valid(lic^, handle))
-	return hms.get(lic, handle)
+	assert(hm.get(lic, handle) != nil)
+	return hm.get(lic, handle)
 }
 
 get_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> (^Layout_Item, bool) {
-	if !hms.valid(lic^, handle) do return nil, false
-	return hms.get(lic, handle), true
+	item := hm.get(lic, handle)
+	if item == nil do return nil, false
+	return item, true
 }
 
 @(private)
@@ -119,7 +120,7 @@ make_layout_item :: proc(
 	layout_item.id = strings.clone(id, ctx.arena_allocator)
 	layout_item.layout_proc = layout_proc
 	layout_item.userdata = user_data
-	layout_item.child_nodes = make([dynamic]hms.Handle, ctx.arena_allocator)
+	layout_item.child_nodes = make([dynamic]Layout_Item_Handle, ctx.arena_allocator)
 	layout_item.size_percent = {0.5, 0.5}
 
 	return
@@ -127,24 +128,25 @@ make_layout_item :: proc(
 
 // Note, do not use the passed in layout item. This will make a copy that now own the memory
 add_to_context :: proc(ctx: ^Context, layout_item: Layout_Item) -> Layout_Item_Handle {
-	return hms.add(&ctx.lic, layout_item)
+	return hm.add(&ctx.lic, layout_item)
 }
 
 // deletes item.
 delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
-	if !hms.valid(ctx.lic, handle) do return
-	layout_item := hms.get(&ctx.lic, handle)
+	if hm.get(&ctx.lic, handle) == nil do return
+	layout_item := hm.get(&ctx.lic, handle)
 
 	delete(layout_item.id, ctx.arena_allocator)
 	delete_dynamic_array(layout_item.child_nodes)
 
-	hms.remove(&ctx.lic, handle)
+	hm.remove(&ctx.lic, handle)
 }
 
 // Returns the handle that was hit and not deleted
 delete_tail :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) -> Layout_Item_Handle {
 	item := get_item_checked(&ctx.lic, item_handle)
-	if !hms.valid(ctx.lic, item.parent_handle) do return item.handle // root node
+	parent_item := hm.get(&ctx.lic, item.parent_handle)
+	if parent_item == nil do return item.handle // root node
 
 	parent := get_item_checked(&ctx.lic, item.parent_handle)
 
@@ -199,8 +201,8 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	)
 
 	parent_handle := layout_item_to_remove.parent_handle
-	if !hms.valid(ctx.lic, parent_handle) do return
-	parent_layout_item := hms.get(&ctx.lic, parent_handle)
+	parent_layout_item := hm.get(&ctx.lic, parent_handle)
+	if parent_layout_item == nil do return
 
 	{
 		root_item := get_item_checked(&ctx.lic, ctx.root)
@@ -281,7 +283,7 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	// TODO: make recursive TODO: Make work
 	// if len(parent_layout_item.child_nodes) == 0 {
 	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
+	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
 	// 	delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
 	// 	delete_layout_item(ctx, parent_handle)
 	// }
@@ -290,7 +292,7 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	// parent only has one child, reduce it
 	// if len(parent_layout_item.child_nodes) == 1 {
 	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hms.valid(ctx.lic, grand_parent_handle) do return // root node
+	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
 	//
 	// 	grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
 	// 	for &h in grand_parent.child_nodes {
@@ -326,13 +328,13 @@ update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layo
 }
 
 // slice_layout_item :: proc(lic: ^Layout_Item_Container, handle_to_slice: Layout_Item_Handle) {
-// 	assert(hms.valid(lic^, handle_to_slice))
-// 	layout_item_to_slice := hms.get(lic, handle_to_slice)
+// 	assert(hm.valid(lic^, handle_to_slice))
+// 	layout_item_to_slice := hm.get(lic, handle_to_slice)
 //
 // 	grand_parent_handle := layout_item_to_slice.parent_handle
-// 	if !hms.valid(lic^, grand_parent_handle) do return // root node
+// 	if !hm.valid(lic^, grand_parent_handle) do return // root node
 //
-// 	grand_parent := hms.get(lic, grand_parent_handle)
+// 	grand_parent := hm.get(lic, grand_parent_handle)
 // 	for &h in grand_parent.child_nodes {
 // 		if h == parent_handle {
 // 			h = parent_layout_item.child_nodes[0]
@@ -345,9 +347,9 @@ update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layo
 
 // delete item and potential children
 delete_layout_item_and_children :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
-	if !hms.valid(ctx.lic, handle) do return
+	if hm.get(&ctx.lic, handle) == nil do return
 
-	layout_item := hms.get(&ctx.lic, handle)
+	layout_item := hm.get(&ctx.lic, handle)
 	for child_handle in layout_item.child_nodes {
 		delete_layout_item(ctx, child_handle)
 	}
@@ -360,11 +362,11 @@ get_parent_layout_item :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle: Layout_Item_Handle,
 ) -> ^Layout_Item {
-	assert(hms.valid(lic^, item_handle))
-	layout_item := hms.get(lic, item_handle)
+	assert(hm.get(lic, item_handle) != nil)
+	layout_item := hm.get(lic, item_handle)
 
-	assert(hms.valid(lic^, layout_item.parent_handle))
-	return hms.get(lic, layout_item.parent_handle)
+	assert(hm.get(lic, layout_item.parent_handle) != nil)
+	return hm.get(lic, layout_item.parent_handle)
 }
 
 get_index_in_parent :: proc(lic: ^Layout_Item_Container, item_handle: Layout_Item_Handle) -> u8 {
@@ -385,9 +387,9 @@ add_layout_node :: proc(
 ) -> Layout_Item_Handle {
 	parent_layout_item := get_item_checked(lic, parent_handle)
 
-	new_handle, add_ok := hms.add(lic, layout_item_to_add)
+	new_handle, add_ok := hm.add(lic, layout_item_to_add)
 	assert(add_ok)
-	new_layout_item := hms.get(lic, new_handle)
+	new_layout_item := hm.get(lic, new_handle)
 	inject_at(&parent_layout_item.child_nodes, index, new_handle)
 
 	// setup state
@@ -422,8 +424,8 @@ max_leaf_distance :: proc(
 	handle: Layout_Item_Handle,
 	dist: i32 = 0,
 ) -> i32 {
-	assert(hms.valid(lic^, handle))
-	layout_item := hms.get(lic, handle)
+	assert(hm.get(lic, handle) != nil)
+	layout_item := hm.get(lic, handle)
 
 	if len(layout_item.child_nodes) == 0 do return dist
 	dist := dist + 1
@@ -444,8 +446,8 @@ leaf_distance :: proc(
 	handle: Layout_Item_Handle,
 	dist: i32 = 0,
 ) -> i32 {
-	assert(hms.valid(lic^, handle))
-	layout_item := hms.get(lic, handle)
+	assert(hm.get(lic, handle) != nil)
+	layout_item := hm.get(lic, handle)
 
 	if len(layout_item.child_nodes) == 0 do return dist
 	dist := dist + 1
@@ -491,14 +493,14 @@ normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_
 	item_handles := layout_item.child_nodes
 	total: clay.Vector2 = {}
 	for &handle in item_handles {
-		assert(hms.valid(lic^, handle))
-		layout_item := hms.get(lic, handle)
+		assert(hm.get(lic, handle) != nil)
+		layout_item := hm.get(lic, handle)
 		total += layout_item.size_percent
 	}
 
 	for &handle in item_handles {
-		assert(hms.valid(lic^, handle))
-		child_layout_item := hms.get(lic, handle)
+		assert(hm.get(lic, handle) != nil)
+		child_layout_item := hm.get(lic, handle)
 
 		if layout_item.layout_dir == .LeftToRight {
 			child_layout_item.size_percent.x /= total.x
@@ -556,8 +558,8 @@ insert_item_new_level :: proc(
 	item := get_item_checked(&ctx.lic, item_handle)
 	parent := get_item_checked(&ctx.lic, item.parent_handle)
 
-	new_parent_handle := hms.add(&ctx.lic, make_parent_layout_item(ctx))
-	new_parent := hms.get(&ctx.lic, new_parent_handle)
+	new_parent_handle := hm.add(&ctx.lic, make_parent_layout_item(ctx))
+	new_parent := hm.get(&ctx.lic, new_parent_handle)
 	new_parent.size_percent = avg_size
 	new_parent.layout_dir = parent.layout_dir == .TopToBottom ? .LeftToRight : .TopToBottom
 
@@ -701,7 +703,7 @@ find_scalar_layout_item :: proc(
 		delta_mouse_move > 0,
 	)
 
-	neighbour_ok := hms.valid(lic^, neighbour_handle)
+	neighbour_ok := hm.get(lic, neighbour_handle) != nil
 	if after {
 		if (int(index_in_parent) != (len(parent.child_nodes) - 1)) &&
 		   parent.layout_dir == target_layout_direction &&
@@ -881,9 +883,8 @@ try_resize :: proc(
 get_hovered_layout_item_leaf :: proc(ctx: ^Context) -> Layout_Item_Handle {
 
 	// brute force find the if we are hovering a Layout_Item
-	for layout_item in ctx.lic.items {
-		if hms.skip(layout_item) do continue
-
+	itr := hm.iterator_make(&ctx.lic)
+	for layout_item in hm.iterate(&itr) {
 		if !is_leaf(&ctx.lic, layout_item.handle) do continue
 
 		if layout_item.handle == ctx.dragging_handle do continue

@@ -1,7 +1,7 @@
 package ui_test
 
 import layout "../"
-import hms "../../../handle_map/handle_map_static/"
+import hm "core:container/handle_map"
 import clay "../../clay-odin/"
 import rr "../../raylib"
 import "core:c"

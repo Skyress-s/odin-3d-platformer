@@ -1,6 +1,6 @@
 package layout2
 
-import hms "../../handle_map/handle_map_static/"
+import hm "core:container/handle_map"
 import clay "../clay-odin/"
 
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
@@ -8,10 +8,10 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 
 	// if ctx.controlling_layout_item != {} do return
 
-	if !hms.valid(ctx.lic, ctx.hover_layout_handle) do return // expected, might not hover over any Layout_Item
+	if hm.get(&ctx.lic, ctx.hover_layout_handle) == nil do return // expected, might not hover over any Layout_Item
 
-	hovered_layout_item := hms.get(&ctx.lic, ctx.hover_layout_handle)
-	assert(hms.valid(ctx.lic, hovered_layout_item.parent_handle))
+	hovered_layout_item := hm.get(&ctx.lic, ctx.hover_layout_handle)
+	assert(hm.get(&ctx.lic, hovered_layout_item.parent_handle) != nil)
 
 	hovered_element_data := clay.GetElementData(
 		clay.GetElementId(clay.MakeString(hovered_layout_item.id)),
@@ -58,7 +58,7 @@ handle_resize_click :: proc(
 			delta_mouse_move,
 		)
 
-		if hms.valid(ctx.lic, x_scalar_item_handle) {
+		if hm.get(&ctx.lic, x_scalar_item_handle) != nil {
 			scale_layout_item(
 				ctx,
 				x_scalar_item_handle,
@@ -68,7 +68,7 @@ handle_resize_click :: proc(
 			)
 
 		}
-		if hms.valid(ctx.lic, y_scalar_item_handle) {
+		if hm.get(&ctx.lic, y_scalar_item_handle) != nil {
 
 			scale_layout_item(
 				ctx,
@@ -148,7 +148,7 @@ handle_add_click :: proc(
 	avg_size := get_average_size(&ctx.lic, hovered_layout_item.parent_handle)
 	index_in_parent := get_index_in_parent(&ctx.lic, hovered_layout_item.handle)
 
-	new_item_handle := hms.add(&ctx.lic, make_debug_leaf_layout_item(ctx))
+	new_item_handle := hm.add(&ctx.lic, make_debug_leaf_layout_item(ctx))
 	if (is_horizontal_edge(edge) && parent_layout_item.layout_dir == .LeftToRight) ||
 	   (is_vertical_edge(edge) && parent_layout_item.layout_dir == .TopToBottom) {
 

@@ -1,5 +1,5 @@
 package layout2
-import hms "../../handle_map/handle_map_static/"
+import hm "core:container/handle_map"
 import clay "../clay-odin"
 import rr "../raylib"
 import "base:runtime"
@@ -68,7 +68,7 @@ init :: proc(
 		root := make_layout_item(&ctx, "root")
 		root.layout_dir = .LeftToRight
 		root.size_percent = {1, 1}
-		handle, _ := hms.add(&ctx.lic, root)
+		handle, _ := hm.add(&ctx.lic, root)
 
 		ctx.root = handle
 	}
@@ -91,7 +91,7 @@ deinit :: proc(ctx: ^Context) {
 
 	unload_all_fonts()
 
-	hms.clear(&ctx.lic)
+	hm.clear(&ctx.lic)
 }
 
 // Updated cursor / pointer states and such
@@ -133,7 +133,7 @@ update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	//    !any_modifier_key_down_or_pressed() {
 	// 	ctx.controlling_layout_item = get_hovered_layout_item_leaf(ctx)
 	//
-	// } else if !hms.valid(ctx.lic, ctx.controlling_layout_item) {
+	// } else if !hm.valid(ctx.lic, ctx.controlling_layout_item) {
 	// 	ctx.controlling_layout_item = {}
 	// }
 }

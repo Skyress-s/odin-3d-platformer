@@ -1,7 +1,0 @@
-*.sublime-project
-*.sublime-workspace
-*.exe
-*.ll
-*.pdb
-*.rdi
-examples/*/build
