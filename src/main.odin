@@ -104,7 +104,7 @@ is_cursor_hidden_proc :: proc() -> bool {
 }
 
 
-main :: proc() {
+main2 :: proc() {
 	when USE_TRACESTACK {
 		trace.init(&global_trace_ctx)
 		defer trace.destroy(&global_trace_ctx)
