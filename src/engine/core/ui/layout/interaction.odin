@@ -1,7 +1,7 @@
-package layout2
+package layout
 
-import hm "core:container/handle_map"
 import clay "../clay-odin/"
+import hm "core:container/handle_map"
 
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	if !allow_interaction do return

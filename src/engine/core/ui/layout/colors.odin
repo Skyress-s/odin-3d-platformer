@@ -1,4 +1,4 @@
-package layout2
+package layout
 import clay "../clay-odin"
 import "core:c"
 

@@ -10,7 +10,7 @@ import rl "vendor:raylib"
 
 import ui_rr "../ui/raylib/"
 import clay "clay-odin"
-import layout "layout2"
+import layout "layout"
 
 // todo this should probably not be a global. But keeping it like this for now.
 mouse_buttons_map := [Mouse]rl.MouseButton {

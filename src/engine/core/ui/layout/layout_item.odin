@@ -1,4 +1,4 @@
-package layout2
+package layout
 
 import "core:c"
 import "core:fmt"
@@ -8,8 +8,8 @@ import "vendor:raylib"
 import mem "core:mem"
 import vmem "core:mem/virtual"
 
-import hm "core:container/handle_map"
 import clay "../clay-odin/"
+import hm "core:container/handle_map"
 
 MIN_WINDOW_SIZE :: 50 // in pixels TODO: Move to Context or settings
 

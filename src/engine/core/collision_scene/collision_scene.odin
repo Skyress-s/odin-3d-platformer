@@ -8,6 +8,7 @@ import "core:log"
 import "core:reflect"
 
 
+import "base:runtime"
 import hm "core:container/handle_map"
 import "core:math"
 import "core:math/linalg"
@@ -20,13 +21,15 @@ Collision_Scene :: struct {
 	spatial_hash_grid: Spatial_Hash_Grid,
 }
 
-init_collision_scene :: proc(col_scene: ^Collision_Scene) {
+init_collision_scene :: proc(col_scene: ^Collision_Scene, allocator: runtime.Allocator) {
+	col_scene.spatial_hash_grid = make(Spatial_Hash_Grid, allocator)
 	// add basic primitives
 }
 
-delete_collision_scene :: proc(scene: ^Collision_Scene) {
+deinit_collision_scene :: proc(scene: ^Collision_Scene, allocator: runtime.Allocator) {
+	// handeler by allocator
 	delete_spatial_hash_grid(&scene.spatial_hash_grid)
-	cm.deinit(&scene.collision_meshes)
+	// cm.deinit(&scene.collision_meshes)
 
 	// for item in scene.collision_object_map.items {
 	// 	if hms.skip(item) do continue
@@ -97,6 +100,9 @@ delete_spatial_hash_grid :: proc(shg: ^Spatial_Hash_Grid) {
 	for key, &hash_cell in shg {
 		delete_hash_cell(&hash_cell)
 	}
+
+	// free(shg, allocator)
+	// delete_map()
 	delete(shg^)
 }
 
@@ -447,14 +453,15 @@ add_to_spatial_hash_grid :: proc(
 	spatial_hash_grid: ^Spatial_Hash_Grid,
 	id: hent.Entity_Handle,
 	bounds: spat.Bound,
+	allocator: runtime.Allocator,
 ) {
-	potential_hash_keys := calculate_overlapping_cells_by_bound(bounds)
-	defer delete(potential_hash_keys)
+	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
+	potential_hash_keys := calculate_overlapping_cells_by_bound(bounds, context.temp_allocator)
 
 	for hash_key in potential_hash_keys {
 		cell := &spatial_hash_grid[hash_key]
 		if cell == nil {
-			spatial_hash_grid[hash_key] = Hash_Cell{}
+			spatial_hash_grid[hash_key] = Hash_Cell{make([dynamic]hent.Entity_Handle, allocator)}
 			cell = &spatial_hash_grid[hash_key]
 		}
 

@@ -1,4 +1,4 @@
-package layout2
+package layout
 
 import rr "../raylib"
 import "vendor:raylib"

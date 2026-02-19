@@ -1,9 +1,9 @@
-package layout2
+package layout
 
 import "core:fmt"
 
-import hm "core:container/handle_map"
 import clay "../clay-odin/"
+import hm "core:container/handle_map"
 
 COLOR_LEAF_OUTLINE := clay.Color{72, 100, 150, 255}
 COLOR_LEAF_OUTLINE_CONTROLLING := clay.Color{164, 165, 252, 255}
