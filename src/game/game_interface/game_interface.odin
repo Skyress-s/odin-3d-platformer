@@ -332,6 +332,8 @@ make_basic_level :: proc() -> (level: l.Level) {
 		&level,
 	)
 
+	// sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, &level.entities)
+
 	return level
 }
 

@@ -61,16 +61,21 @@ add_trait_collision_shape :: proc(
 	ent.collision_component.mesh_id = box_id
 
 
-	// Add to collision structure
+	// Add; to; collision; structure
 
 	// col_mesh: ^cm.Mesh = hm.get(&col_meshes.mesh_map, ent.collision_component.mesh_id)
 	// assert(col_mesh != nil)
-
+	//
 	// bounds := spat.calculate_bounds_from_tris_transform(
 	// 	col_mesh.tris,
 	// 	ent.transform_component.transform,
 	// )
-	// cs.add_to_spatial_hash_grid(&level.collsion_scene.spatial_hash_grid, handle, bounds, )
+	// cs.add_to_spatial_hash_grid(
+	// 	&level.collsion_scene.spatial_hash_grid,
+	// 	handle,
+	// 	bounds,
+	// 	context.allocator,
+	// )
 
 	return box_id
 }
