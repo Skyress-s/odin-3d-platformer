@@ -340,12 +340,6 @@ make_basic_level :: proc() -> (level: l.Level) {
 
 	csq.shg_valid_checked(level.entities, level.collsion_scene.spatial_hash_grid)
 
-	itr := hm.iterator_make(&level.entities)
-	for item in hm.iterate(&itr) {
-		logs.errorf(.Gamelogic, "ent handle {}", item.handle)
-	}
-
-	logs.errorf(.Gamelogic, "shg {}", level.collsion_scene.spatial_hash_grid)
 
 	return level
 }
