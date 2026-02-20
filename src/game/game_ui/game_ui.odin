@@ -123,7 +123,7 @@ layout_game_cheats_window :: proc(
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_cheats_panel(&gc.ui_context, gc.players, &gc.game_state)
+	layout_cheats_panel(gc.ui_context, gc.players, &gc.game_state)
 }
 
 layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
@@ -148,13 +148,7 @@ layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.A
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_details_panel(
-		&gc.ui_context,
-		gc.players,
-		&gc.game_state,
-		gc.current_level,
-		active_elems,
-	)
+	layout_details_panel(gc.ui_context, gc.players, &gc.game_state, gc.current_level, active_elems)
 }
 
 layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
@@ -165,7 +159,7 @@ layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
 	)
 	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx)),
+		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx^)),
 	)
 	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
 	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))

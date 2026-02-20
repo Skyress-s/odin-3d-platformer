@@ -73,13 +73,13 @@ game_init :: proc(app: ^ap.Application) {
 		players           = &players,
 		game_state        = gs.make_default_game_state(),
 		current_level     = &current_level,
-		ui_context        = ui.init(),
+		ui_context        = &app.ui_context,
 		camera_state      = camera.init(
 			generate_camera(),
 			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 		),
 		textures          = render.textures_init({0, 0}),
-		virtual_mouse_ctx = app.virtual_mouse_ctx, // TODO: EW
+		virtual_mouse_ctx = &app.virtual_mouse_ctx,
 	}
 
 	// Add game window as a Layout_Item in the layout system
@@ -108,7 +108,7 @@ game_init :: proc(app: ^ap.Application) {
 game_deinit :: proc(app: ^ap.Application) {
 	game := cast(^game.Game)app.game_interface.data
 
-	ui.deinit(&game.global_ctx.ui_context)
+	// ui.deinit(game.global_ctx.ui_context)
 	l.delete_level(game.global_ctx.current_level)
 	render.textures_deinit(game.global_ctx.textures)
 
@@ -129,7 +129,7 @@ game_update :: proc(app: ^ap.Application) {
 
 	render_all(gc, &debug_draw_data, game_rect)
 
-	ui.end_frame(&gc.ui_context)
+	ui.end_frame(gc.ui_context)
 	free_all(context.temp_allocator)
 }
 
@@ -152,14 +152,14 @@ update_all :: proc(
 	layout_ctx := &ui_context.layout_ctx
 	// Update first. So inputs are most up to date
 	vmouse.update(
-		&gc.virtual_mouse_ctx,
+		gc.virtual_mouse_ctx,
 		rl.GetMouseDelta(),
 		{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
 	)
 
 	gc.mouse_over_game = false // Will be set to true by layout_game_ui if hovered
 	// Update UI state (mouse, keyboard, etc.)
-	ui.update_state(&gc.ui_context, vmouse.get_mouse_pos(gc.virtual_mouse_ctx))
+	ui.update_state(gc.ui_context, vmouse.get_mouse_pos(gc.virtual_mouse_ctx^))
 
 	if rl.IsWindowResized() {
 		game_rt_needs_update^ = true
@@ -180,7 +180,7 @@ update_all :: proc(
 		gc,
 		game_rect,
 		gc.ui_context.layout_ctx.hover_layout_handle == game_window_handle,
-		vmouse.get_mouse_pos(gc.virtual_mouse_ctx),
+		vmouse.get_mouse_pos(gc.virtual_mouse_ctx^),
 	)
 
 	return debug_draw_data, game_rect
@@ -209,6 +209,8 @@ render_all :: proc(
 	layout.layout(layout_ctx)
 	ui_render_commands := clay.EndLayout()
 
+	// logs.errorf(.UI, "Root Size {}", get_game_rect(gc, layout_ctx.root))
+
 	// Handle layout interactions (only when not hovering game)
 	// TODO: Wwhn in editor mode. Game should not grab mouse (move to center) when clicking the screen
 	// with the intent to change the layout
@@ -220,7 +222,7 @@ render_all :: proc(
 	// Draw UI overlay
 	layout.render(&ui_render_commands)
 
-	if !vmouse.is_cursor_hidden(gc.virtual_mouse_ctx) {
+	if !vmouse.is_cursor_hidden(gc.virtual_mouse_ctx^) {
 		x := i32(gc.virtual_mouse_ctx.mouse_position.x)
 		y := i32(gc.virtual_mouse_ctx.mouse_position.y)
 
@@ -246,7 +248,7 @@ render_all :: proc(
 
 	}
 
-	game_ui.render_restrict_rect(gc.virtual_mouse_ctx)
+	game_ui.render_restrict_rect(gc.virtual_mouse_ctx^)
 
 	rl.EndDrawing()
 
@@ -299,10 +301,10 @@ setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout.Layout_
 		bounds := layout.get_clay_bounding_box_checked(item.id)
 
 		vmouse.restrict_mouse(
-			&gc.virtual_mouse_ctx,
+			gc.virtual_mouse_ctx,
 			vmouse.Vec2{f32(bounds.x + bounds.width / 2), f32(bounds.y + bounds.height / 2)},
 		)
-		vmouse.hide_cursor(&gc.virtual_mouse_ctx)
+		vmouse.hide_cursor(gc.virtual_mouse_ctx)
 	}
 }
 

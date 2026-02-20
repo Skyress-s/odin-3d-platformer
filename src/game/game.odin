@@ -82,12 +82,12 @@ update :: proc(
 
 			cursor_enabled = !cursor_enabled
 			if cursor_enabled {
-				vmouse.show_cursor(&gc.virtual_mouse_ctx)
-				vmouse.free_mouse(&gc.virtual_mouse_ctx)
+				vmouse.show_cursor(gc.virtual_mouse_ctx)
+				vmouse.free_mouse(gc.virtual_mouse_ctx)
 			} else {
-				vmouse.hide_cursor(&gc.virtual_mouse_ctx)
+				vmouse.hide_cursor(gc.virtual_mouse_ctx)
 				vmouse.restrict_mouse(
-					&gc.virtual_mouse_ctx,
+					gc.virtual_mouse_ctx,
 					vmouse.Vec2 {
 						game_rect.x + game_rect.width / 2,
 						game_rect.y + game_rect.height / 2,
@@ -172,7 +172,7 @@ update :: proc(
 						)
 					}
 				}
-				editor_player.update(&gc.players.editor, &gc.virtual_mouse_ctx, dt)
+				editor_player.update(&gc.players.editor, gc.virtual_mouse_ctx, dt)
 
 			}
 		}

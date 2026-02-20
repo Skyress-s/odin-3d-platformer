@@ -11,15 +11,15 @@ convert_ray :: proc(rl_ray: rl.Ray) -> spat.Ray {
 }
 
 raylib_init :: proc() {
-	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
-	//rl.ToggleBorderlessWindowed()
-
-	// rl.SetTargetFPS(180)
-	rl.SetTargetFPS(180) // TODO CCD not working at low fps
-
-	rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
-	rl.DisableCursor()
+	// rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
+	// rl.InitWindow(1920, 1085, "mph*0.5mv^2")
+	// //rl.ToggleBorderlessWindowed()
+	//
+	// // rl.SetTargetFPS(180)
+	// rl.SetTargetFPS(180) // TODO CCD not working at low fps
+	//
+	// rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
+	// rl.DisableCursor()
 
 
 	lightray.init_lighting()

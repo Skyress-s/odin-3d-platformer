@@ -15,8 +15,8 @@ Global_Context :: distinct struct {
 	current_level:     ^l.Level,
 	// cam:                 ^rl.Camera3D,
 	camera_state:      camera.Global_State,
-	ui_context:        ui.Context,
+	ui_context:        ^ui.Context,
 	mouse_over_game:   bool, // cursor over the game window. And not obstructed by other ui
-	virtual_mouse_ctx: vmouse.Context,
+	virtual_mouse_ctx: ^vmouse.Context,
 	textures:          render.Textures,
 }
