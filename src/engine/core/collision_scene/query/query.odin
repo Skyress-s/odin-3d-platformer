@@ -1,6 +1,7 @@
 package query
 
 import col_scene "../"
+import logs "../../../../engine/core/logs/"
 import gent "../../../../game/game_entities/"
 import l "../../../../level/"
 import cc "../../collision_channel/"
@@ -218,6 +219,18 @@ any_entity_in_bound_has_traits :: proc(
 	}
 
 	return any_entity_in_bound_has(ents, shg, bound, has_proc, &traits, allocator)
+}
+
+shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spatial_Hash_Grid) {
+	ents := ents
+	for key, cell in shg {
+		for id in cell.objects_ids {
+			gent.get_entity_checked(&ents, id)
+
+		}
+
+	}
+
 }
 
 // add_to_level :: proc(

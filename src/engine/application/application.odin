@@ -76,6 +76,13 @@ run_game :: proc(app: ^Application) {
 	// Run Game
 	app.game_interface.init(app)
 	for (!rl.WindowShouldClose()) {
+
+		vmouse.update(
+			&app.virtual_mouse_ctx,
+			rl.GetMouseDelta(),
+			{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
+		)
+
 		app.game_interface.update(app)
 		app.game_interface.render(app)
 	}

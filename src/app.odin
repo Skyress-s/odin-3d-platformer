@@ -1,12 +1,13 @@
 package main
 
-import "core:fmt"
 import ap "engine/application"
-
 import game_interface "game/game_interface"
+import back "vendor/back"
 
 
 main :: proc() {
+	context.assertion_failure_proc = back.assertion_failure_proc
+
 	app := ap.Application{}
 	game_inter := ap.Game_Interface{}
 

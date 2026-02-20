@@ -129,7 +129,13 @@ update :: proc(
 				dt,
 			)
 
-			character.update_character(&gc.players.game, gc.current_level, &gc.game_state, dt)
+			character.update_character(
+				&gc.players.game,
+				gc.current_level,
+				&gc.game_state,
+				dt,
+				gc.virtual_mouse_ctx^,
+			)
 		case plrs.Player_Mode.Editor:
 			if gc.mouse_over_game {
 				if rl.IsKeyPressed(.ONE) {
@@ -217,6 +223,8 @@ update :: proc(
 	}
 
 	// Kill volumes
+	//
+	cmq.shg_valid_checked(level.entities, level.collsion_scene.spatial_hash_grid)
 
 	overlapping_kill_volumes :=
 		cmq.any_entity_in_bound_has_traits(

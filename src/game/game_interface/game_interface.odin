@@ -6,6 +6,7 @@ import e_tools "../../editor/tools/"
 import ap "../../engine/application/"
 import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene/"
+import csq "../../engine/core/collision_scene/query/"
 import logs "../../engine/core/logs"
 import spat "../../engine/core/spatial/"
 import ui "../../engine/core/ui/"
@@ -16,6 +17,7 @@ import game2 "../../game/"
 import gent "../../game/game_entities/"
 import game_ui "../../game/game_ui/"
 import sent "../../game/spawn_entities/"
+import world "../../game/world/"
 import gs "../../game_state/"
 import gctx "../../global_context/"
 import l "../../level/"
@@ -24,6 +26,7 @@ import rlb "../../raylib_bridge/"
 import render "../../render/"
 import "../../serialization/"
 import game "../game"
+import hm "core:container/handle_map"
 import "core:fmt"
 import rl "vendor:raylib"
 
@@ -47,12 +50,17 @@ deinit_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: run
 
 @(private)
 game_init :: proc(app: ^ap.Application) {
+	logs.warnf(.Gamelogic, "Initializing Game")
+
 	game := cast(^game.Game)app.game_interface.data
 	assert(game != nil)
 
+	game.game_world = new(world.World)
+	world.world_init(game.game_world)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_level := make_basic_level()
+	current_level := new(l.Level, game.game_world.level_allocator)
+	current_level^ = make_basic_level()
 
 	players := plrs.init_players()
 
@@ -70,9 +78,9 @@ game_init :: proc(app: ^ap.Application) {
 
 
 	game.global_ctx = {
-		players           = &players,
+		players           = players,
 		game_state        = gs.make_default_game_state(),
-		current_level     = &current_level,
+		current_level     = current_level,
 		ui_context        = &app.ui_context,
 		camera_state      = camera.init(
 			generate_camera(),
@@ -106,6 +114,7 @@ game_init :: proc(app: ^ap.Application) {
 
 @(private)
 game_deinit :: proc(app: ^ap.Application) {
+	logs.warnf(.Gamelogic, "Deinitializing Game")
 	game := cast(^game.Game)app.game_interface.data
 
 	// ui.deinit(game.global_ctx.ui_context)
@@ -151,11 +160,6 @@ update_all :: proc(
 	ui_context := gc.ui_context
 	layout_ctx := &ui_context.layout_ctx
 	// Update first. So inputs are most up to date
-	vmouse.update(
-		gc.virtual_mouse_ctx,
-		rl.GetMouseDelta(),
-		{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())},
-	)
 
 	gc.mouse_over_game = false // Will be set to true by layout_game_ui if hovered
 	// Update UI state (mouse, keyboard, etc.)
@@ -195,7 +199,7 @@ render_all :: proc(
 	// render to RT
 	render.render(
 		gc.current_level,
-		gc.players,
+		&gc.players,
 		gc.camera_state.current_camera,
 		debug_draw_data,
 		&gc.game_state,
@@ -332,7 +336,16 @@ make_basic_level :: proc() -> (level: l.Level) {
 		&level,
 	)
 
-	// sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, &level.entities)
+	sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, &level.entities)
+
+	csq.shg_valid_checked(level.entities, level.collsion_scene.spatial_hash_grid)
+
+	itr := hm.iterator_make(&level.entities)
+	for item in hm.iterate(&itr) {
+		logs.errorf(.Gamelogic, "ent handle {}", item.handle)
+	}
+
+	logs.errorf(.Gamelogic, "shg {}", level.collsion_scene.spatial_hash_grid)
 
 	return level
 }

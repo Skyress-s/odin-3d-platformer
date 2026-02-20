@@ -1,17 +1,18 @@
 package Character
 import col "../color"
+import ddu "../debug_draw_utils"
 import cc "../engine/core/collision_channel"
 import cm "../engine/core/collision_mesh/"
 import cs "../engine/core/collision_scene/"
 import csq "../engine/core/collision_scene/query/"
+import logs "../engine/core/logs"
 import verlet "../engine/core/physics/verlet"
 import spat "../engine/core/spatial"
-import ddu "../debug_draw_utils"
+import vmouse "../engine/core/virtual_mouse/"
 import gent "../game/game_entities/"
 import "../game_state"
 import "../input"
 import l "../level"
-import logs "../engine/core/logs"
 import "../player_data"
 import hm "core:container/handle_map"
 import "core:math/linalg"
@@ -75,9 +76,11 @@ update_character :: proc(
 	level: ^l.Level,
 	gamestate: ^game_state.Game_State,
 	dt: f32,
+	mctx: vmouse.Context,
 ) {
+
 	if rl.IsCursorHidden() && rl.GetTime() > 0.1 { 	// Cursor usually enters screen right after we start the game, will cause a large "flick" when starting (since cursor is teleporting to center of screen).
-		player_data.update_player_look_data(&character_data.look_angles, rl.GetMouseDelta(), dt)
+		player_data.update_player_look_data(&character_data.look_angles, mctx.mouse_delta, dt)
 	}
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 

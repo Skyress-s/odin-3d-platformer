@@ -79,10 +79,10 @@ layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 
 			clay.OnHover(on_hover, gc)
 
-			layout_reticle(gc.players)
+			layout_reticle(&gc.players)
 			if gc.players.mode == .Game {
-				layout_speedrun_timer(gc.players)
-				layout_game_speed_indicator(gc.players^)
+				layout_speedrun_timer(&gc.players)
+				layout_game_speed_indicator(gc.players)
 
 
 				if clay.UI(clay.ID("Game_Divide"))(
@@ -99,7 +99,7 @@ layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 					},
 				) {
 
-					layout_stats(gc.players, gc.current_level)
+					layout_stats(&gc.players, gc.current_level)
 				}
 			} else {
 				// Might want to have something here?
@@ -123,7 +123,7 @@ layout_game_cheats_window :: proc(
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_cheats_panel(gc.ui_context, gc.players, &gc.game_state)
+	layout_cheats_panel(gc.ui_context, &gc.players, &gc.game_state)
 }
 
 layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
@@ -148,7 +148,13 @@ layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.A
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
-	layout_details_panel(gc.ui_context, gc.players, &gc.game_state, gc.current_level, active_elems)
+	layout_details_panel(
+		gc.ui_context,
+		&gc.players,
+		&gc.game_state,
+		gc.current_level,
+		active_elems,
+	)
 }
 
 layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
@@ -165,6 +171,12 @@ layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
 	ui.layout_dynamic_text_entry(
 		fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
+	)
+
+
+	ui.layout_dynamic_text_entry(fmt.tprintf("Player Look Angles {}", gc.players.game.look_angles))
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Virtual Mouse Delta {}", gc.virtual_mouse_ctx.mouse_delta),
 	)
 
 	// ui.layout_dynamic_text_entry(
