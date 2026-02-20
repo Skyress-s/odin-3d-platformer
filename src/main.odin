@@ -31,7 +31,7 @@ import "serialization"
 import ui "ui"
 import clay "ui/clay-odin"
 import game_ui "ui/game_ui"
-import layout2 "ui/layout2"
+import layout2 "ui/layout"
 import rl "vendor:raylib"
 import vmouse "virtual_mouse"
 
