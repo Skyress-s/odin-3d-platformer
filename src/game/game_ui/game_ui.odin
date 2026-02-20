@@ -24,7 +24,7 @@ import l "../../level/"
 // import lfu "../../level_flow_utils/"
 import "../../engine/core/logs/"
 import clay "../../engine/core/ui/clay-odin/"
-import layout2 "../../engine/core/ui/layout"
+import layout "../../engine/core/ui/layout"
 import ui_rr "../../engine/core/ui/raylib/"
 import vmouse "../../engine/core/virtual_mouse/"
 import player_data "../../player_data/"
@@ -36,7 +36,7 @@ PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
-layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -117,8 +117,8 @@ layout_game_ui :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 }
 
 layout_game_cheats_window :: proc(
-	node: ^layout2.Layout_Item,
-	active_elems: ^layout2.Active_Elements,
+	node: ^layout.Layout_Item,
+	active_elems: ^layout.Active_Elements,
 ) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
@@ -126,7 +126,7 @@ layout_game_cheats_window :: proc(
 	layout_cheats_panel(&gc.ui_context, gc.players, &gc.game_state)
 }
 
-layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -144,7 +144,7 @@ layout_log_window :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Act
 	}
 }
 
-layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -157,7 +157,7 @@ layout_editor_details :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2
 	)
 }
 
-layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active_Elements) {
+layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 	gc := cast(^gctx.Global_Context)node.userdata
 	assert(gc != nil)
 
@@ -180,29 +180,29 @@ layout_ui_data :: proc(node: ^layout2.Layout_Item, active_elems: ^layout2.Active
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
 make_editor_details_node :: proc(
-	ctx: ^layout2.Context,
+	ctx: ^layout.Context,
 	gc: ^gctx.Global_Context,
-) -> layout2.Layout_Item {
-	node := layout2.make_layout_item(ctx, EDITOR_DETAILS_PANEL_NAME, gc, layout_editor_details)
+) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, EDITOR_DETAILS_PANEL_NAME, gc, layout_editor_details)
 	return node
 }
 
 GAME_WINDOW_NAME :: "Game_Window"
 make_game_window_node :: proc(
-	ctx: ^layout2.Context,
+	ctx: ^layout.Context,
 	gc: ^gctx.Global_Context,
-) -> layout2.Layout_Item {
-	node := layout2.make_layout_item(ctx, GAME_WINDOW_NAME, gc, layout_game_ui)
+) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, GAME_WINDOW_NAME, gc, layout_game_ui)
 	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
 
 LOG_WINDOW_NAME :: "Log_Window"
 make_log_window_node :: proc(
-	ctx: ^layout2.Context,
+	ctx: ^layout.Context,
 	gc: ^gctx.Global_Context,
-) -> layout2.Layout_Item {
-	node := layout2.make_layout_item(ctx, LOG_WINDOW_NAME, gc, layout_game_ui)
+) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, LOG_WINDOW_NAME, gc, layout_game_ui)
 	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
@@ -291,7 +291,7 @@ layout_reticle :: proc(
 				attachment = clay.FloatingAttachPoints{parent = .CenterCenter},
 				pointerCaptureMode = .Passthrough,
 			},
-			backgroundColor = layout2.COLOR_GREEN,
+			backgroundColor = layout.COLOR_GREEN,
 		},
 	) {
 
@@ -338,8 +338,8 @@ layout_game_speed_indicator :: proc(
 			clay.TextConfig(
 				{
 					fontSize = 32 + ui_height_mod,
-					fontId = layout2.FONT_ID_BODY_16,
-					textColor = layout2.COLOR_LIGHT,
+					fontId = layout.FONT_ID_BODY_16,
+					textColor = layout.COLOR_LIGHT,
 					textAlignment = .Right,
 					wrapMode = .Words,
 					lineHeight = 32,
@@ -456,7 +456,7 @@ layout_details_panel :: proc(
 	players: ^plrs.Players,
 	game_state: ^gs.Game_State,
 	level: ^l.Level,
-	active_elems: ^layout2.Active_Elements,
+	active_elems: ^layout.Active_Elements,
 ) {
 	current_id := players.editor.transform_tool.target_object_id
 	player_pos := players.editor.position
@@ -691,7 +691,7 @@ layout_editor_options :: proc(ctx: ^ui.Context) {
 }
 
 
-map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout2.Active_Elements) -> string {
+map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout.Active_Elements) -> string {
 
 	cwd := os.get_current_directory(context.temp_allocator)
 	f, err := os.open(cwd)
@@ -723,7 +723,7 @@ map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout2.Active_Elements) 
 vis_dir :: proc(
 	ctx: ^ui.Context,
 	file_dir: os.File_Info,
-	active_elems: ^layout2.Active_Elements,
+	active_elems: ^layout.Active_Elements,
 	force_open: bool = false,
 ) -> string {
 	// fmt.println("Trying to vis_dir: ", file_dir.fullpath)
@@ -750,7 +750,7 @@ vis_dir :: proc(
 	clicked_map_name := ""
 
 
-	active_elem := layout2.active_elements_get_or_add(active_elems, current_dir_name)
+	active_elem := layout.active_elements_get_or_add(active_elems, current_dir_name)
 	if ui.layout_dropdown(ctx, fmt.tprintf("{}", current_dir_name), &active_elem.active) {
 		for fi in fis {
 			full_directory, name := filepath.split(fi.fullpath)
@@ -848,12 +848,12 @@ render_restrict_rect :: proc(ctx: vmouse.Context) {
 setup_initial_window_layout :: proc(
 	gc: ^gctx.Global_Context,
 ) -> (
-	game_handle: layout2.Layout_Item_Handle,
+	game_handle: layout.Layout_Item_Handle,
 ) {
 	layout_ctx := &gc.ui_context.layout_ctx
 
 	game_window_item := make_game_window_node(layout_ctx, gc)
-	game_window_handle := layout2.add_layout_node(
+	game_window_handle := layout.add_layout_node(
 		&layout_ctx.lic,
 		layout_ctx.root,
 		0,
@@ -861,10 +861,10 @@ setup_initial_window_layout :: proc(
 	)
 
 	{
-		log_layout_item := layout2.make_layout_item(layout_ctx, "log", gc, layout_log_window)
+		log_layout_item := layout.make_layout_item(layout_ctx, "log", gc, layout_log_window)
 		log_layout_item.size_percent = {1, 0.2}
-		log_layout_handle := layout2.add_to_context(layout_ctx, log_layout_item)
-		layout2.insert_item_new_level(
+		log_layout_handle := layout.add_to_context(layout_ctx, log_layout_item)
+		layout.insert_item_new_level(
 			layout_ctx,
 			{.5, .2},
 			0,
@@ -874,9 +874,9 @@ setup_initial_window_layout :: proc(
 		)
 	}
 	{
-		ui_layout_item := layout2.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
+		ui_layout_item := layout.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
 		ui_layout_item.size_percent = {0.5, 0.2}
-		ui_layout_handle := layout2.add_layout_node(
+		ui_layout_handle := layout.add_layout_node(
 			&layout_ctx.lic,
 			layout_ctx.root,
 			0,
@@ -884,16 +884,16 @@ setup_initial_window_layout :: proc(
 		)
 
 
-		cheats_layout_item := layout2.make_layout_item(
+		cheats_layout_item := layout.make_layout_item(
 			layout_ctx,
 			"cheats",
 			gc,
 			layout_game_cheats_window,
 		)
 		cheats_layout_item.size_percent = {0.5, 0.5}
-		cheats_layout_handle := layout2.add_to_context(layout_ctx, cheats_layout_item)
+		cheats_layout_handle := layout.add_to_context(layout_ctx, cheats_layout_item)
 
-		layout2.insert_item_same_level(
+		layout.insert_item_same_level(
 			layout_ctx,
 			{0.5, 0.5},
 			0,
@@ -902,7 +902,7 @@ setup_initial_window_layout :: proc(
 			cheats_layout_handle,
 		)
 
-		editor_default_layout_item := layout2.make_layout_item(
+		editor_default_layout_item := layout.make_layout_item(
 			layout_ctx,
 			"editor_details",
 			gc,
@@ -910,12 +910,12 @@ setup_initial_window_layout :: proc(
 		)
 		editor_default_layout_item.size_percent = {1, 0.7}
 
-		editor_default_layout_item_handle := layout2.add_to_context(
+		editor_default_layout_item_handle := layout.add_to_context(
 			layout_ctx,
 			editor_default_layout_item,
 		)
 
-		layout2.insert_item_new_level(
+		layout.insert_item_new_level(
 			layout_ctx,
 			{0.2, 1},
 			0,

@@ -23,8 +23,8 @@ Game_Interface :: struct {
 }
 
 init :: proc(app: ^Application, game: Game_Interface) {
-	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
 	rl.SetTraceLogLevel(rl.TraceLogLevel.WARNING)
+	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
 	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
 
 	rl.SetTargetFPS(180) // TODO CCD not working at low fps
@@ -57,6 +57,7 @@ init :: proc(app: ^Application, game: Game_Interface) {
 	// }
 
 	rl.SetExitKey(.Y)
+
 }
 
 deinit :: proc(app: ^Application) {

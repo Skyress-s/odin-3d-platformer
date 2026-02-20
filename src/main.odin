@@ -31,7 +31,7 @@ import "serialization"
 import ui "engine/core/ui"
 import clay "engine/core/ui/clay-odin"
 import game_ui "game/game_ui"
-import layout2 "engine/core/ui/layout"
+import layout "engine/core/ui/layout"
 import rl "vendor:raylib"
 import vmouse "engine/core/virtual_mouse"
 
@@ -179,7 +179,7 @@ main2 :: proc() {
 		render.textures_deinit(gc.textures)
 	}
 
-	// Add game window as a Layout_Item in the layout2 system
+	// Add game window as a Layout_Item in the layout system
 
 	game_window_handle := game_ui.setup_initial_window_layout(&gc)
 
@@ -202,7 +202,7 @@ main2 :: proc() {
 update_all :: proc(
 	gc: ^gctx.Global_Context,
 	game_rt_needs_update: ^bool,
-	game_window_handle: layout2.Layout_Item_Handle,
+	game_window_handle: layout.Layout_Item_Handle,
 ) -> (
 	render.Debug_Draw_Data,
 	rl.Rectangle,
@@ -266,19 +266,19 @@ render_all :: proc(
 	// Layout pass
 	free_all(gc.ui_context.layout_ctx.temp_allocator)
 	clay.BeginLayout()
-	layout2.layout(layout_ctx)
+	layout.layout(layout_ctx)
 	ui_render_commands := clay.EndLayout()
 
 	// Handle layout interactions (only when not hovering game)
 	// TODO: Wwhn in editor mode. Game should not grab mouse (move to center) when clicking the screen
 	// with the intent to change the layout
-	layout2.interaction(layout_ctx, true) // !gc.mouse_over_game
+	layout.interaction(layout_ctx, true) // !gc.mouse_over_game
 
 	rl.BeginDrawing()
 	rl.ClearBackground({14, 35, 45, 255})
 
 	// Draw UI overlay
-	layout2.render(&ui_render_commands)
+	layout.render(&ui_render_commands)
 
 	if !vmouse.is_cursor_hidden(gc.virtual_mouse_ctx) {
 		x := i32(gc.virtual_mouse_ctx.mouse_position.x)
@@ -315,11 +315,11 @@ render_all :: proc(
 
 get_game_rect :: proc(
 	gc: ^gctx.Global_Context,
-	game_window_handle: layout2.Layout_Item_Handle,
+	game_window_handle: layout.Layout_Item_Handle,
 ) -> (
 	game_rect: rl.Rectangle,
 ) {
-	game_item := layout2.get_item_checked(&gc.ui_context.layout_ctx.lic, game_window_handle)
+	game_item := layout.get_item_checked(&gc.ui_context.layout_ctx.lic, game_window_handle)
 
 	// TODO: Get body not the outline.
 	game_element_data := clay.GetElementData(clay.GetElementId(clay.MakeString(game_item.id)))
@@ -345,23 +345,23 @@ test_main :: proc(t: ^testing.T) {
 	main()
 }
 
-setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout2.Layout_Item_Handle) {
+setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout.Layout_Item_Handle) {
 	ui_context := gc.ui_context
 	layout_ctx := &ui_context.layout_ctx
 
 
 	// Need to layout before we access clay data to setup virtual_mouse
-	layout2.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
-	layout2.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
+	layout.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
+	layout.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 	{
 
 		clay.BeginLayout()
-		layout2.layout(layout_ctx)
+		layout.layout(layout_ctx)
 		ui_render_commands := clay.EndLayout()
 	}
 	{
-		item := layout2.get_item_checked(&ui_context.layout_ctx.lic, game_window_handle)
-		bounds := layout2.get_clay_bounding_box_checked(item.id)
+		item := layout.get_item_checked(&ui_context.layout_ctx.lic, game_window_handle)
+		bounds := layout.get_clay_bounding_box_checked(item.id)
 
 		vmouse.restrict_mouse(
 			&gc.virtual_mouse_ctx,

@@ -2,7 +2,7 @@ package ui_test
 
 import ui "../"
 import clay "../clay-odin/"
-import layout "../layout2/"
+import layout "../layout/"
 import ui_rr "../raylib/"
 import "core:c"
 import "core:fmt"

@@ -2,7 +2,7 @@ package ui_test
 
 import ui "../"
 import clay "../clay-odin/"
-import layout "../layout2/"
+import layout "../layout/"
 import "core:fmt"
 
 layout_window_1 :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
