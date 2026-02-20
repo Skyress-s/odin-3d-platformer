@@ -1,7 +1,7 @@
 package tools
 
 import col "../../color"
-import spat "../../core/spatial/"
+import spat "../../engine/core/spatial/"
 import gent "../../game/game_entities/"
 import hm "core:container/handle_map"
 import "core:log"

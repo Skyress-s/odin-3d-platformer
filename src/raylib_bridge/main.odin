@@ -1,6 +1,6 @@
 package raylib_bridge
 
-import spat "../core/spatial"
+import spat "../engine/core/spatial"
 import "../lightray"
 import "core:log"
 import rl "vendor:raylib"

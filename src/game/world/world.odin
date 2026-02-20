@@ -1,9 +1,9 @@
 package world
 
-import cm "../../core/collision_mesh/"
-import cs "../../core/collision_scene/"
-import hent "../../core/entity_handle/"
-import spat "../../core/spatial/"
+import cm "../../engine/core/collision_mesh/"
+import cs "../../engine/core/collision_scene/"
+import hent "../../engine/core/entity_handle/"
+import spat "../../engine/core/spatial/"
 import gent "../../game/game_entities/"
 import "base:runtime"
 import "core:fmt"
@@ -44,13 +44,13 @@ Speedrun_Capture :: struct {
 	time: Time_Trail_Float,
 }
 
-game_init :: proc(game: ^Game) {
-
-}
-
-game_deinit :: proc(game: ^Game) {
-
-}
+// game_init :: proc(game: ^Game) {
+//
+// }
+//
+// game_deinit :: proc(game: ^Game) {
+//
+// }
 
 world_init :: proc(world: ^World) {
 	arena_err := vmem.arena_init_growing(&world.level_arena)

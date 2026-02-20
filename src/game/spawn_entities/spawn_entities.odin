@@ -1,12 +1,12 @@
 package spawn_entities
 
-import cc "../../core/collision_channel/"
-import cm "../../core/collision_mesh/"
-import cs "../../core/collision_scene/"
-import hent "../../core/entity_handle"
-import spat "../../core/spatial/"
+import cc "../../engine/core/collision_channel/"
+import cm "../../engine/core/collision_mesh/"
+import cs "../../engine/core/collision_scene/"
+import hent "../../engine/core/entity_handle"
+import logs "../../engine/core/logs"
+import spat "../../engine/core/spatial/"
 import l "../../level/"
-import logs "../../logs"
 import gent "../game_entities/"
 import hm "core:container/handle_map"
 
@@ -121,6 +121,6 @@ reconstruct_spatial_hash_grid_from_entities :: proc(
 			item.transform_component.transform,
 		)
 
-		cs.add_to_spatial_hash_grid(shg, item.handle, bound)
+		cs.add_to_spatial_hash_grid(shg, item.handle, bound, context.allocator) // TODO: Okay?
 	}
 }

@@ -1,7 +1,7 @@
 package level
-import cc "../core/collision_channel"
-import cs "../core/collision_scene/"
-import spat "../core/spatial"
+import cc "../engine/core/collision_channel"
+import cs "../engine/core/collision_scene/"
+import spat "../engine/core/spatial"
 import gent "../game/game_entities/"
 import "core:math/linalg"
 import rl "vendor:raylib"

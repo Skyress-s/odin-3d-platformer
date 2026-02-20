@@ -59,8 +59,10 @@ init :: proc(
 	// raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
 	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
 
+	fmt.printfln("test")
 	load_font(DEBUG_FONT_ID, 56, "content/resources/Calistoga-Regular.ttf")
 	load_font(DEBUG_FONT_ID_2, 56, "content/resources/Calistoga-Regular.ttf") // Need to have something with ID = 0 for debug to work
+	fmt.printfln("test")
 
 	// root node
 	{

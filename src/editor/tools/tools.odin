@@ -1,13 +1,13 @@
 package tools
 
 // import qspat "../../core/collision_scene/query/"
-import cs "../../core/collision_scene/"
-import hent "../../core/entity_handle/"
-import spat "../../core/spatial"
+import cs "../../engine/core/collision_scene/"
+import hent "../../engine/core/entity_handle/"
+import spat "../../engine/core/spatial"
 import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
 import l "../../level"
-import logs "../../logs/"
+import logs "../../engine/core/logs/"
 import hm "core:container/handle_map"
 import "core:fmt"
 import "core:math/linalg"

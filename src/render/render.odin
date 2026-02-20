@@ -1,10 +1,10 @@
 package render
 
 import col "../color"
-import cm "../core/collision_mesh/"
-import cs "../core/collision_scene/"
-import hent "../core/entity_handle/"
-import spat "../core/spatial/"
+import cm "../engine/core/collision_mesh/"
+import cs "../engine/core/collision_scene/"
+import hent "../engine/core/entity_handle/"
+import spat "../engine/core/spatial/"
 import gent "../game/game_entities/"
 import gs "../game_state"
 import l "../level"

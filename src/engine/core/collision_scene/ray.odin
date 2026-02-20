@@ -1,6 +1,6 @@
 package collision_scene
 
-import gent "../../game/game_entities/"
+import gent "../../../game/game_entities/"
 import col_mesh "../collision_mesh/"
 import hent "../entity_handle/"
 import spat "../spatial/"

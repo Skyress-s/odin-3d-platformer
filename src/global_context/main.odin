@@ -1,12 +1,12 @@
 package global_context
 
 import camera "../camera"
+import ui "../engine/core/ui/"
+import vmouse "../engine/core/virtual_mouse/"
 import gs "../game_state/"
 import l "../level/"
 import plrs "../players/"
 import render "../render/"
-import ui "../ui/"
-import vmouse "../virtual_mouse/"
 
 // Class that contains most resources that are global / created at the very start of the game.
 Global_Context :: distinct struct {

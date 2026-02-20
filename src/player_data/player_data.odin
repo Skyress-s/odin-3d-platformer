@@ -1,6 +1,6 @@
 package player_data
 
-import spat "../core/spatial/"
+import spat "../engine/core/spatial/"
 import "core:math"
 import "core:math/linalg"
 

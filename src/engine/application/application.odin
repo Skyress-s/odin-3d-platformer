@@ -2,6 +2,7 @@ package application
 import "../core/logs/"
 import "../core/ui/"
 import vmouse "../core/virtual_mouse/"
+import "core:fmt"
 import rl "vendor:raylib"
 
 Application :: struct {
@@ -22,6 +23,12 @@ Game_Interface :: struct {
 }
 
 init :: proc(app: ^Application, game: Game_Interface) {
+	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
+	rl.SetTraceLogLevel(rl.TraceLogLevel.WARNING)
+	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
+
+	rl.SetTargetFPS(180) // TODO CCD not working at low fps
+
 	app.game_interface = game
 	app.ui_context = ui.init()
 	app.virtual_mouse_ctx = vmouse.init(
@@ -33,12 +40,6 @@ init :: proc(app: ^Application, game: Game_Interface) {
 		is_cursor_hidden_proc,
 	)
 
-
-	rl.SetTraceLogLevel(rl.TraceLogLevel.WARNING)
-	rl.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	rl.InitWindow(1920, 1085, "mph*0.5mv^2")
-
-	rl.SetTargetFPS(180) // TODO CCD not working at low fps
 
 	// rl.SetWindowSize(rl.GetScreenWidth(), rl.GetScreenHeight())
 
@@ -77,5 +78,6 @@ run_game :: proc(app: ^Application) {
 		app.game_interface.update(app)
 		app.game_interface.render(app)
 	}
+
 	app.game_interface.deinit(app)
 }

@@ -1,6 +1,6 @@
 package debug_draw_utils
 
-import spat "../core/spatial"
+import spat "../engine/core/spatial"
 import "core:log"
 
 

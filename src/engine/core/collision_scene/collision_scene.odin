@@ -19,6 +19,7 @@ import rlgl "vendor:raylib/rlgl"
 
 Collision_Scene :: struct {
 	spatial_hash_grid: Spatial_Hash_Grid,
+	collision_meshes:  cm.Collider_Mesh_Context,
 }
 
 init_collision_scene :: proc(col_scene: ^Collision_Scene, allocator: runtime.Allocator) {

@@ -1,12 +1,12 @@
 package level
 
-import col_scene "../core/collision_scene/"
-import spat "../core/spatial"
+import col_scene "../engine/core/collision_scene/"
+import spat "../engine/core/spatial"
 import gent "../game/game_entities/"
 
 Level :: distinct struct {
 	name:                 string,
-	// collsion_scene:       col_scene.Collision_Scene,
+	collsion_scene:       col_scene.Collision_Scene,
 	entities:             gent.Game_Entity_Handle_Map,
 
 

@@ -1,9 +1,9 @@
 package game_entities
 
-import cc "../../core/collision_channel/"
-import col_mesh "../../core/collision_mesh/"
-import hent "../../core/entity_handle/"
-import spat "../../core/spatial/"
+import cc "../../engine/core/collision_channel/"
+import col_mesh "../../engine/core/collision_mesh/"
+import hent "../../engine/core/entity_handle/"
+import spat "../../engine/core/spatial/"
 import hm "core:container/handle_map"
 // import ilist "core:container/intrusive/list"
 

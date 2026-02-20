@@ -13,23 +13,23 @@ import "core:time"
 
 import rl "vendor:raylib"
 
-import ui "../"
 import character "../../Character/"
-import cc "../../core/collision_channel/"
-import spat "../../core/spatial/"
 import et "../../editor/tools/"
+import cc "../../engine/core/collision_channel/"
+import spat "../../engine/core/spatial/"
+import ui "../../engine/core/ui/"
 import gs "../../game_state/"
 import gctx "../../global_context"
 import l "../../level/"
-import lfu "../../level_flow_utils/"
-import "../../logs/"
+// import lfu "../../level_flow_utils/"
+import "../../engine/core/logs/"
+import clay "../../engine/core/ui/clay-odin/"
+import layout2 "../../engine/core/ui/layout"
+import ui_rr "../../engine/core/ui/raylib/"
+import vmouse "../../engine/core/virtual_mouse/"
 import player_data "../../player_data/"
 import plrs "../../players/"
 import "../../serialization/"
-import vmouse "../../virtual_mouse/"
-import clay "../clay-odin/"
-import layout2 "../layout2/"
-import ui_rr "../raylib/"
 import hm "core:container/handle_map"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
@@ -659,7 +659,7 @@ layout_details_panel :: proc(
 			level.author_time = players.game.best_time
 			// slevel, slevel_ok := serialization.serialize_level(level)
 			// assert(slevel_ok)
-			serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
+			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
 			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len]))) TODO: RE REIMPLEMENT
 		}
 
@@ -671,9 +671,9 @@ layout_details_panel :: proc(
 		// }
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Load Level")) {
-			level^ = serialization.load_from_file_level(
-				to_cwd_map_path_from_local(string(buf[:buf_len])),
-			)
+			// level^ = serialization.load_from_file_level(
+			// 	to_cwd_map_path_from_local(string(buf[:buf_len])),
+			// )
 
 			character.notify_level_loaded(&players.game)
 			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
