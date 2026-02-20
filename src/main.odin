@@ -131,7 +131,7 @@ main2 :: proc() {
 
 	context.logger = logs.init()
 	defer logs.deinit()
-	defer log.destroy_console_logger(context.logger)
+	// defer log.destroy_console_logger(context.logger)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
 	current_level := make_basic_level()

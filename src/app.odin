@@ -2,13 +2,18 @@ package main
 
 import ap "engine/application"
 
+import game_interface "game/game_interface"
+
 
 main :: proc() {
 	app := ap.Application{}
+	game_inter := ap.Game_Interface{}
 
-	ap.init(&app, ap.Game_Interface{})
-	dummy_game: f32 = 64
-	app.game_interface.data = &dummy_game
+	game_interface.init_game_interface(&game_inter, context.allocator)
+	defer game_interface.deinit_game_interface(&app.game_interface)
+
+	ap.init(&app, game_interface)
+	defer ap.deinit(&app)
+
 	ap.run_game(&app)
-	ap.deinit(&app)
 }

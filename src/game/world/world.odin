@@ -15,10 +15,6 @@ Time_Trail_Float :: f64
 
 // Lifetime: For duration of entire program
 // Contains global data.
-Game :: struct {
-	game_world: ^World,
-	// game_textures:          render.Textures,
-}
 
 
 // Lifetime: For the duration a single "speedrun"" on a map lasts.

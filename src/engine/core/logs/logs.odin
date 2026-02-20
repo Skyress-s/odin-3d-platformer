@@ -1,6 +1,6 @@
 package logs
 
-import rb "../ringbuffer/"
+import rb "../../../ringbuffer/"
 import "base:runtime"
 import "core:fmt"
 import "core:log"

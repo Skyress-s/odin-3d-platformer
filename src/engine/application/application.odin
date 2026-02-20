@@ -71,7 +71,7 @@ run_game :: proc(app: ^Application) {
 	context.logger = logs.init()
 	defer logs.deinit()
 
-	// Game
+	// Run Game
 	app.game_interface.init(app)
 	for (!rl.WindowShouldClose()) {
 		app.game_interface.update(app)
