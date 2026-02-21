@@ -19,7 +19,7 @@ import rlgl "vendor:raylib/rlgl"
 
 Collision_Scene :: struct {
 	spatial_hash_grid: Spatial_Hash_Grid,
-	collision_meshes:  cm.Collider_Mesh_Context,
+	collision_meshes:  cm.Collider_Mesh_Context, // Collision scene and World should not have each their own Collision meushes!
 }
 
 init_collision_scene :: proc(col_scene: ^Collision_Scene, allocator: runtime.Allocator) {
@@ -27,7 +27,7 @@ init_collision_scene :: proc(col_scene: ^Collision_Scene, allocator: runtime.All
 	// add basic primitives
 }
 
-deinit_collision_scene :: proc(scene: ^Collision_Scene, allocator: runtime.Allocator) {
+deinit_collision_scene :: proc(scene: ^Collision_Scene) {
 	// handeler by allocator
 	delete_spatial_hash_grid(&scene.spatial_hash_grid)
 	// cm.deinit(&scene.collision_meshes)

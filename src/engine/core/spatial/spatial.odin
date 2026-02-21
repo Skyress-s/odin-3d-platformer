@@ -1,5 +1,6 @@
 package Spatial
 
+import "base:runtime"
 import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
@@ -518,7 +519,7 @@ shape_to_collision_triangles :: proc(
 }
 
 
-get_box_tris :: proc() -> [dynamic]Collision_Triangle {
+get_box_tris :: proc(allocator: runtime.Allocator) -> [dynamic]Collision_Triangle {
 	box := Box {
 		size = ONE_VEC3,
 	}
@@ -547,7 +548,7 @@ get_box_tris :: proc() -> [dynamic]Collision_Triangle {
 	// 	transformed_points[i] = pp
 	// }
 
-	tris: [dynamic]Collision_Triangle = {}
+	tris: [dynamic]Collision_Triangle = make([dynamic]Collision_Triangle, allocator)
 
 	// ps := &transformed_points
 	ps := points

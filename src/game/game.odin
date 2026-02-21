@@ -314,45 +314,6 @@ update :: proc(
 		gc.players.game.look_angles,
 	)
 
-	// sphere_trace := spat.Sphere_Trace {
-	// 	ray = spat.Ray{origin = player_loction, end = player_loction + player_look_direction * 10},
-	// 	radius = 1,
-	// }
-	//
-	// ddu.enqueue_ins(
-	// 	&ddu.Wire_Cyllinder_Ins{sphere_trace = sphere_trace, color = col.RED},
-	// )
-	//
-	// ddu.enqueue_ins(&ddu.Line_Ins{ray = sphere_trace.ray, color = col.ORANGE})
-	//
-	// rays := spat.calculate_rays_by_sphere_trace(&sphere_trace)
-	// for &ray in &rays {
-	//
-	// 	ddu.enqueue_ins(&ddu.Line_Ins{ray = ray, color = col.DARKBLUE})
-	// }
-	//
-	// hashes := spat.calculate_hashes_by_rays(&rays)
-	// for hash in &hashes {
-	// 	hash := hash
-	// 	loc := spat.calculate_hash_cell_width_location(&hash)
-	// 	ddu.enqueue_ins(
-	// 		&ddu.Wire_Cube_Ins {
-	// 			location = loc,
-	// 			size = spat.HASH_CELL_SIZE,
-	// 			color = col.DARKPURPLE,
-	// 		},
-	// 	)
-	// }
-
-	// ddu.enqueue_ins(
-	// 	&ddu.Cube_Ins {
-	// 		location = spat.Vector{5, 0, 0},
-	// 		rot = spat.QUATERNION_IDENTITY,
-	// 		size = spat.ONE_VEC3 * 5,
-	// 		color = col.DARKBROWN,
-	// 	},
-	// )
-
 
 	debug_draw_data.active_cell = player_overlapping_cells
 	debug_draw_data.active_cell_hash = active_hash_key
@@ -360,6 +321,8 @@ update :: proc(
 	return debug_draw_data
 	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
 }
+
+// update_player_entity :: proc()
 
 update_entities :: proc(level: ^l.Level) {
 	col_scene := &level.collsion_scene

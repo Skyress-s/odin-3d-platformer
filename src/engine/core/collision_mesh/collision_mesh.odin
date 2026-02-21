@@ -1,5 +1,6 @@
 package collision_mesh
 
+import logs "../logs/"
 import spat "../spatial/"
 
 import hm "core:container/handle_map"
@@ -26,8 +27,8 @@ get_mesh_checked :: proc(ctx: ^Collider_Mesh_Context, handle: Mesh_Handle) -> ^M
 
 
 init :: proc(ctx: ^Collider_Mesh_Context) {
-
-	box_tris := spat.get_box_tris()
+	box_tris := spat.get_box_tris(context.allocator)
+	// defer delete(box_tris)
 	box_mesh: Mesh = {
 		tris = box_tris,
 	}
@@ -36,6 +37,7 @@ init :: proc(ctx: ^Collider_Mesh_Context) {
 }
 
 deinit :: proc(ctx: ^Collider_Mesh_Context) {
+	logs.debugf(.Physics, "Deinitializing Collider Mesh Context.")
 	itr := hm.iterator_make(&ctx.mesh_map)
 	for item in hm.iterate(&itr) {
 		delete(item.tris)

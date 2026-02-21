@@ -1,3 +1,5 @@
+- [ ] DO not have COLLISION SCENE in both world and level! This is a temporary hack!
+
 Dima
 - [x] Entire render screen is offset half way down?!!?!?!?
 - [x] Need some form of continious collision detection.

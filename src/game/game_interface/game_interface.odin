@@ -122,6 +122,11 @@ game_deinit :: proc(app: ^ap.Application) {
 	render.textures_deinit(game.global_ctx.textures)
 
 	rlb.raylib_deinit()
+
+
+	cm.deinit(&game.game_world.col_meshes)
+
+	free(game.game_world)
 }
 
 @(private)

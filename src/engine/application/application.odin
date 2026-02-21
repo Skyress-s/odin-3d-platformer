@@ -63,6 +63,7 @@ init :: proc(app: ^Application, game: Game_Interface) {
 deinit :: proc(app: ^Application) {
 
 	// lightray.destroy_lighting()
+	ui.deinit(&app.ui_context)
 }
 
 run_game :: proc(app: ^Application) {

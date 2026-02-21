@@ -1,12 +1,13 @@
 package level
 
-import col_scene "../engine/core/collision_scene/"
+import cm "../engine/core/collision_mesh/"
+import cs "../engine/core/collision_scene/"
 import spat "../engine/core/spatial"
 import gent "../game/game_entities/"
 
 Level :: distinct struct {
 	name:                 string,
-	collsion_scene:       col_scene.Collision_Scene,
+	collsion_scene:       cs.Collision_Scene,
 	entities:             gent.Game_Entity_Handle_Map,
 
 
@@ -21,6 +22,9 @@ Level :: distinct struct {
 
 delete_level :: proc(l: ^Level) {
 	delete(l.name)
+	cs.deinit_collision_scene(&l.collsion_scene)
+	cm.deinit(&l.collsion_scene.collision_meshes)
+	// cm.deinit(l.)
 
 	// col_scene.delete_collision_scene(&l.collsion_scene)
 }

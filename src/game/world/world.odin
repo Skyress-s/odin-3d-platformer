@@ -92,5 +92,5 @@ level_init :: proc(level: ^Level, allocator: runtime.Allocator) {
 }
 
 level_deinit :: proc(level: ^Level, allocator: runtime.Allocator) {
-	cs.deinit_collision_scene(&level.collision_scene, allocator)
+	cs.deinit_collision_scene(&level.collision_scene)
 }
