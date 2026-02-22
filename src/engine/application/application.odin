@@ -3,6 +3,7 @@ import "../core/logs/"
 import "../core/ui/"
 import vmouse "../core/virtual_mouse/"
 import "core:fmt"
+import "core:log"
 import rl "vendor:raylib"
 
 Application :: struct {
@@ -73,6 +74,7 @@ run_game :: proc(app: ^Application) {
 	// Setup logger
 	context.logger = logs.init()
 	defer logs.deinit()
+	defer log.destroy_console_logger(context.logger)
 
 	// Run Game
 	app.game_interface.init(app)

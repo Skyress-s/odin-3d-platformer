@@ -85,12 +85,13 @@ init :: proc() -> (logger: log.Logger) {
 	return logger
 }
 
+deinit :: proc() {
+}
+
 clear :: proc() {
 	rb.reset(&global_ctx.logs_buf)
 }
 
-deinit :: proc() {
-}
 
 get_string_slice :: proc() -> string {
 
