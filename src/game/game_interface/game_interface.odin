@@ -20,7 +20,6 @@ import sent "../../game/spawn_entities/"
 import world "../../game/world/"
 import gs "../../game_state/"
 import gctx "../../global_context/"
-import l "../../level/"
 import plrs "../../players/"
 import rlb "../../raylib_bridge/"
 import render "../../render/"
@@ -59,8 +58,10 @@ game_init :: proc(app: ^ap.Application) {
 	world.world_init(game.game_world)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_level := new(l.Level, game.game_world.level_allocator)
+	current_level := new(world.Level, game.game_world.level_allocator)
 	current_level^ = make_basic_level()
+
+	world.world_load_level(game.game_world, current_level)
 
 	players := plrs.init_players()
 
@@ -80,7 +81,6 @@ game_init :: proc(app: ^ap.Application) {
 	game.global_ctx = {
 		players           = players,
 		game_state        = gs.make_default_game_state(),
-		current_level     = current_level,
 		ui_context        = &app.ui_context,
 		camera_state      = camera.init(
 			generate_camera(),

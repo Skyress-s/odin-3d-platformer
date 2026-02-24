@@ -5,6 +5,7 @@ import cs "../../engine/core/collision_scene/"
 import hent "../../engine/core/entity_handle/"
 import spat "../../engine/core/spatial/"
 import gent "../../game/game_entities/"
+import sent "../../game/spawn_entities/"
 import "base:runtime"
 import "core:fmt"
 
@@ -64,6 +65,8 @@ world_deinit :: proc(world: ^World) {
 }
 
 world_load_level :: proc(world: ^World, level: ^Level) {
+	world.level = level
+	sent.reconstruct_spatial_hash_grid_from_entities(&level.collision_scene, &world.level.entities)
 	// loads level with level_allocator
 	// Load relevant assets (collision meshes) and assign to Collider_Mesh_Context
 }

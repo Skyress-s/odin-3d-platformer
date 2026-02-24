@@ -6,7 +6,6 @@ import cs "../../engine/core/collision_scene/"
 import hent "../../engine/core/entity_handle"
 import logs "../../engine/core/logs"
 import spat "../../engine/core/spatial/"
-import l "../../level/"
 import gent "../game_entities/"
 import hm "core:container/handle_map"
 
@@ -39,12 +38,11 @@ spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Ha
 // }
 
 add_trait_collision_shape :: proc(
-	level: ^l.Level,
+	ents: ^gent.Game_Entity_Handle_Map,
+	col_scene: ^cs.Collision_Scene,
 	handle: hent.Entity_Handle,
 	shape: spat.Shape,
 ) -> cm.Mesh_Handle {
-	ents: ^gent.Game_Entity_Handle_Map = &level.entities
-	col_scene: ^cs.Collision_Scene = &level.collsion_scene
 	col_meshes: ^cm.Collider_Mesh_Context = &col_scene.collision_meshes
 
 	ent: ^gent.Entity = hm.get(ents, handle)
