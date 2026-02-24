@@ -26,6 +26,7 @@ Level :: struct {
 }
 
 // Lifetime: For the duration the player is on a map.
+// Maybe better name is world session?
 World :: struct {
 	col_meshes:                    cm.Collider_Mesh_Context, // Persist between speedruns
 	level:                         ^Level, // Only one level active at the time. Lets not overscope this project.
