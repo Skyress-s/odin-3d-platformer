@@ -4,7 +4,6 @@ import camera "../camera"
 import ui "../engine/core/ui/"
 import vmouse "../engine/core/virtual_mouse/"
 import gs "../game_state/"
-import l "../level/"
 import plrs "../players/"
 import render "../render/"
 
@@ -12,7 +11,6 @@ import render "../render/"
 Global_Context :: distinct struct {
 	players:           plrs.Players,
 	game_state:        gs.Game_State,
-	current_level:     ^l.Level,
 	// cam:                 ^rl.Camera3D,
 	camera_state:      camera.Global_State,
 	ui_context:        ^ui.Context,
