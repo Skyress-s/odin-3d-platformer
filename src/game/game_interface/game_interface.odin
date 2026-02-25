@@ -54,29 +54,24 @@ game_init :: proc(app: ^ap.Application) {
 	game := cast(^game.Game)app.game_interface.data
 	assert(game != nil)
 
-	game.game_world = new(world.World)
+	game.game_world = new(world.World_Session)
 	world.world_init(game.game_world)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_level := new(world.Level, game.game_world.level_allocator)
+	current_level := new(world.World, game.game_world.level_allocator)
 	current_level^ = make_basic_level()
 
 	world.world_load_level(game.game_world, current_level)
 
 	players := plrs.init_players()
 
-	character.reset_run(
-		&players.game,
-		&current_level.start_position,
-		&current_level.start_look_direction,
-	)
+	character.reset_run(&players.game, &current_level.World, &current_level.World)
 
 	players.editor.transform_tool = e_tools.init_transform_tool()
 
 	character.start_speedrun(&players.game)
 
 	rlb.raylib_init()
-
 
 	game.global_ctx = {
 		players           = players,
@@ -91,7 +86,6 @@ game_init :: proc(app: ^ap.Application) {
 	}
 
 	// Add game window as a Layout_Item in the layout system
-
 	game_window_handle := game_ui.setup_initial_window_layout(&game.global_ctx)
 	game.game_window_handle = game_window_handle
 
@@ -124,7 +118,7 @@ game_deinit :: proc(app: ^ap.Application) {
 	rlb.raylib_deinit()
 
 
-	cm.deinit(&game.game_world.col_meshes)
+	cm.deinit(&game.game_world.World_Session)
 
 	free(game.game_world)
 }
