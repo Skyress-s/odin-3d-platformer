@@ -26,3 +26,9 @@ textures_init :: proc(game_dims: [2]c.int) -> Textures {
 textures_deinit :: proc(textures: Textures) {
 	rl.UnloadRenderTexture(textures.render_targets.game)
 }
+resize_render_targets :: proc(render_targets: ^Render_Targets, game_rect: rl.Rectangle) {
+
+	rl.UnloadRenderTexture(render_targets.game)
+	render_targets.game = rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
+
+}

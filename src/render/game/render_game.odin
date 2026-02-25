@@ -316,10 +316,3 @@ draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {
 	rlgl.Vertex3f(b.x, b.y, b.z)
 	rlgl.Vertex3f(c.x, c.y, c.z)
 }
-
-resize_render_targets :: proc(render_targets: ^Render_Targets, game_rect: rl.Rectangle) {
-
-	rl.UnloadRenderTexture(render_targets.game)
-	render_targets.game = rl.LoadRenderTexture(c.int(game_rect.width), c.int(game_rect.height))
-
-}

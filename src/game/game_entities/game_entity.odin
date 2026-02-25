@@ -32,9 +32,11 @@ Trait :: enum {
 	Star,
 	Finish,
 	Kill,
-	Player,
-	Physics,
+	Game_Player,
+	Editor_Player,
+	Static_Physics,
 	Grabable,
+	Transform_Tool,
 
 	// General
 	StaticMesh,

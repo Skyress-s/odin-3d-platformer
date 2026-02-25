@@ -4,6 +4,7 @@ import character "../Character"
 import camera "../camera/"
 import col "../color"
 import ddu "../debug_draw_utils/"
+import e_tools "../editor/tools"
 import "../editor_player"
 import cs "../engine/core/collision_scene/"
 import cmq "../engine/core/collision_scene/query/"
@@ -11,21 +12,22 @@ import csq "../engine/core/collision_scene/query/"
 import verlet "../engine/core/physics/verlet"
 import spat "../engine/core/spatial"
 import vmouse "../engine/core/virtual_mouse"
+import g "../game/game/"
 import gent "../game/game_entities/"
 import sent "../game/spawn_entities/"
+import world "../game/world/"
 import gs "../game_state"
 import "../player_data"
 import plrs "../players"
 import rlb "../raylib_bridge"
 import render "../render/"
-import hm "core:container/handle_map"
 import "core:math/linalg"
+
+import hm "core:container/handle_map"
 import rl "vendor:raylib"
 
-import e_tools "../editor/tools"
-
 update :: proc(
-	gc: ^gctx.Global_Context,
+	game: ^g.Game,
 	game_rect: rl.Rectangle,
 	can_receive_input: bool,
 	mouse_pos: rl.Vector2,
@@ -35,11 +37,11 @@ update :: proc(
 	dt := rl.GetFrameTime()
 	mouse_pos := mouse_pos
 
-	cam := gc.camera_state.current_camera
+	// cam := gc.camera_state.current_camera
+	//
+	// level := gc.current_level
 
-	level := gc.current_level
-
-	update_entities(level)
+	update_entities(game.world_session)
 
 	ray := rlb.convert_ray(
 		rl.GetScreenToWorldRayEx(
@@ -51,28 +53,6 @@ update :: proc(
 	)
 
 
-	position_transform_tool := &gc.players.editor.transform_tool
-
-	if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
-	   position_transform_tool.target_object_id.idx != 0 {
-		// fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
-
-		// if !mouse_over_ui {
-		if position_transform_tool.dragging == true {
-			position_transform_tool.dragging = false
-			// position_transform_tool.target_object_id = csq.notify_object_transform_changed(
-			// 	gc.current_level,
-			// 	position_transform_tool.target_object_id,
-			// )
-			//
-			sent.reconstruct_spatial_hash_grid_from_entities(
-				&level.collsion_scene,
-				&level.entities,
-			)
-		}
-
-
-	}
 	{
 		@(static) cursor_enabled := false
 		if rl.IsKeyPressed(.TAB) {
@@ -121,67 +101,50 @@ update :: proc(
 
 		switch gc.players.mode {
 		case plrs.Player_Mode.Game:
-			camera.interp_fov(
-				&gc.camera_state,
-				linalg.length(gc.players.game.verlet_component.velocity),
-				dt,
-			)
 
-			character.update_character(
-				&gc.players.game,
-				gc.current_level,
-				&gc.game_state,
-				dt,
-				gc.virtual_mouse_ctx^,
-			)
 		case plrs.Player_Mode.Editor:
-			if gc.mouse_over_game {
-				if rl.IsKeyPressed(.ONE) {
-					position_transform_tool.active_tool = e_tools.Position_Tool{}
-				} else if rl.IsKeyPressed(.TWO) {
-					position_transform_tool.active_tool = e_tools.Rotation_Tool{}
-				} else if rl.IsKeyPressed(.THREE) {
-					position_transform_tool.active_tool = e_tools.Scale_Tool{}
-				}
-
-				if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
-					ddu.enqueue_ins(
-						&ddu.Line_Ins {
-							spat.Ray {
-								ray.origin + {0, -1, 0},
-								ray.end + (ray.end - ray.origin) * 10000,
-							},
-							col.RED,
-						},
-						10,
-					)
-					e_tools.on_click(
-						position_transform_tool,
-						&cam,
-						gc.current_level,
-						mouse_pos,
-						ray,
-					)
-
-				}
-				if position_transform_tool.target_object_id.idx != 0 {
-					if position_transform_tool.dragging {
-						e_tools.update_transform_tool(
-							position_transform_tool,
-							&cam,
-							rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
-							rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-							&gc.current_level.entities,
-							ray,
-						)
-					}
-				}
-				editor_player.update(&gc.players.editor, gc.virtual_mouse_ctx, dt)
-
-			}
 		}
 	}
 
+
+	return debug_draw_data
+	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
+}
+
+// update_player_entity :: proc()
+
+update_entities :: proc(world_session: ^world.World_Session) {
+	itr := hm.iterator_make(&world_session.world.entities)
+	game_player_bit_set: gent.Traits : {.Game_Player, .Transform}
+	editor_player_bit_set: gent.Traits : {.Editor_Player, .Transform}
+	transform_tool: gent.Traits : {.Transform, .Transform}
+
+	for ent in hm.iterate(&itr) {
+		if gent.has_traits(game_player_bit_set, ent^) {
+			update_game_player(world_session, ent)
+		}
+		if gent.has_traits(editor_player_bit_set, ent^) {
+			update_editor_player(world_session, ent)
+		}
+		if gent.has_traits(transform_tool, ent^) {
+			update_transform_tool(world_session, ent)
+		}
+	}
+}
+
+update_game_player :: proc(world_session: ^world.World_Session, ent: ^gent.Entity) {
+	camera.interp_fov(
+		&gc.camera_state,
+		linalg.length(gc.players.game.verlet_component.velocity),
+		dt,
+	)
+	character.update_character(
+		&gc.players.game,
+		gc.current_level,
+		&gc.game_state,
+		dt,
+		gc.virtual_mouse_ctx^,
+	)
 
 	ents_in_player_position_cell := cmq.entities_in_bound(
 		level.entities,
@@ -299,9 +262,6 @@ update :: proc(
 			right,
 		)
 	case plrs.Player_Mode.Editor:
-		_, forward, right := player_data.calculate_direction_from_look(gc.players.editor.look_data)
-
-		camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
 	// gc.cam.position = gc.players.editor.position
 	// gc.cam.target = gc.cam.position + forward
 	// gc.cam.up = linalg.cross(forward, right)
@@ -316,23 +276,74 @@ update :: proc(
 	debug_draw_data.active_cell = player_overlapping_cells
 	debug_draw_data.active_cell_hash = active_hash_key
 
-	return debug_draw_data
-	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
+
 }
 
-// update_player_entity :: proc()
+update_editor_player :: proc(world_session: ^world.World_Session, ent: ^gent.Entity) {
+	_, forward, right := player_data.calculate_direction_from_look(gc.players.editor.look_data)
 
-update_entities :: proc(level: ^l.Level) {
-	col_scene := &level.collsion_scene
-	entities := &level.entities
+	camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
 
-	itr := hm.iterator_make(entities)
-	player_bit_set: gent.Traits = {.Player, .Physics, .Collision}
-	for ent in hm.iterate(&itr) {
-		if player_bit_set & ent.traits == player_bit_set {
+}
 
+update_transform_tool :: proc(world_session: ^world.World_Session, ent: ^gent.Entity) {
+	position_transform_tool := &gc.players.editor.transform_tool
+
+	if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
+	   position_transform_tool.target_object_id.idx != 0 {
+		// fmt.printfln("Trying to select an object, mouse_over_ui: {}", mouse_over_ui)
+
+		// if !mouse_over_ui {
+		if position_transform_tool.dragging == true {
+			position_transform_tool.dragging = false
+			// position_transform_tool.target_object_id = csq.notify_object_transform_changed(
+			// 	gc.current_level,
+			// 	position_transform_tool.target_object_id,
+			// )
+			//
+			sent.reconstruct_spatial_hash_grid_from_entities(
+				&level.collsion_scene,
+				&level.entities,
+			)
+		}
+
+
+	}
+
+	// was inside editor player update loop before
+	if gc.mouse_over_game {
+		if rl.IsKeyPressed(.ONE) {
+			position_transform_tool.active_tool = e_tools.Position_Tool{}
+		} else if rl.IsKeyPressed(.TWO) {
+			position_transform_tool.active_tool = e_tools.Rotation_Tool{}
+		} else if rl.IsKeyPressed(.THREE) {
+			position_transform_tool.active_tool = e_tools.Scale_Tool{}
+		}
+
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && gc.mouse_over_game {
+			ddu.enqueue_ins(
+				&ddu.Line_Ins {
+					spat.Ray{ray.origin + {0, -1, 0}, ray.end + (ray.end - ray.origin) * 10000},
+					col.RED,
+				},
+				10,
+			)
+			e_tools.on_click(position_transform_tool, &cam, gc.current_level, mouse_pos, ray)
 
 		}
+		if position_transform_tool.target_object_id.idx != 0 {
+			if position_transform_tool.dragging {
+				e_tools.update_transform_tool(
+					position_transform_tool,
+					&cam,
+					rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
+					rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+					&gc.current_level.entities,
+					ray,
+				)
+			}
+		}
+		editor_player.update(&gc.players.editor, gc.virtual_mouse_ctx, dt)
 
 	}
 

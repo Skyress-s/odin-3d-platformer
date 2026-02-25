@@ -22,6 +22,7 @@ import gs "../../game_state/"
 import plrs "../../players/"
 import rlb "../../raylib_bridge/"
 import render "../../render/"
+import render_game "../../render/game/"
 import "../../serialization/"
 import g "../game"
 import hm "core:container/handle_map"
@@ -64,10 +65,10 @@ game_init :: proc(app: ^ap.Application) {
 	world.world_init(game.world_session)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_level := new(world.World)
-	current_level^ = make_basic_level()
+	current_world := new(world.World)
+	current_world^ = make_basic_world()
 
-	world.set_snapshot_level(game, current_level)
+	world.set_snapshot_world(game, current_world)
 	world.restore_from_snapshot(game)
 
 	// character.reset_run(&players.game, &current_level.World, &current_level.World)
@@ -138,21 +139,20 @@ game_render :: proc(app: ^ap.Application) {}
 update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
 	ui_context := game.ui_context
 	layout_ctx := &ui_context.layout_ctx
-	// Update first. So inputs are most up to date
 
 	if rl.IsWindowResized() {
-		game_rt_needs_update^ = true
+		game.game_rt_needs_update = true
 	}
 
 	// Get game rect from layout system (after first frame, use cached bounding box)
-	game_rect := get_game_rect(gc, game_window_handle)
+	game_rect := get_game_rect(&game.ui_context.layout_ctx, game.game_window_handle)
 
 	// Check if render target needs resize
-	if game_rt_needs_update^ ||
-	   (gc.textures.render_targets.game.texture.width != i32(game_rect.width)) ||
-	   (gc.textures.render_targets.game.texture.height != i32(game_rect.height)) {
-		render.resize_render_targets(&gc.textures.render_targets, game_rect)
-		game_rt_needs_update^ = false
+	if game.game_rt_needs_update ||
+	   (game.textures.render_targets.game.texture.width != i32(game_rect.width)) ||
+	   (game.textures.render_targets.game.texture.height != i32(game_rect.height)) {
+		render.resize_render_targets(&game.textures.render_targets, game_rect)
+		game.game_rt_needs_update = false
 	}
 
 	debug_draw_data := game2.update(
@@ -166,21 +166,13 @@ update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
 }
 
 render_all :: proc(
-	gc: ^gctx.Global_Context,
+	game: ^g.Game,
 	debug_draw_data: ^render.Debug_Draw_Data,
 	game_rect: rl.Rectangle,
 ) {
-	layout_ctx := &gc.ui_context.layout_ctx
+	layout_ctx := &game.ui_context.layout_ctx
 	// render to RT
-	render.render(
-		gc.current_level,
-		&gc.players,
-		gc.camera_state.current_camera,
-		debug_draw_data,
-		&gc.game_state,
-		game_rect,
-		&gc.textures.render_targets,
-	)
+	render_game.render(game, &debug_draw_data, game_rect)
 
 	// Layout pass
 	free_all(gc.ui_context.layout_ctx.temp_allocator)
@@ -235,12 +227,12 @@ render_all :: proc(
 }
 
 get_game_rect :: proc(
-	gc: ^gctx.Global_Context,
+	layout_context: ^layout.Context,
 	game_window_handle: layout.Layout_Item_Handle,
 ) -> (
 	game_rect: rl.Rectangle,
 ) {
-	game_item := layout.get_item_checked(&gc.ui_context.layout_ctx.lic, game_window_handle)
+	game_item := layout.get_item_checked(&layout_context.lic, game_window_handle)
 
 	// TODO: Get body not the outline.
 	game_element_data := clay.GetElementData(clay.GetElementId(clay.MakeString(game_item.id)))
@@ -286,9 +278,9 @@ setup_mouse :: proc(ui_context: ^vmouse.Context, game_window_handle: layout.Layo
 }
 
 
-make_basic_level :: proc() -> (level: l.Level) {
-	cm.init(&level.collsion_scene.collision_meshes)
-	ents := &level.entities
+make_basic_world :: proc() -> (world: world.World) {
+	cm.init(&world.collsion_scene.collision_meshes)
+	ents := &world.entities
 
 	ent1 := sent.spawn_box(
 		{
@@ -296,7 +288,7 @@ make_basic_level :: proc() -> (level: l.Level) {
 			rotation = spat.QUATERNION_IDENTITY,
 			scale = spat.ONE_VEC3 * 4,
 		},
-		&level,
+		&world,
 	)
 	gent.add_traits_checked({.Grabable}, ent1)
 
@@ -306,15 +298,15 @@ make_basic_level :: proc() -> (level: l.Level) {
 			rotation = spat.QUATERNION_IDENTITY,
 			scale = spat.ONE_VEC3 + spat.Vector{1, 0, 1} * 8,
 		},
-		&level,
+		&world,
 	)
 
-	sent.reconstruct_spatial_hash_grid_from_entities(&level.collsion_scene, &level.entities)
+	sent.reconstruct_spatial_hash_grid_from_entities(&world.collsion_scene, &world.entities)
 
-	csq.shg_valid_checked(level.entities, level.collsion_scene.spatial_hash_grid)
+	csq.shg_valid_checked(world.entities, world.collsion_scene.spatial_hash_grid)
 
 
-	return level
+	return world
 }
 
 generate_camera :: proc() -> rl.Camera {

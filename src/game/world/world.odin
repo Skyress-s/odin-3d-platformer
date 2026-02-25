@@ -49,7 +49,7 @@ World :: struct {
 // Lifetime: For the duration the player is on a map.
 // Maybe better name is world session?
 World_Session :: struct {
-	using level:                   ^World, // Only one level active at the time. Lets not overscope this project.
+	using world:                   ^World, // Only one level active at the time. Lets not overscope this project.
 	// Copied when we restart the run. Important that all
 	world_snapshot:                ^World,
 	current_best_speedrun_capture: Speedrun_Capture,
@@ -83,7 +83,7 @@ world_deinit :: proc(world: ^World_Session) {
 	vmem.arena_destroy(&world.level_arena)
 }
 
-set_snapshot_level :: proc(world: ^World_Session, level: ^World) {
+set_snapshot_world :: proc(world: ^World_Session, level: ^World) {
 	world.world_snapshot = level
 	// sent.reconstruct_spatial_hash_grid_from_entities(&level.collision_scene, &world.level.entities)
 	// loads level with level_allocator
@@ -98,7 +98,7 @@ restore_from_snapshot :: proc(world_session: ^World_Session) {
 
 // Does not delete level, called needs to remove level
 world_unload_level :: proc(world: ^World_Session) {
-	world.level = nil
+	world.world = nil
 
 	// reset collision scene
 }
