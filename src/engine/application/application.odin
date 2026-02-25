@@ -79,6 +79,7 @@ run_game :: proc(app: ^Application) {
 	// Run Game
 	app.game_interface.init(app)
 	for (!rl.WindowShouldClose()) {
+		ui.update_state(&app.ui_context, vmouse.get_mouse_pos(app.virtual_mouse_ctx))
 
 		vmouse.update(
 			&app.virtual_mouse_ctx,

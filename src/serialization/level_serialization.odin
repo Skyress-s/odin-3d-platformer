@@ -9,7 +9,6 @@ import col_mesh "../engine/core/collision_mesh"
 import col_scene "../engine/core/collision_scene"
 import spat "../engine/core/spatial"
 import gent "../game/game_entities"
-import l "../level"
 import hm "core:container/handle_map"
 
 Meshes_Json :: struct {}
@@ -102,10 +101,6 @@ Entity_JSON :: struct {
 // 	return string(json_data), true
 // }
 
-unmarshal_level :: proc(level_json: string, level: ^l.Level) {
-
-
-}
 
 // save_to_file :: proc(level: ^l.Level, filepath: string) -> bool {
 // 	data, ok := serialize_level(level)

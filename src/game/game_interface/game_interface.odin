@@ -19,12 +19,11 @@ import game_ui "../../game/game_ui/"
 import sent "../../game/spawn_entities/"
 import world "../../game/world/"
 import gs "../../game_state/"
-import gctx "../../global_context/"
 import plrs "../../players/"
 import rlb "../../raylib_bridge/"
 import render "../../render/"
 import "../../serialization/"
-import game "../game"
+import g "../game"
 import hm "core:container/handle_map"
 import "core:fmt"
 import rl "vendor:raylib"
@@ -32,7 +31,7 @@ import rl "vendor:raylib"
 import "base:runtime"
 
 init_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: runtime.Allocator) {
-	game := new(game.Game, allocator)
+	game := new(g.Game, allocator)
 	game_interface^ = ap.Game_Interface {
 		game,
 		game_init,
@@ -51,89 +50,78 @@ deinit_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: run
 game_init :: proc(app: ^ap.Application) {
 	logs.warnf(.Gamelogic, "Initializing Game")
 
-	game := cast(^game.Game)app.game_interface.data
+	game := cast(^g.Game)app.game_interface.data
 	assert(game != nil)
 
-	game.game_world = new(world.World_Session)
-	world.world_init(game.game_world)
+	game.textures = render.textures_init(
+		{
+			i32(app.ui_context.layout_ctx.screen_dimensions.width),
+			i32(app.ui_context.layout_ctx.screen_dimensions.width),
+		},
+	)
+
+	game.world_session = new(world.World_Session)
+	world.world_init(game.world_session)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_level := new(world.World, game.game_world.level_allocator)
+	current_level := new(world.World)
 	current_level^ = make_basic_level()
 
-	world.world_load_level(game.game_world, current_level)
+	world.set_snapshot_level(game, current_level)
+	world.restore_from_snapshot(game)
 
-	players := plrs.init_players()
+	// character.reset_run(&players.game, &current_level.World, &current_level.World)
 
-	character.reset_run(&players.game, &current_level.World, &current_level.World)
+	// players.editor.transform_tool = e_tools.init_transform_tool()
 
-	players.editor.transform_tool = e_tools.init_transform_tool()
-
-	character.start_speedrun(&players.game)
+	// character.start_speedrun(&players.game)
 
 	rlb.raylib_init()
 
-	game.global_ctx = {
-		players           = players,
-		game_state        = gs.make_default_game_state(),
-		ui_context        = &app.ui_context,
-		camera_state      = camera.init(
-			generate_camera(),
-			camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
-		),
-		textures          = render.textures_init({0, 0}),
-		virtual_mouse_ctx = &app.virtual_mouse_ctx,
-	}
+	// game.global_ctx = {
+	// 	players           = players,
+	// 	game_state        = gs.make_default_game_state(),
+	// 	ui_context        = &app.ui_context,
+	// 	camera_state      = camera.init(
+	// 		generate_camera(),
+	// 		camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
+	// 	),
+	// 	textures          = render.textures_init({0, 0}),
+	// 	virtual_mouse_ctx = &app.virtual_mouse_ctx,
+	// }
 
 	// Add game window as a Layout_Item in the layout system
 	game_window_handle := game_ui.setup_initial_window_layout(&game.global_ctx)
 	game.game_window_handle = game_window_handle
 
-	setup_mouse(&game.global_ctx, game_window_handle)
+	setup_mouse(game.virtual_mouse_ctx, game_window_handle)
 
 	game.game_rt_needs_update = true
 
 	rl.SetExitKey(.Y)
-	// for !rl.WindowShouldClose() {
-	//
-	// 	debug_draw_data, game_rect := update_all(&gc, &game_rt_needs_update, game_window_handle)
-	//
-	// 	render_all(&gc, &debug_draw_data, game_rect)
-	//
-	// 	ui.end_frame(&gc.ui_context)
-	// 	free_all(context.temp_allocator)
-	// }
-
 }
 
 @(private)
 game_deinit :: proc(app: ^ap.Application) {
 	logs.warnf(.Gamelogic, "Deinitializing Game")
-	game := cast(^game.Game)app.game_interface.data
+	game := cast(^g.Game)app.game_interface.data
 
-	// ui.deinit(game.global_ctx.ui_context)
-	l.delete_level(game.global_ctx.current_level)
-	render.textures_deinit(game.global_ctx.textures)
+	render.textures_deinit(game.textures)
 
 	rlb.raylib_deinit()
 
 
-	cm.deinit(&game.game_world.World_Session)
+	// cm.deinit(&game.world_session)
 
-	free(game.game_world)
+	free(game.world_session)
 }
+
 
 @(private)
 game_update :: proc(app: ^ap.Application) {
-	game := cast(^game.Game)app.game_interface.data
-	gc := &game.global_ctx
+	game := get_game_checked(app^)
 
-
-	debug_draw_data, game_rect := update_all(
-		gc,
-		&game.game_rt_needs_update,
-		game.game_window_handle,
-	)
+	debug_draw_data, game_rect := update_all(game)
 
 	render_all(gc, &debug_draw_data, game_rect)
 
@@ -147,22 +135,10 @@ game_update_physics :: proc(app: ^ap.Application) {}
 @(private)
 game_render :: proc(app: ^ap.Application) {}
 
-update_all :: proc(
-	gc: ^gctx.Global_Context,
-	game_rt_needs_update: ^bool,
-	game_window_handle: layout.Layout_Item_Handle,
-) -> (
-	render.Debug_Draw_Data,
-	rl.Rectangle,
-) {
-
-	ui_context := gc.ui_context
+update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
+	ui_context := game.ui_context
 	layout_ctx := &ui_context.layout_ctx
 	// Update first. So inputs are most up to date
-
-	gc.mouse_over_game = false // Will be set to true by layout_game_ui if hovered
-	// Update UI state (mouse, keyboard, etc.)
-	ui.update_state(gc.ui_context, vmouse.get_mouse_pos(gc.virtual_mouse_ctx^))
 
 	if rl.IsWindowResized() {
 		game_rt_needs_update^ = true
@@ -285,10 +261,8 @@ get_game_rect :: proc(
 }
 
 
-setup_mouse :: proc(gc: ^gctx.Global_Context, game_window_handle: layout.Layout_Item_Handle) {
-	ui_context := gc.ui_context
+setup_mouse :: proc(ui_context: ^vmouse.Context, game_window_handle: layout.Layout_Item_Handle) {
 	layout_ctx := &ui_context.layout_ctx
-
 
 	// Need to layout before we access clay data to setup virtual_mouse
 	layout.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
@@ -351,4 +325,11 @@ generate_camera :: proc() -> rl.Camera {
 		fovy = 95,
 		projection = .PERSPECTIVE,
 	}
+}
+
+@(private)
+get_game_checked :: proc(app: ap.Application) -> ^g.Game {
+	game := cast(^game.Game)app.game_interface.data
+	assert(game != nil)
+	return game
 }

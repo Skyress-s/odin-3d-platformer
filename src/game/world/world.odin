@@ -53,7 +53,7 @@ World_Session :: struct {
 	// Copied when we restart the run. Important that all
 	world_snapshot:                ^World,
 	current_best_speedrun_capture: Speedrun_Capture,
-	level_allocator:               mem.Allocator,
+	world_allocator:               mem.Allocator,
 	level_arena:                   vmem.Arena,
 }
 
@@ -76,18 +76,24 @@ Speedrun_Capture :: struct {
 world_init :: proc(world: ^World_Session) {
 	arena_err := vmem.arena_init_growing(&world.level_arena)
 	assert(arena_err == nil, fmt.tprint(arena_err))
-	world.level_allocator = vmem.arena_allocator(&world.level_arena)
+	world.world_allocator = vmem.arena_allocator(&world.level_arena)
 }
 
 world_deinit :: proc(world: ^World_Session) {
 	vmem.arena_destroy(&world.level_arena)
 }
 
-world_load_level :: proc(world: ^World_Session, level: ^World) {
-	world.level = level
-	sent.reconstruct_spatial_hash_grid_from_entities(&level.collision_scene, &world.level.entities)
+set_snapshot_level :: proc(world: ^World_Session, level: ^World) {
+	world.world_snapshot = level
+	// sent.reconstruct_spatial_hash_grid_from_entities(&level.collision_scene, &world.level.entities)
 	// loads level with level_allocator
 	// Load relevant assets (collision meshes) and assign to Collider_Mesh_Context
+}
+
+restore_from_snapshot :: proc(world_session: ^World_Session) {
+	free_all(world_session.world_allocator)
+	fresh_world := new(World, world_session.world_allocator)
+	fresh_world^ = world_session.world_snapshot^
 }
 
 // Does not delete level, called needs to remove level
@@ -99,7 +105,7 @@ world_unload_level :: proc(world: ^World_Session) {
 
 // External memory?
 world_goto_next_level :: proc(world: ^World_Session, level_path: string) {
-	free_all(world.level_allocator)
+	free_all(world.world_allocator)
 	// load level
 	// assign it
 	// remove unused colmeshes

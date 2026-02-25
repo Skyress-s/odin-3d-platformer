@@ -3,7 +3,6 @@ package query
 import col_scene "../"
 import logs "../../../../engine/core/logs/"
 import gent "../../../../game/game_entities/"
-import l "../../../../level/"
 import cc "../../collision_channel/"
 import cm "../../collision_mesh/"
 import cs "../../collision_scene/"
