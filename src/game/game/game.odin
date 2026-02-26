@@ -12,7 +12,8 @@ Game :: struct {
 	// game_textures:          render.Textures,
 	game_window_handle:   layout.Layout_Item_Handle,
 	game_rt_needs_update: bool,
+	mouse_over_game:      bool,
 	textures:             render.Textures,
 	virtual_mouse_ctx:    ^vmouse.Context,
-	ui_context:           ui.Context,
+	ui_context:           ^ui.Context,
 }

@@ -19,6 +19,7 @@ import cc "../../engine/core/collision_channel/"
 import spat "../../engine/core/spatial/"
 import ui "../../engine/core/ui/"
 import gs "../../game_state/"
+import g "../game"
 // import lfu "../../level_flow_utils/"
 import "../../engine/core/logs/"
 import clay "../../engine/core/ui/clay-odin/"
@@ -28,6 +29,7 @@ import vmouse "../../engine/core/virtual_mouse/"
 import player_data "../../player_data/"
 import plrs "../../players/"
 import "../../serialization/"
+import world "../world/"
 import hm "core:container/handle_map"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
@@ -35,12 +37,12 @@ MAP_FILE_EXTENSION :: ".map"
 MAP_FILE_EXTENSION_LENGTH :: len(MAP_FILE_EXTENSION)
 
 layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
+	game := cast(^g.Game)node.userdata
+	assert(game != nil)
 
 	image_render_command := new(ui_rr.Custom_Render_Command, context.temp_allocator)
 	image_render_command^ = ui_rr.Custom_Image_Render_Command {
-		&gc.textures.render_targets.game.texture,
+		&game.textures.render_targets.game.texture,
 		false,
 		true,
 	}
@@ -68,42 +70,38 @@ layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 				pointerData: clay.PointerData,
 				userData: rawptr,
 			) {
-				gc := cast(^gctx.Global_Context)userData
+				game := cast(^g.Game)userData
+				assert_contextless(game != nil)
 
-				assert_contextless(gc != nil)
-
-				gc.mouse_over_game = gc.ui_context.layout_ctx.dragging_handle == {}
+				game.mouse_over_game = game.ui_context.layout_ctx.dragging_handle == {}
 			}
 
-			clay.OnHover(on_hover, gc)
+			clay.OnHover(on_hover, game)
 
-			layout_reticle(&gc.players)
-			if gc.players.mode == .Game {
-				layout_speedrun_timer(&gc.players)
-				layout_game_speed_indicator(gc.players)
+			layout_reticle()
+			// if gc.players.mode == .Game {
+			layout_speedrun_timer(game.world_session.current_best_speedrun_capture)
+			// layout_game_speed_indicator(gc.players)
 
 
-				if clay.UI(clay.ID("Game_Divide"))(
-					config = clay.ElementDeclaration {
-						layout = clay.LayoutConfig {
-							layoutDirection = .LeftToRight,
-							sizing = {
-								width = clay.SizingPercent(1),
-								height = clay.SizingPercent(1),
-							},
-							// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
-						},
-						// backgroundColor = {50, 50, 50, 50},
+			if clay.UI(clay.ID("Game_Divide"))(
+				config = clay.ElementDeclaration {
+					layout = clay.LayoutConfig {
+						layoutDirection = .LeftToRight,
+						sizing = {width = clay.SizingPercent(1), height = clay.SizingPercent(1)},
+						// sizing = {width = clay.SizingGrow(), height = clay.SizingGrow()},
 					},
-				) {
+					// backgroundColor = {50, 50, 50, 50},
+				},
+			) {
 
-					layout_stats(&gc.players, gc.current_level)
-				}
-			} else {
-				// Might want to have something here?
-
-
+				// layout_stats(&gc.players, gc.current_level)
 			}
+			// } else {
+			// 	// Might want to have something here?
+			//
+			//
+			// }
 
 		}
 	}
@@ -118,15 +116,15 @@ layout_game_cheats_window :: proc(
 	node: ^layout.Layout_Item,
 	active_elems: ^layout.Active_Elements,
 ) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
+	game := cast(^g.Game)node.userdata
+	assert(game != nil)
 
-	layout_cheats_panel(gc.ui_context, &gc.players, &gc.game_state)
+	layout_cheats_panel(game.ui_context)
 }
 
 layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
+	game := cast(^g.Game)node.userdata
+	assert(game != nil)
 
 	if clay.UI()(
 	{
@@ -143,39 +141,41 @@ layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Activ
 }
 
 layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
 
-	layout_details_panel(
-		gc.ui_context,
-		&gc.players,
-		&gc.game_state,
-		gc.current_level,
-		active_elems,
-	)
-}
-
-layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-	gc := cast(^gctx.Global_Context)node.userdata
-	assert(gc != nil)
-
-	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
-	)
-	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx^)),
-	)
-	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
-	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
-	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
-	)
-
-
-	ui.layout_dynamic_text_entry(fmt.tprintf("Player Look Angles {}", gc.players.game.look_angles))
-	ui.layout_dynamic_text_entry(
-		fmt.tprintf("Virtual Mouse Delta {}", gc.virtual_mouse_ctx.mouse_delta),
-	)
+	ui.layout_dynamic_text_entry("To be built")
+	// 	gc := cast(^gctx.Global_Context)node.userdata
+	// 	assert(gc != nil)
+	//
+	// 	layout_details_panel(
+	// 		gc.ui_context,
+	// 		&gc.players,
+	// 		&gc.game_state,
+	// 		gc.current_level,
+	// 		active_elems,
+	// 	)
+	// }
+	//
+	// layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
+	// 	gc := cast(^gctx.Global_Context)node.userdata
+	// 	assert(gc != nil)
+	//
+	// 	ui.layout_dynamic_text_entry(
+	// 		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
+	// 	)
+	// 	ui.layout_dynamic_text_entry(
+	// 		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx^)),
+	// 	)
+	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
+	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
+	// 	ui.layout_dynamic_text_entry(
+	// 		fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
+	// 	)
+	//
+	//
+	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Player Look Angles {}", gc.players.game.look_angles))
+	// 	ui.layout_dynamic_text_entry(
+	// 		fmt.tprintf("Virtual Mouse Delta {}", gc.virtual_mouse_ctx.mouse_delta),
+	// 	)
 
 	// ui.layout_dynamic_text_entry(
 	// 	fmt.tprintf("Controlling leaf {}", gc.ui_context.layout_ctx.controlling_layout_item),
@@ -183,109 +183,97 @@ layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 }
 
 EDITOR_DETAILS_PANEL_NAME :: "Editor_Details_Panel"
-make_editor_details_node :: proc(
-	ctx: ^layout.Context,
-	gc: ^gctx.Global_Context,
-) -> layout.Layout_Item {
-	node := layout.make_layout_item(ctx, EDITOR_DETAILS_PANEL_NAME, gc, layout_editor_details)
+make_editor_details_node :: proc(ctx: ^layout.Context, game: ^g.Game) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, EDITOR_DETAILS_PANEL_NAME, game, layout_editor_details)
 	return node
 }
 
 GAME_WINDOW_NAME :: "Game_Window"
-make_game_window_node :: proc(
-	ctx: ^layout.Context,
-	gc: ^gctx.Global_Context,
-) -> layout.Layout_Item {
-	node := layout.make_layout_item(ctx, GAME_WINDOW_NAME, gc, layout_game_ui)
+make_game_window_node :: proc(ctx: ^layout.Context, game: ^g.Game) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, GAME_WINDOW_NAME, game, layout_game_ui)
 	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
 
 LOG_WINDOW_NAME :: "Log_Window"
-make_log_window_node :: proc(
-	ctx: ^layout.Context,
-	gc: ^gctx.Global_Context,
-) -> layout.Layout_Item {
-	node := layout.make_layout_item(ctx, LOG_WINDOW_NAME, gc, layout_game_ui)
+make_log_window_node :: proc(ctx: ^layout.Context, game: ^g.Game) -> layout.Layout_Item {
+	node := layout.make_layout_item(ctx, LOG_WINDOW_NAME, game, layout_game_ui)
 	node.size_percent = {1, 1} // Fill the entire available space
 	return node
 }
 
 
-layout_stats :: proc(
-	players: ^plrs.Players,
-	// game_state: ^game_state.Game_State,
-	// screen_rect: rl.Rectangle,
-	level: ^l.Level,
-) {
-	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
-	// clay.BeginLayout()
-	if clay.UI(clay.ID("stats_main"))(
-	{
-		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},
-		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
-		// floating = clay.FloatingElementConfig {
-		// 	offset = {50, 50},
-		// 	attachTo = .Parent,
-		// 	zIndex = 1000,
-		// },
-		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
-	},
-	) {
-		char_data := &players.game
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
-		)
-		ui.layout_dynamic_text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
+// layout_stats :: proc(
+// 	players: ^plrs.Players,
+// 	// game_state: ^game_state.Game_State,
+// 	// screen_rect: rl.Rectangle,
+// ) {
+// 	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
+// 	// clay.BeginLayout()
+// 	if clay.UI(clay.ID("stats_main"))(
+// 	{
+// 		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},
+// 		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
+// 		// floating = clay.FloatingElementConfig {
+// 		// 	offset = {50, 50},
+// 		// 	attachTo = .Parent,
+// 		// 	zIndex = 1000,
+// 		// },
+// 		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+// 	},
+// 	) {
+// 		char_data := &players.game
+// 		ui.layout_dynamic_text_entry(
+// 			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
+// 		)
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
+//
+// 		// Velocities
+// 		ui.layout_dynamic_text_entry(
+// 			fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity),
+// 		)
+// 		ui.layout_dynamic_text_entry(
+// 			fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)),
+// 		)
+// 		vel_xz := char_data.verlet_component.velocity
+// 		vel_xz.y = 0
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Current State {}", char_data.current_state))
+//
+// 		// Rope length
+// 		rope_length := linalg.distance(
+// 			char_data.verlet_component.position,
+// 			char_data.hooked_position,
+// 		)
+// 		ui.layout_dynamic_text_entry(
+// 			fmt.tprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0),
+// 		)
+//
+// 		// Enegies
+// 		m: f32 = 0.01
+// 		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+// 		kinetic_energy :=
+// 			0.5 *
+// 			m *
+// 			linalg.length(char_data.verlet_component.velocity) *
+// 			linalg.length(char_data.verlet_component.velocity)
+// 		total_energy := potential_energy + kinetic_energy
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Potential {:.1f}", potential_energy))
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Kinetic {:.1f}", kinetic_energy))
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Total {:.1f}", total_energy))
+// 		ui.layout_dynamic_text_entry(
+// 			fmt.tprintf(
+// 				"Best run    {}",
+// 				players.game.best_time != 0 ? fmt.tprintf("{:.3f}", players.game.best_time) : fmt.tprint("No Time Set"),
+// 			),
+// 		)
+// 		// ui.layout_dynamic_text_entry(fmt.tprintf("Author time {:.3f}", level.author_time))
+// 		ui.layout_dynamic_text_entry(fmt.tprintf("Author time Needs Implementation"))
+// 	}
+// }
 
-		// Velocities
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity),
-		)
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)),
-		)
-		vel_xz := char_data.verlet_component.velocity
-		vel_xz.y = 0
-		ui.layout_dynamic_text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
-		ui.layout_dynamic_text_entry(fmt.tprintf("Current State {}", char_data.current_state))
 
-		// Rope length
-		rope_length := linalg.distance(
-			char_data.verlet_component.position,
-			char_data.hooked_position,
-		)
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0),
-		)
-
-		// Enegies
-		m: f32 = 0.01
-		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
-		kinetic_energy :=
-			0.5 *
-			m *
-			linalg.length(char_data.verlet_component.velocity) *
-			linalg.length(char_data.verlet_component.velocity)
-		total_energy := potential_energy + kinetic_energy
-		ui.layout_dynamic_text_entry(fmt.tprintf("Potential {:.1f}", potential_energy))
-		ui.layout_dynamic_text_entry(fmt.tprintf("Kinetic {:.1f}", kinetic_energy))
-		ui.layout_dynamic_text_entry(fmt.tprintf("Total {:.1f}", total_energy))
-		ui.layout_dynamic_text_entry(
-			fmt.tprintf(
-				"Best run    {}",
-				players.game.best_time != 0 ? fmt.tprintf("{:.3f}", players.game.best_time) : fmt.tprint("No Time Set"),
-			),
-		)
-		ui.layout_dynamic_text_entry(fmt.tprintf("Author time {:.3f}", level.author_time))
-	}
-}
-
-
-layout_reticle :: proc(
-	players: ^plrs.Players, // screen_dimentions: [2]i32,
-	// screen_rect: mu.Rect,
-) {
+layout_reticle :: proc() {
 	if clay.UI(clay.ID("reticle_main"))(
 		config = clay.ElementDeclaration {
 			floating = clay.FloatingElementConfig {
@@ -361,11 +349,9 @@ layout_game_speed_indicator :: proc(
 }
 
 
-layout_speedrun_timer :: proc(players: ^plrs.Players) {
+layout_speedrun_timer :: proc(speedrun_stopwatch: world.Speedrun_Capture) {
 
-	duration_seconds := time.duration_seconds(
-		time.stopwatch_duration(players.game.speedrun_stop_watch),
-	)
+	duration_seconds := time.duration_seconds(time.stopwatch_duration(speedrun_stopwatch.time))
 
 	if clay.UI(clay.ID("speedrun_timer_main"))(
 		config = clay.ElementDeclaration {
@@ -388,7 +374,7 @@ Cheats_Panel_UI_State :: struct {
 }
 
 
-layout_cheats_panel :: proc(ctx: ^ui.Context, players: ^plrs.Players, game_state: ^gs.Game_State) {
+layout_cheats_panel :: proc(ctx: ^ui.Context) { 	// , players: ^plrs.Players, game_state: ^gs.Game_State
 
 
 	if clay.UI(clay.ID("cheats_panel_main"))(
@@ -430,17 +416,17 @@ layout_cheats_panel :: proc(ctx: ^ui.Context, players: ^plrs.Players, game_state
 			}
 			if ui.layout_dropdown(ctx, fmt.tprint("Cheats"), &cheats_dropdown) {
 
-				ui.layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
-
-				ui.layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
-				ui.layout_checkbox(
-					"debug_draw_utils",
-					&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-				)
-				ui.layout_checkbox(
-					"player_in_active_cell",
-					&game_state.cheat_state.change_color_when_player_in_cell,
-				)
+				// ui.layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
+				//
+				// ui.layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
+				// ui.layout_checkbox(
+				// 	"debug_draw_utils",
+				// 	&game_state.cheat_state.draw_debug_draw_utilities_instructions,
+				// )
+				// ui.layout_checkbox(
+				// 	"player_in_active_cell",
+				// 	&game_state.cheat_state.change_color_when_player_in_cell,
+				// )
 			}
 		}
 	}
@@ -850,11 +836,11 @@ render_restrict_rect :: proc(ctx: vmouse.Context) {
 }
 
 setup_initial_window_layout :: proc(
-	gc: ^gctx.Global_Context,
+	ui_ctx: ^ui.Context,
 ) -> (
 	game_handle: layout.Layout_Item_Handle,
 ) {
-	layout_ctx := &gc.ui_context.layout_ctx
+	layout_ctx := &ui_ctx.layout_ctx
 
 	game_window_item := make_game_window_node(layout_ctx, gc)
 	game_window_handle := layout.add_layout_node(

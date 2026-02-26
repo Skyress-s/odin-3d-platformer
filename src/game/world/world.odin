@@ -8,6 +8,7 @@ import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
 import "base:runtime"
 import "core:fmt"
+import "core:time"
 
 import mem "core:mem"
 import vmem "core:mem/virtual"
@@ -62,7 +63,7 @@ Player_Initial_State :: struct {
 }
 
 Speedrun_Capture :: struct {
-	time: Time_Trail_Float,
+	time: time.Stopwatch,
 }
 
 // game_init :: proc(game: ^Game) {

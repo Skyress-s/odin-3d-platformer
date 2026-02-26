@@ -17,7 +17,7 @@ import game2 "../../game/"
 import gent "../../game/game_entities/"
 import game_ui "../../game/game_ui/"
 import sent "../../game/spawn_entities/"
-import world "../../game/world/"
+import w "../../game/world/"
 import gs "../../game_state/"
 import plrs "../../players/"
 import rlb "../../raylib_bridge/"
@@ -61,15 +61,15 @@ game_init :: proc(app: ^ap.Application) {
 		},
 	)
 
-	game.world_session = new(world.World_Session)
-	world.world_init(game.world_session)
+	game.world_session = new(w.World_Session)
+	w.world_init(game.world_session)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
-	current_world := new(world.World)
+	current_world := new(w.World)
 	current_world^ = make_basic_world()
 
-	world.set_snapshot_world(game, current_world)
-	world.restore_from_snapshot(game)
+	w.set_snapshot_world(game, current_world)
+	w.restore_from_snapshot(game)
 
 	// character.reset_run(&players.game, &current_level.World, &current_level.World)
 
@@ -92,10 +92,10 @@ game_init :: proc(app: ^ap.Application) {
 	// }
 
 	// Add game window as a Layout_Item in the layout system
-	game_window_handle := game_ui.setup_initial_window_layout(&game.global_ctx)
+	game_window_handle := game_ui.setup_initial_window_layout(game.ui_context)
 	game.game_window_handle = game_window_handle
 
-	setup_mouse(game.virtual_mouse_ctx, game_window_handle)
+	setup_mouse(game.ui_context, game.virtual_mouse_ctx, game_window_handle)
 
 	game.game_rt_needs_update = true
 
@@ -124,9 +124,9 @@ game_update :: proc(app: ^ap.Application) {
 
 	debug_draw_data, game_rect := update_all(game)
 
-	render_all(gc, &debug_draw_data, game_rect)
+	render_all(game, &debug_draw_data, game_rect)
 
-	ui.end_frame(gc.ui_context)
+	ui.end_frame(game.ui_context)
 	free_all(context.temp_allocator)
 }
 
@@ -156,10 +156,10 @@ update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
 	}
 
 	debug_draw_data := game2.update(
-		gc,
+		game,
 		game_rect,
-		gc.ui_context.layout_ctx.hover_layout_handle == game_window_handle,
-		vmouse.get_mouse_pos(gc.virtual_mouse_ctx^),
+		game.ui_context.layout_ctx.hover_layout_handle == game.game_window_handle,
+		vmouse.get_mouse_pos(game.virtual_mouse_ctx^),
 	)
 
 	return debug_draw_data, game_rect
@@ -172,10 +172,10 @@ render_all :: proc(
 ) {
 	layout_ctx := &game.ui_context.layout_ctx
 	// render to RT
-	render_game.render(game, &debug_draw_data, game_rect)
+	render_game.render(game, debug_draw_data, game_rect)
 
 	// Layout pass
-	free_all(gc.ui_context.layout_ctx.temp_allocator)
+	free_all(game.ui_context.layout_ctx.temp_allocator)
 	clay.BeginLayout()
 	layout.layout(layout_ctx)
 	ui_render_commands := clay.EndLayout()
@@ -193,22 +193,22 @@ render_all :: proc(
 	// Draw UI overlay
 	layout.render(&ui_render_commands)
 
-	if !vmouse.is_cursor_hidden(gc.virtual_mouse_ctx^) {
-		x := i32(gc.virtual_mouse_ctx.mouse_position.x)
-		y := i32(gc.virtual_mouse_ctx.mouse_position.y)
+	if !vmouse.is_cursor_hidden(game.virtual_mouse_ctx^) {
+		x := i32(game.virtual_mouse_ctx.mouse_position.x)
+		y := i32(game.virtual_mouse_ctx.mouse_position.y)
 
 
 		rl.DrawTexturePro(
-			gc.textures.cursor_texture,
+			game.textures.cursor_texture,
 			rl.Rectangle {
 				0,
 				0,
-				f32(gc.textures.cursor_texture.width - 1),
-				f32(gc.textures.cursor_texture.height - 1),
+				f32(game.textures.cursor_texture.width - 1),
+				f32(game.textures.cursor_texture.height - 1),
 			},
 			rl.Rectangle {
-				gc.virtual_mouse_ctx.mouse_position.x,
-				gc.virtual_mouse_ctx.mouse_position.y,
+				game.virtual_mouse_ctx.mouse_position.x,
+				game.virtual_mouse_ctx.mouse_position.y,
 				24,
 				24,
 			},
@@ -219,11 +219,9 @@ render_all :: proc(
 
 	}
 
-	game_ui.render_restrict_rect(gc.virtual_mouse_ctx^)
+	game_ui.render_restrict_rect(game.virtual_mouse_ctx^)
 
 	rl.EndDrawing()
-
-
 }
 
 get_game_rect :: proc(
@@ -253,7 +251,11 @@ get_game_rect :: proc(
 }
 
 
-setup_mouse :: proc(ui_context: ^vmouse.Context, game_window_handle: layout.Layout_Item_Handle) {
+setup_mouse :: proc(
+	ui_context: ^ui.Context,
+	vmouse_ctx: ^vmouse.Context,
+	game_window_handle: layout.Layout_Item_Handle,
+) {
 	layout_ctx := &ui_context.layout_ctx
 
 	// Need to layout before we access clay data to setup virtual_mouse
@@ -270,16 +272,16 @@ setup_mouse :: proc(ui_context: ^vmouse.Context, game_window_handle: layout.Layo
 		bounds := layout.get_clay_bounding_box_checked(item.id)
 
 		vmouse.restrict_mouse(
-			gc.virtual_mouse_ctx,
+			vmouse_ctx,
 			vmouse.Vec2{f32(bounds.x + bounds.width / 2), f32(bounds.y + bounds.height / 2)},
 		)
-		vmouse.hide_cursor(gc.virtual_mouse_ctx)
+		vmouse.hide_cursor(vmouse_ctx)
 	}
 }
 
 
-make_basic_world :: proc() -> (world: world.World) {
-	cm.init(&world.collsion_scene.collision_meshes)
+make_basic_world :: proc() -> (world: w.World) {
+	cm.init(&world.collision_scene.collision_meshes)
 	ents := &world.entities
 
 	ent1 := sent.spawn_box(
@@ -288,7 +290,8 @@ make_basic_world :: proc() -> (world: world.World) {
 			rotation = spat.QUATERNION_IDENTITY,
 			scale = spat.ONE_VEC3 * 4,
 		},
-		&world,
+		&world.collision_scene,
+		&world.entities,
 	)
 	gent.add_traits_checked({.Grabable}, ent1)
 
@@ -298,12 +301,13 @@ make_basic_world :: proc() -> (world: world.World) {
 			rotation = spat.QUATERNION_IDENTITY,
 			scale = spat.ONE_VEC3 + spat.Vector{1, 0, 1} * 8,
 		},
-		&world,
+		&world.collision_scene,
+		&world.entities,
 	)
 
-	sent.reconstruct_spatial_hash_grid_from_entities(&world.collsion_scene, &world.entities)
+	sent.reconstruct_spatial_hash_grid_from_entities(&world.collision_scene, &world.entities)
 
-	csq.shg_valid_checked(world.entities, world.collsion_scene.spatial_hash_grid)
+	csq.shg_valid_checked(world.entities, world.collision_scene.spatial_hash_grid)
 
 
 	return world
@@ -321,7 +325,7 @@ generate_camera :: proc() -> rl.Camera {
 
 @(private)
 get_game_checked :: proc(app: ap.Application) -> ^g.Game {
-	game := cast(^game.Game)app.game_interface.data
+	game := cast(^g.Game)app.game_interface.data
 	assert(game != nil)
 	return game
 }

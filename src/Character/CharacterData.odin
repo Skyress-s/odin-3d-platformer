@@ -10,6 +10,7 @@ import verlet "../engine/core/physics/verlet"
 import spat "../engine/core/spatial"
 import vmouse "../engine/core/virtual_mouse/"
 import gent "../game/game_entities/"
+import w "../game/world/"
 import "../game_state"
 import "../input"
 import "../player_data"
@@ -47,8 +48,6 @@ CharacternData :: struct {
 
 	// Cheats
 	air_jumping_cheat:      bool,
-
-	// If we pause the game and resume, we want to exclude that period of time -> why its an array of timers
 	speedrun_stop_watch:    time.Stopwatch,
 	best_time:              f64,
 }
@@ -72,7 +71,7 @@ get_current_speedrun_time :: proc(game_player: ^CharacternData) -> f64 {
 
 update_character :: proc(
 	character_data: ^CharacternData,
-	level: ^l.Level,
+	world: ^w.World,
 	gamestate: ^game_state.Game_State,
 	dt: f32,
 	mctx: vmouse.Context,
@@ -84,7 +83,11 @@ update_character :: proc(
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
-		reset_run(character_data, &level.start_position, &level.start_look_direction)
+		reset_run(
+			character_data,
+			&world.player_initial_state.position,
+			&world.player_initial_state.look_direction,
+		)
 		gamestate.finished_level = false
 	}
 
@@ -109,13 +112,13 @@ update_character :: proc(
 				1000.0,
 			)
 			ok, id, hook_hit_location := cs.ray_intersect_spatial_hash_grid(
-				&level.collsion_scene.spatial_hash_grid,
-				&level.entities,
-				&level.collsion_scene.collision_meshes,
+				&world.collision_scene.spatial_hash_grid,
+				&world.entities,
+				&world.collision_scene.collision_meshes,
 				ray,
 			)
 			ddu.enqueue_ins(&ddu.Line_Ins{ray, rl.WHITE}, 5)
-			entity: ^gent.Entity = hm.get(&level.entities, id)
+			entity: ^gent.Entity = hm.get(&world.entities, id)
 			if entity != nil {
 				logs.debugf(.Gamelogic, "hit object")
 				is_grappable := gent.Trait.Grabable in entity.traits
@@ -143,9 +146,9 @@ update_character :: proc(
 		)
 
 		ok, id, location := cs.ray_intersect_spatial_hash_grid(
-			&level.collsion_scene.spatial_hash_grid,
-			&level.entities,
-			&level.collsion_scene.collision_meshes,
+			&world.collision_scene.spatial_hash_grid,
+			&world.entities,
+			&world.collision_scene.collision_meshes,
 			ray,
 		)
 
@@ -176,7 +179,8 @@ notify_level_loaded :: proc(character_data: ^CharacternData) {
 
 update_character_physics :: proc(
 	character_data: ^CharacternData,
-	level: ^l.Level,
+	col_scene: ^cs.Collision_Scene,
+	ents: ^gent.Game_Entity_Handle_Map,
 	player_hash_cells: ^map[cs.Hash_Key]bool,
 	dt: f32,
 ) {
@@ -210,14 +214,14 @@ update_character_physics :: proc(
 	defer delete(movement_hash_cells)
 
 	for hash_key in movement_hash_cells {
-		object_ids := level.collsion_scene.spatial_hash_grid[hash_key]
+		object_ids := col_scene.spatial_hash_grid[hash_key]
 		for &collision_object_id in object_ids.objects_ids {
 
-			ent: ^gent.Entity = hm.get(&level.entities, collision_object_id)
+			ent: ^gent.Entity = hm.get(ents, collision_object_id)
 			assert(ent != nil)
 			assert(gent.has_traits({.Transform, .Collision}, ent^))
 			col_mesh: ^cm.Mesh = hm.get(
-				&level.collsion_scene.collision_meshes.mesh_map,
+				&col_scene.collision_meshes.mesh_map,
 				ent.collision_component.mesh_id,
 			)
 			assert(col_mesh != nil)
@@ -359,8 +363,6 @@ update_character_physics :: proc(
 	}
 
 	// TODO: When continually swinging without intup, we will very gradually gain total engergy.
-
-
 }
 
 

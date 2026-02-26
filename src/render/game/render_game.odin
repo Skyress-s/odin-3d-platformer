@@ -22,7 +22,7 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 
 
-render :: proc(game: ^g.Game, debug_draw_data: ^Debug_Draw_Data, game_rect: rl.Rectangle) {
+render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rect: rl.Rectangle) {
 	dt := rl.GetFrameTime()
 	// rl.BeginDrawing()
 	rl.BeginTextureMode(render_targets.game)

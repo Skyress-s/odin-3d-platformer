@@ -92,14 +92,16 @@ add_trait_transform :: proc(
 	ent.transform_component.transform = transform
 }
 
-spawn_box :: proc(transform: spat.Transform, level: ^l.Level) -> ^gent.Entity {
-	ents := &level.entities
-
+spawn_box :: proc(
+	transform: spat.Transform,
+	col_scene: ^cs.Collision_Scene,
+	ents: ^gent.Game_Entity_Handle_Map,
+) -> ^gent.Entity {
 	new_ent_handle := spawn_empty_entity(ents)
 	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
 
 	add_trait_transform(ents, new_ent_handle, transform)
-	add_trait_collision_shape(level, new_ent_handle, .Box)
+	add_trait_collision_shape(ents, col_scene, new_ent_handle, .Box)
 
 	return new_ent
 }

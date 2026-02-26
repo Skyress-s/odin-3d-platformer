@@ -65,7 +65,8 @@ init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 on_click :: proc(
 	transform_tool: ^Transform_Tool_Data,
 	cam: ^rl.Camera3D,
-	current_level: ^l.Level,
+	collision_scene: ^cs.Collision_Scene,
+	entities: ^gent.Game_Entity_Handle_Map,
 	mouse_pos: rl.Vector2,
 	ray: spat.Ray,
 ) {
@@ -76,19 +77,19 @@ on_click :: proc(
 	ray := ray
 	ray.end = ray.origin + (ray.end - ray.origin) * 100000 // augh
 
-	found_object: ^gent.Entity = hm.get(&current_level.entities, transform_tool.target_object_id)
+	found_object: ^gent.Entity = hm.get(entities, transform_tool.target_object_id)
 
 	if found_object == nil {
 		hit_object, id, position := cs.ray_intersect_spatial_hash_grid(
-			&current_level.collsion_scene.spatial_hash_grid,
-			&current_level.entities,
-			&current_level.collsion_scene.collision_meshes,
+			&collision_scene.spatial_hash_grid,
+			entities,
+			&collision_scene.collision_meshes,
 			ray,
 		)
 
 		if hit_object {
 			transform_tool.target_object_id = id
-			ent: ^gent.Entity = hm.get(&current_level.entities, id)
+			ent: ^gent.Entity = hm.get(entities, id)
 			assert(ent != nil)
 			transform_tool.start_transform = ent.transform_component.transform
 		}
