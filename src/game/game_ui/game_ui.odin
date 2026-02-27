@@ -1,7 +1,5 @@
 package game_ui
 
-import gent "../../game/game_entities/"
-import sent "../../game/spawn_entities"
 import "core:c"
 import "core:fmt"
 import "core:math"
@@ -11,15 +9,17 @@ import "core:path/filepath"
 import "core:strings"
 import "core:time"
 
-import rl "vendor:raylib"
-
 import character "../../Character/"
 import et "../../editor/tools/"
 import cc "../../engine/core/collision_channel/"
 import spat "../../engine/core/spatial/"
 import ui "../../engine/core/ui/"
+import gent "../../game/game_entities/"
+import sent "../../game/spawn_entities"
+import w "../../game/world/"
 import gs "../../game_state/"
 import g "../game"
+import rl "vendor:raylib"
 // import lfu "../../level_flow_utils/"
 import "../../engine/core/logs/"
 import clay "../../engine/core/ui/clay-odin/"
@@ -445,7 +445,7 @@ layout_details_panel :: proc(
 	ctx: ^ui.Context,
 	players: ^plrs.Players,
 	game_state: ^gs.Game_State,
-	level: ^l.Level,
+	level: ^w.World,
 	active_elems: ^layout.Active_Elements,
 ) {
 	current_id := players.editor.transform_tool.target_object_id
@@ -453,7 +453,7 @@ layout_details_panel :: proc(
 	_, player_forward, _ := player_data.calculate_direction_from_look(players.editor.look_data)
 
 
-	col_scene := &level.collsion_scene
+	col_scene := &level.collision_scene
 
 	@(static) spawn_entities_drowdown := false
 	if ui.layout_dropdown(ctx, fmt.tprintf("Spawn Entities"), &spawn_entities_drowdown) {
@@ -464,7 +464,8 @@ layout_details_panel :: proc(
 					rotation = spat.QUATERNION_IDENTITY,
 					scale = spat.ONE_VEC3,
 				},
-				level,
+				&level.collision_scene,
+				&level.entities,
 			)
 
 		}
@@ -646,7 +647,7 @@ layout_details_panel :: proc(
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
-			level.author_time = players.game.best_time
+			// level.author_best_speedrun_capture. = players.game.best_time
 			// slevel, slevel_ok := serialization.serialize_level(level)
 			// assert(slevel_ok)
 			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
@@ -666,7 +667,11 @@ layout_details_panel :: proc(
 			// )
 
 			character.notify_level_loaded(&players.game)
-			character.reset_run(&players.game, &level.start_position, &level.start_look_direction)
+			character.reset_run(
+				&players.game,
+				&level.player_initial_state.position,
+				&level.player_initial_state.look_direction,
+			)
 		}
 
 	}
@@ -835,14 +840,11 @@ render_restrict_rect :: proc(ctx: vmouse.Context) {
 	draw_mouse_restrict_corner_box(bottom_right)
 }
 
-setup_initial_window_layout :: proc(
-	ui_ctx: ^ui.Context,
-) -> (
-	game_handle: layout.Layout_Item_Handle,
-) {
+setup_initial_window_layout :: proc(game: ^g.Game) -> (game_handle: layout.Layout_Item_Handle) {
+	ui_ctx := game.ui_context
 	layout_ctx := &ui_ctx.layout_ctx
 
-	game_window_item := make_game_window_node(layout_ctx, gc)
+	game_window_item := make_game_window_node(layout_ctx, game)
 	game_window_handle := layout.add_layout_node(
 		&layout_ctx.lic,
 		layout_ctx.root,
@@ -851,7 +853,7 @@ setup_initial_window_layout :: proc(
 	)
 
 	{
-		log_layout_item := layout.make_layout_item(layout_ctx, "log", gc, layout_log_window)
+		log_layout_item := layout.make_layout_item(layout_ctx, "log", game, layout_log_window)
 		log_layout_item.size_percent = {1, 0.2}
 		log_layout_handle := layout.add_to_context(layout_ctx, log_layout_item)
 		layout.insert_item_new_level(
@@ -864,7 +866,12 @@ setup_initial_window_layout :: proc(
 		)
 	}
 	{
-		ui_layout_item := layout.make_layout_item(layout_ctx, "ui_details", gc, layout_ui_data)
+		ui_layout_item := layout.make_layout_item(
+			layout_ctx,
+			"ui_details",
+			game,
+			layout_log_window,
+		)
 		ui_layout_item.size_percent = {0.5, 0.2}
 		ui_layout_handle := layout.add_layout_node(
 			&layout_ctx.lic,
@@ -877,7 +884,7 @@ setup_initial_window_layout :: proc(
 		cheats_layout_item := layout.make_layout_item(
 			layout_ctx,
 			"cheats",
-			gc,
+			game,
 			layout_game_cheats_window,
 		)
 		cheats_layout_item.size_percent = {0.5, 0.5}
@@ -895,7 +902,7 @@ setup_initial_window_layout :: proc(
 		editor_default_layout_item := layout.make_layout_item(
 			layout_ctx,
 			"editor_details",
-			gc,
+			game,
 			layout_editor_details,
 		)
 		editor_default_layout_item.size_percent = {1, 0.7}

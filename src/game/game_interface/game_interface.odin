@@ -53,6 +53,8 @@ game_init :: proc(app: ^ap.Application) {
 
 	game := cast(^g.Game)app.game_interface.data
 	assert(game != nil)
+	game.ui_context = &app.ui_context
+	game.virtual_mouse_ctx = &app.virtual_mouse_ctx
 
 	game.textures = render.textures_init(
 		{
@@ -92,7 +94,7 @@ game_init :: proc(app: ^ap.Application) {
 	// }
 
 	// Add game window as a Layout_Item in the layout system
-	game_window_handle := game_ui.setup_initial_window_layout(game.ui_context)
+	game_window_handle := game_ui.setup_initial_window_layout(game)
 	game.game_window_handle = game_window_handle
 
 	setup_mouse(game.ui_context, game.virtual_mouse_ctx, game_window_handle)
@@ -122,9 +124,18 @@ game_deinit :: proc(app: ^ap.Application) {
 game_update :: proc(app: ^ap.Application) {
 	game := get_game_checked(app^)
 
-	debug_draw_data, game_rect := update_all(game)
+	cam := rl.Camera {
+		position   = {5, 1, 5},
+		target     = {0, 0, 3},
+		up         = {0, 3, 0},
+		fovy       = 95,
+		projection = .PERSPECTIVE,
+	}
 
-	render_all(game, &debug_draw_data, game_rect)
+
+	debug_draw_data, game_rect := update_all(game, cam)
+
+	render_all(game, &debug_draw_data, game_rect, cam)
 
 	ui.end_frame(game.ui_context)
 	free_all(context.temp_allocator)
@@ -136,7 +147,7 @@ game_update_physics :: proc(app: ^ap.Application) {}
 @(private)
 game_render :: proc(app: ^ap.Application) {}
 
-update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
+update_all :: proc(game: ^g.Game, cam: rl.Camera) -> (render.Debug_Draw_Data, rl.Rectangle) {
 	ui_context := game.ui_context
 	layout_ctx := &ui_context.layout_ctx
 
@@ -160,6 +171,7 @@ update_all :: proc(game: ^g.Game) -> (render.Debug_Draw_Data, rl.Rectangle) {
 		game_rect,
 		game.ui_context.layout_ctx.hover_layout_handle == game.game_window_handle,
 		vmouse.get_mouse_pos(game.virtual_mouse_ctx^),
+		cam,
 	)
 
 	return debug_draw_data, game_rect
@@ -169,10 +181,11 @@ render_all :: proc(
 	game: ^g.Game,
 	debug_draw_data: ^render.Debug_Draw_Data,
 	game_rect: rl.Rectangle,
+	cam: rl.Camera,
 ) {
 	layout_ctx := &game.ui_context.layout_ctx
 	// render to RT
-	render_game.render(game, debug_draw_data, game_rect)
+	render_game.render(game, debug_draw_data, game_rect, cam)
 
 	// Layout pass
 	free_all(game.ui_context.layout_ctx.temp_allocator)

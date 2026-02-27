@@ -6,6 +6,7 @@ import gs "../../game_state/"
 import render "../../render/"
 import w "../world/"
 
+import camera_state "../../camera/"
 import ui "../../engine/core/ui/"
 
 Game :: struct {
@@ -18,4 +19,5 @@ Game :: struct {
 	virtual_mouse_ctx:    ^vmouse.Context,
 	ui_context:           ^ui.Context,
 	game_state:           gs.Game_State,
+	camera_state:         camera_state.Global_State,
 }

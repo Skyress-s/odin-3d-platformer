@@ -23,11 +23,17 @@ import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
 
-render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rect: rl.Rectangle) {
+render :: proc(
+	game: ^g.Game,
+	debug_draw_data: ^render.Debug_Draw_Data,
+	game_rect: rl.Rectangle,
+	cam: rl.Camera,
+) {
 	dt := rl.GetFrameTime()
 	// rl.BeginDrawing()
 	rl.BeginTextureMode(game.textures.render_targets.game)
 	rl.ClearBackground({40, 30, 50, 255})
+
 
 	rl.BeginMode3D(cam)
 
@@ -280,7 +286,7 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 	rl.BeginShaderMode(shader_editor_tool_depth)
 
 	if players.mode == plrs.Player_Mode.Editor {
-		e_tools.draw_tooltip(&level.entities, tool, players.editor.position)
+		e_tools.draw_tooltip(&game.entities, tool, players.editor.position)
 	}
 
 	rl.EndShaderMode()
