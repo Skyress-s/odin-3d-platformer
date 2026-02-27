@@ -6,12 +6,14 @@ import hent "../../engine/core/entity_handle/"
 import spat "../../engine/core/spatial/"
 import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
+import plrs "../../players/"
+
+
 import "base:runtime"
 import "core:fmt"
-import "core:time"
-
 import mem "core:mem"
 import vmem "core:mem/virtual"
+import "core:time"
 
 Time_Trail_Float :: f64
 
@@ -51,6 +53,7 @@ World :: struct {
 // Maybe better name is world session?
 World_Session :: struct {
 	using world:                   ^World, // Only one level active at the time. Lets not overscope this project.
+	using players:                 plrs.Players,
 	// Copied when we restart the run. Important that all
 	world_snapshot:                ^World,
 	current_best_speedrun_capture: Speedrun_Capture,

@@ -10,22 +10,23 @@ import hent "../../engine/core/entity_handle/"
 import spat "../../engine/core/spatial/"
 import g "../../game/game/"
 import gent "../../game/game_entities/"
+import w "../../game/world/"
 import gs "../../game_state"
 import lightray "../../lightray"
 import "../../player_data/"
 import plrs "../../players/"
-import rlgl "vendor:raylib/rlgl"
 
 import "core:c"
 import hm "core:container/handle_map"
 import "core:math/linalg"
 import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 
 render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rect: rl.Rectangle) {
 	dt := rl.GetFrameTime()
 	// rl.BeginDrawing()
-	rl.BeginTextureMode(render_targets.game)
+	rl.BeginTextureMode(game.textures.render_targets.game)
 	rl.ClearBackground({40, 30, 50, 255})
 
 	rl.BeginMode3D(cam)
@@ -50,17 +51,17 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 
 	rl.DrawSphere(spat.Vector{0, 100, 0}, 1, col.YELLOW)
 
-	tool := &players.editor.transform_tool
+	tool := &game.players.editor.transform_tool
 
 	// Draw debug tooltips
-	if game_state.cheat_state.draw_debug_draw_utilities_instructions {
+	if game.game_state.cheat_state.draw_debug_draw_utilities_instructions {
 		ddu.draw_all_instructions_and_reset()
 		ddu.update_lifetime_and_clean(dt)
 	} else {
 		ddu.clear_all_instructions()
 	}
 
-	hm.iterator_make()
+	players := game.players
 
 	switch players.mode {
 	case plrs.Player_Mode.Game:
@@ -139,14 +140,14 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 
 	draw_collision_object :: proc(
 		id: hent.Entity_Handle,
-		level: ^l.Level,
+		level: ^w.World,
 		face_color, edge_color: rl.Color,
 	) {
 		entity: ^gent.Entity = hm.static_get(&level.entities, id)
 		assert(entity != nil)
 
 		collision_mesh: ^cm.Mesh = hm.static_get(
-			&level.collsion_scene.collision_meshes.mesh_map,
+			&level.collision_scene.collision_meshes.mesh_map,
 			entity.collision_component.mesh_id,
 		)
 		assert(collision_mesh != nil)
@@ -162,7 +163,7 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 	drawn_collision_objects_ids: map[hent.Entity_Handle]bool
 	defer delete(drawn_collision_objects_ids)
 
-	itr := hm.iterator_make(&level.entities)
+	itr := hm.iterator_make(&game.entities)
 	for entity in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, entity^) do continue
 
@@ -171,9 +172,8 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 		else if gent.has_traits({.Grabable}, entity^) do col = rl.SKYBLUE
 		else if gent.has_traits({.Kill}, entity^) do col = rl.RED
 
-		draw_collision_object(entity.handle, level, col, rl.WHITE)
+		draw_collision_object(entity.handle, game.world, col, rl.WHITE)
 	}
-
 
 	// for star_id, picked_up in level.collsion_scene.stars {
 	// 	drawn_collision_objects_ids[star_id] = true
@@ -254,13 +254,10 @@ render :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, game_rec
 	// rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
 
 
-	if game_state.cheat_state.draw_bounds {
+	if game.game_state.cheat_state.draw_bounds {
 		hash_key := cs.Hash_Location(player_verlet.position)
 		cs.Draw_Hash_Cell_Bounds(hash_key)
-		cs.draw_hash_grid_bounds_populated_cells(
-			level.collsion_scene.spatial_hash_grid,
-			&hash_key,
-		)}
+		cs.draw_hash_grid_bounds_populated_cells(game.spatial_hash_grid, &hash_key)}
 
 
 	/*

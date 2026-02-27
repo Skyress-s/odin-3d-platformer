@@ -283,7 +283,6 @@ update_editor_player :: proc(world_session: ^world.World_Session, ent: ^gent.Ent
 	_, forward, right := player_data.calculate_direction_from_look(gc.players.editor.look_data)
 
 	camera.update_transform(&gc.camera_state, gc.players.editor.position, forward, right)
-
 }
 
 update_transform_tool :: proc(world_session: ^world.World_Session, ent: ^gent.Entity) {
