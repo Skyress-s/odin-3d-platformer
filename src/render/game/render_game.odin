@@ -7,6 +7,7 @@ import e_tools "../../editor/tools"
 import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene/"
 import hent "../../engine/core/entity_handle/"
+import logs "../../engine/core/logs"
 import spat "../../engine/core/spatial/"
 import g "../../game/game/"
 import gent "../../game/game_entities/"
@@ -170,6 +171,7 @@ render :: proc(
 	defer delete(drawn_collision_objects_ids)
 
 	itr := hm.iterator_make(&game.entities)
+	logs.warnf(.Gamelogic, "Render {}", rawptr(game.world_session.world))
 	for entity in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, entity^) do continue
 
@@ -180,6 +182,7 @@ render :: proc(
 
 		draw_collision_object(entity.handle, game.world, col, rl.WHITE)
 	}
+	logs.warnf(.Gamelogic, "Render")
 
 	// for star_id, picked_up in level.collsion_scene.stars {
 	// 	drawn_collision_objects_ids[star_id] = true
@@ -282,6 +285,7 @@ render :: proc(
 		}
 
 		*/
+
 	lightray.end_lighting()
 	rl.BeginShaderMode(shader_editor_tool_depth)
 

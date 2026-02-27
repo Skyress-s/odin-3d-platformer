@@ -98,6 +98,7 @@ restore_from_snapshot :: proc(world_session: ^World_Session) {
 	free_all(world_session.world_allocator)
 	fresh_world := new(World, world_session.world_allocator)
 	fresh_world^ = world_session.world_snapshot^
+	world_session.world = fresh_world
 }
 
 // Does not delete level, called needs to remove level

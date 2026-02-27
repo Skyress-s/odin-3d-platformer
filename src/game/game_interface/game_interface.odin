@@ -102,6 +102,8 @@ game_init :: proc(app: ^ap.Application) {
 	game.game_rt_needs_update = true
 
 	rl.SetExitKey(.Y)
+
+	logs.warnf(.Gamelogic, "Finished Initializing Game")
 }
 
 @(private)
@@ -117,11 +119,13 @@ game_deinit :: proc(app: ^ap.Application) {
 	// cm.deinit(&game.world_session)
 
 	free(game.world_session)
+	logs.warnf(.Gamelogic, "Finished Deinitializing Game")
 }
 
 
 @(private)
 game_update :: proc(app: ^ap.Application) {
+	logs.warnf(.Gamelogic, "Game Update")
 	game := get_game_checked(app^)
 
 	cam := rl.Camera {
@@ -139,6 +143,7 @@ game_update :: proc(app: ^ap.Application) {
 
 	ui.end_frame(game.ui_context)
 	free_all(context.temp_allocator)
+	logs.warnf(.Gamelogic, "Finished Game Update")
 }
 
 
