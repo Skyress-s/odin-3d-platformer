@@ -123,22 +123,18 @@ world_unload_level :: proc(world: ^World_Session) {
 }
 
 // External memory?
-world_goto_next_level :: proc(world: ^World_Session, level_path: string) {
-	free_all(world.world_allocator)
+world_goto_next_level :: proc(world_session: ^World_Session, world: ^World) {
+	world_deinit(world_session.world)
+
+	free(world_session.world)
+
+	world_session.world = world
 	// load level
 	// assign it
 	// remove unused colmeshes
 	// recalc shg
 }
 
-world_restart :: proc(world: ^World_Session, level_path: string) {
-	world_goto_next_level(world, level_path)
-}
-
-level_init :: proc(level: ^World, allocator: runtime.Allocator) {
-	cs.init_collision_scene(&level.collision_scene, allocator)
-}
-
-level_deinit :: proc(level: ^World, allocator: runtime.Allocator) {
-	cs.deinit_collision_scene(&level.collision_scene)
-}
+// world_restart :: proc(world: ^World_Session, level_path: string) {
+// 	world_goto_next_level(world, level_path)
+// }

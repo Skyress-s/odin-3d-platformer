@@ -152,7 +152,7 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 	)
 	update_character.update_character(
 		&game.players.game,
-		game.world,
+		game.world_session,
 		&game.game_state,
 		dt,
 		game.virtual_mouse_ctx^,

@@ -12,6 +12,7 @@ import spat "../../engine/core/spatial"
 import vmouse "../../engine/core/virtual_mouse/"
 import gent "../../game/game_entities/"
 import w "../../game/world/"
+import wutils "../../game/world_utils/"
 import "../../game_state"
 import "../../input"
 import "../../player_data"
@@ -294,7 +295,7 @@ handle_movement_input_Grounded :: proc(
 }
 update_character :: proc(
 	character_data: ^character.CharacternData,
-	world: ^w.World,
+	world_session: ^w.World_Session,
 	gamestate: ^game_state.Game_State,
 	dt: f32,
 	mctx: vmouse.Context,
@@ -306,13 +307,19 @@ update_character :: proc(
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
-		initial_state := world.player_initial_state
+		initial_state := world_session.player_initial_state
+		fresh_world := new(w.World)
+		wutils.make_basic_world(fresh_world)
+		w.world_goto_next_level(world_session, world_session)
+
 		character.reset_run(
 			character_data,
 			initial_state.position,
 			initial_state.speed,
 			initial_state.look_direction,
 		)
+
+		return
 	}
 
 
@@ -336,13 +343,13 @@ update_character :: proc(
 				1000.0,
 			)
 			ok, id, hook_hit_location := cs.ray_intersect_spatial_hash_grid(
-				&world.collision_scene.spatial_hash_grid,
-				&world.entities,
-				&world.collision_scene.collision_meshes,
+				&world_session.collision_scene.spatial_hash_grid,
+				&world_session.entities,
+				&world_session.collision_scene.collision_meshes,
 				ray,
 			)
 			ddu.enqueue_ins(&ddu.Line_Ins{ray, rl.WHITE}, 5)
-			entity: ^gent.Entity = hm.get(&world.entities, id)
+			entity: ^gent.Entity = hm.get(&world_session.entities, id)
 			if entity != nil {
 				logs.debugf(.Gamelogic, "hit object")
 				is_grappable := gent.Trait.Grabable in entity.traits
@@ -370,9 +377,9 @@ update_character :: proc(
 		)
 
 		ok, id, location := cs.ray_intersect_spatial_hash_grid(
-			&world.collision_scene.spatial_hash_grid,
-			&world.entities,
-			&world.collision_scene.collision_meshes,
+			&world_session.collision_scene.spatial_hash_grid,
+			&world_session.entities,
+			&world_session.collision_scene.collision_meshes,
 			ray,
 		)
 

@@ -26,6 +26,7 @@ import render "../../render/"
 import render_game "../../render/game/"
 import "../../serialization/"
 import g "../game"
+import lutils "../world_utils/"
 import hm "core:container/handle_map"
 import "core:fmt"
 import "core:math/linalg"
@@ -74,8 +75,7 @@ game_init :: proc(app: ^ap.Application) {
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
 	current_world := new(w.World)
-	w.world_init(current_world)
-	make_basic_world(current_world)
+	lutils.make_basic_world(current_world)
 	game.world = current_world
 
 	// w.set_snapshot_world(game, current_world)
@@ -343,52 +343,6 @@ setup_mouse :: proc(
 	}
 }
 
-
-make_basic_world :: proc(world: ^w.World) {
-	cm.init(&world.collision_scene.collision_meshes, world.world_allocator)
-	ents := &world.entities
-
-	ent1 := sent.spawn_box(
-		{
-			position = spat.ONE_VEC3 * 5,
-			rotation = spat.QUATERNION_IDENTITY,
-			scale = spat.ONE_VEC3 * 4,
-		},
-		&world.collision_scene,
-		&world.entities,
-		world.world_allocator,
-	)
-	gent.add_traits_checked({.Grabable}, ent1)
-
-	sent.spawn_box(
-		{
-			position = -spat.UP_VEC3 * 8,
-			rotation = spat.QUATERNION_IDENTITY,
-			scale = spat.ONE_VEC3 + spat.Vector{1, 0, 1} * 8,
-		},
-		&world.collision_scene,
-		&world.entities,
-		world.world_allocator,
-	)
-
-	sent.reconstruct_spatial_hash_grid_from_entities(
-		&world.collision_scene,
-		&world.entities,
-		world.world_allocator,
-	)
-
-	csq.shg_valid_checked(world.entities, world.collision_scene.spatial_hash_grid)
-}
-
-generate_camera :: proc() -> rl.Camera {
-	return {
-		position = {5, 1, 5},
-		target = {0, 0, 3},
-		up = {0, 3, 0},
-		fovy = 95,
-		projection = .PERSPECTIVE,
-	}
-}
 
 @(private)
 get_game_checked :: proc(app: ap.Application) -> ^g.Game {

@@ -11,6 +11,8 @@ main :: proc() {
 	// Assert callstack
 	context.assertion_failure_proc = back.assertion_failure_proc
 
+	back.register_segfault_handler()
+
 	// Tracking allocator callstack
 	track: back.Tracking_Allocator
 	back.tracking_allocator_init(&track, context.allocator)
