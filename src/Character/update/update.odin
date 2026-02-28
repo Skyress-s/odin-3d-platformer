@@ -293,6 +293,7 @@ handle_movement_input_Grounded :: proc(
 	verlet_component.velocity.x = new_vel.x
 	verlet_component.velocity.z = new_vel.z
 }
+
 update_character :: proc(
 	character_data: ^character.CharacternData,
 	world_session: ^w.World_Session,
@@ -310,7 +311,8 @@ update_character :: proc(
 		initial_state := world_session.player_initial_state
 		fresh_world := new(w.World)
 		wutils.make_basic_world(fresh_world)
-		w.world_goto_next_level(world_session, world_session)
+		// TODO: Stuff like this should maybe be moved to some sort of event queue to not be handeled in the middle of logic
+		w.world_goto_next_level(world_session, fresh_world)
 
 		character.reset_run(
 			character_data,

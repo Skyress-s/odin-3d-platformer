@@ -1,5 +1,6 @@
 package world_utils
 import cm "../../engine/core/collision_mesh/"
+import cs "../../engine/core/collision_scene"
 import csq "../../engine/core/collision_scene/query/"
 import spat "../../engine/core/spatial/"
 import gent "../game_entities/"
@@ -11,6 +12,7 @@ import w "../world/"
 make_basic_world :: proc(world: ^w.World) {
 	w.world_init(world)
 	cm.init(&world.collision_scene.collision_meshes, world.world_allocator)
+	cs.init_collision_scene(&world.collision_scene, world.world_allocator)
 	ents := &world.entities
 
 	ent1 := sent.spawn_box(

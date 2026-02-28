@@ -10,6 +10,7 @@ import "../editor_player"
 import cs "../engine/core/collision_scene/"
 import cmq "../engine/core/collision_scene/query/"
 import csq "../engine/core/collision_scene/query/"
+import logs "../engine/core/logs"
 import verlet "../engine/core/physics/verlet"
 import spat "../engine/core/spatial"
 import vmouse "../engine/core/virtual_mouse"
@@ -40,28 +41,16 @@ update :: proc(
 	dt := rl.GetFrameTime()
 	mouse_pos := mouse_pos
 
-	// cam := gc.camera_state.current_camera
-	//
-	// level := gc.current_level
 	update_entities(game.world_session)
 
-	ray := rlb.convert_ray(
-		rl.GetScreenToWorldRayEx(
-			mouse_pos - {game_rect.x, game_rect.y},
-			cam,
-			i32(game_rect.width),
-			i32(game_rect.height),
-		),
-	)
+	ray := rlb.ray_from_game_rect_cam_mouse(cam, mouse_pos, game_rect)
 
-
-	{
-		@(static) cursor_enabled := false
+	players := &game.players
+	switch game.players.mode {
+	case plrs.Player_Mode.Game:
 		if rl.IsKeyPressed(.TAB) {
-			GAME_CHEATS_WINDOW_NAME :: "game_cheats"
 
-			cursor_enabled = !cursor_enabled
-			if cursor_enabled {
+			if vmouse.is_cursor_hidden(game.virtual_mouse_ctx^) {
 				vmouse.show_cursor(game.virtual_mouse_ctx)
 				vmouse.free_mouse(game.virtual_mouse_ctx)
 			} else {
@@ -75,12 +64,6 @@ update :: proc(
 				)
 			}
 		}
-
-	}
-
-	players := &game.players
-	switch game.players.mode {
-	case plrs.Player_Mode.Game:
 		update_game_player(game, &debug_draw_data, dt)
 	case plrs.Player_Mode.Editor:
 		update_editor_player(game)
@@ -107,23 +90,24 @@ update :: proc(
 
 
 				game.players.mode = plrs.Player_Mode.Game
+				vmouse.hide_cursor(game.virtual_mouse_ctx)
+				vmouse.restrict_mouse(
+					game.virtual_mouse_ctx,
+					vmouse.Vec2 {
+						game_rect.x + game_rect.width / 2,
+						game_rect.y + game_rect.height / 2,
+					},
+				)
+
 				character.start_speedrun(&game.players.game)
 			}
-		}
-
-		switch game.players.mode {
-		case plrs.Player_Mode.Game:
-
-		case plrs.Player_Mode.Editor:
 		}
 	}
 
 
 	return debug_draw_data
-	// render.render(gc.current_level, gc.players, gc.cam, &player_overlapping_cells, active_hash_key, gc.game_state)
 }
 
-// update_player_entity :: proc()
 
 update_entities :: proc(world_session: ^world.World_Session) {
 	// itr := hm.iterator_make(&world_session.world.entities)
@@ -265,24 +249,15 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 	// game ui END
 
 	// Update Camera
-	switch game.players.mode {
-	case plrs.Player_Mode.Game:
-		// update_game_player(game, debug_draw_data, dt)
-		_, forward, right := player_data.calculate_direction_from_look(
-			game.players.game.look_angles,
-		)
+	// update_game_player(game, debug_draw_data, dt)
+	_, forward, right := player_data.calculate_direction_from_look(game.players.game.look_angles)
 
-		camera.update_transform(
-			&game.camera_state,
-			game.players.game.verlet_component.position,
-			forward,
-			right,
-		)
-	case plrs.Player_Mode.Editor:
-	// gc.cam.position = gc.players.editor.position
-	// gc.cam.target = gc.cam.position + forward
-	// gc.cam.up = linalg.cross(forward, right)
-	}
+	camera.update_transform(
+		&game.camera_state,
+		game.players.game.verlet_component.position,
+		forward,
+		right,
+	)
 
 	player_loction := game.players.game.verlet_component.position
 	_, player_look_direction, _ := player_data.calculate_direction_from_look(
