@@ -141,47 +141,47 @@ layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Activ
 }
 
 layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-
-	ui.layout_dynamic_text_entry("To be built")
 	game := cast(^g.Game)node.userdata
 	assert(game != nil)
 
 	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_over_game {}", game.mouse_over_game))
 
-	//
-	// 	layout_details_panel(
-	// 		gc.ui_context,
-	// 		&gc.players,
-	// 		&gc.game_state,
-	// 		gc.current_level,
-	// 		active_elems,
-	// 	)
-	// }
-	//
-	// layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
-	// 	gc := cast(^gctx.Global_Context)node.userdata
-	// 	assert(gc != nil)
-	//
-	// 	ui.layout_dynamic_text_entry(
-	// 		fmt.tprintf("Dragging Id {}", gc.ui_context.layout_ctx.dragging_handle),
-	// 	)
-	// 	ui.layout_dynamic_text_entry(
-	// 		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(gc.virtual_mouse_ctx^)),
-	// 	)
-	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
-	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
-	// 	ui.layout_dynamic_text_entry(
-	// 		fmt.tprintf("Restrict Rect {}", gc.virtual_mouse_ctx.mouse_restrict_rect),
-	// 	)
-	//
-	//
-	// 	ui.layout_dynamic_text_entry(fmt.tprintf("Player Look Angles {}", gc.players.game.look_angles))
-	// 	ui.layout_dynamic_text_entry(
-	// 		fmt.tprintf("Virtual Mouse Delta {}", gc.virtual_mouse_ctx.mouse_delta),
-	// 	)
+	level := game.world_session.world
+	layout_details_panel(
+		game.ui_context,
+		&game.world_session.players,
+		&game.game_state,
+		level,
+		active_elems,
+	)
+}
+
+layout_ui_data :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
+	game := cast(^g.Game)node.userdata
+	assert(game != nil)
+
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Dragging Id {}", game.ui_context.layout_ctx.dragging_handle),
+	)
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Virtual Mouse Pos {}", vmouse.get_mouse_pos(game.virtual_mouse_ctx^)),
+	)
+	ui.layout_dynamic_text_entry(fmt.tprintf("Mouse Pos {}", rl.GetMousePosition()))
+	ui.layout_dynamic_text_entry(fmt.tprintf("Window Focused {}", rl.IsWindowFocused()))
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Restrict Rect {}", game.virtual_mouse_ctx.mouse_restrict_rect),
+	)
+
+
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Player Look Angles {}", game.world_session.players.game.look_angles),
+	)
+	ui.layout_dynamic_text_entry(
+		fmt.tprintf("Virtual Mouse Delta {}", game.virtual_mouse_ctx.mouse_delta),
+	)
 
 	// ui.layout_dynamic_text_entry(
-	// 	fmt.tprintf("Controlling leaf {}", gc.ui_context.layout_ctx.controlling_layout_item),
+	// 	fmt.tprintf("Controlling leaf {}", game.ui_context.layout_ctx.controlling_layout_item),
 	// )
 }
 
@@ -870,12 +870,7 @@ setup_initial_window_layout :: proc(game: ^g.Game) -> (game_handle: layout.Layou
 		)
 	}
 	{
-		ui_layout_item := layout.make_layout_item(
-			layout_ctx,
-			"ui_details",
-			game,
-			layout_log_window,
-		)
+		ui_layout_item := layout.make_layout_item(layout_ctx, "ui_details", game, layout_ui_data)
 		ui_layout_item.size_percent = {0.5, 0.2}
 		ui_layout_handle := layout.add_layout_node(
 			&layout_ctx.lic,

@@ -58,22 +58,8 @@ add_trait_collision_shape :: proc(
 	box_id := col_meshes.primitive_ids[spat.Shape.Box]
 	ent.collision_component.mesh_id = box_id
 
+	// NOTE: This function does not add it to the spatial hash grid, you gotta remember to do that yourself (reconstruct_spatial_hash_grid_from_entities)
 
-	// Add; to; collision; structure
-
-	// col_mesh: ^cm.Mesh = hm.get(&col_meshes.mesh_map, ent.collision_component.mesh_id)
-	// assert(col_mesh != nil)
-	//
-	// bounds := spat.calculate_bounds_from_tris_transform(
-	// 	col_mesh.tris,
-	// 	ent.transform_component.transform,
-	// )
-	// cs.add_to_spatial_hash_grid(
-	// 	&level.collsion_scene.spatial_hash_grid,
-	// 	handle,
-	// 	bounds,
-	// 	context.allocator,
-	// )
 
 	return box_id
 }
@@ -102,6 +88,8 @@ spawn_box :: proc(
 
 	add_trait_transform(ents, new_ent_handle, transform)
 	add_trait_collision_shape(ents, col_scene, new_ent_handle, .Box)
+
+	reconstruct_spatial_hash_grid_from_entities(col_scene, ents)
 
 	return new_ent
 }
