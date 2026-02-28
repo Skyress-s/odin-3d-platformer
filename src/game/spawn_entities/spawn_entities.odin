@@ -7,6 +7,7 @@ import hent "../../engine/core/entity_handle"
 import logs "../../engine/core/logs"
 import spat "../../engine/core/spatial/"
 import gent "../game_entities/"
+import "base:runtime"
 import hm "core:container/handle_map"
 
 spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Handle {
@@ -82,6 +83,7 @@ spawn_box :: proc(
 	transform: spat.Transform,
 	col_scene: ^cs.Collision_Scene,
 	ents: ^gent.Game_Entity_Handle_Map,
+	allocator: runtime.Allocator,
 ) -> ^gent.Entity {
 	new_ent_handle := spawn_empty_entity(ents)
 	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
@@ -89,7 +91,7 @@ spawn_box :: proc(
 	add_trait_transform(ents, new_ent_handle, transform)
 	add_trait_collision_shape(ents, col_scene, new_ent_handle, .Box)
 
-	reconstruct_spatial_hash_grid_from_entities(col_scene, ents)
+	reconstruct_spatial_hash_grid_from_entities(col_scene, ents, allocator)
 
 	return new_ent
 }
@@ -97,6 +99,7 @@ spawn_box :: proc(
 reconstruct_spatial_hash_grid_from_entities :: proc(
 	col_scene: ^cs.Collision_Scene,
 	ents: ^gent.Game_Entity_Handle_Map,
+	allocator: runtime.Allocator,
 ) {
 
 	logs.infof(.Editor, "Reconstruct Spatial Hash Grid")
@@ -117,7 +120,7 @@ reconstruct_spatial_hash_grid_from_entities :: proc(
 			item.transform_component.transform,
 		)
 
-		cs.add_to_spatial_hash_grid(shg, item.handle, bound, context.allocator) // TODO: Okay?
+		cs.add_to_spatial_hash_grid(shg, item.handle, bound, allocator) // TODO: Okay?
 	}
 
 

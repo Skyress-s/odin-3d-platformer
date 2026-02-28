@@ -2,6 +2,7 @@ package collision_mesh
 
 import logs "../logs/"
 import spat "../spatial/"
+import "base:runtime"
 
 import hm "core:container/handle_map"
 
@@ -26,8 +27,8 @@ get_mesh_checked :: proc(ctx: ^Collider_Mesh_Context, handle: Mesh_Handle) -> ^M
 }
 
 
-init :: proc(ctx: ^Collider_Mesh_Context) {
-	box_tris := spat.get_box_tris(context.allocator)
+init :: proc(ctx: ^Collider_Mesh_Context, allocator: runtime.Allocator) {
+	box_tris := spat.get_box_tris(allocator)
 	// defer delete(box_tris)
 	box_mesh: Mesh = {
 		tris = box_tris,

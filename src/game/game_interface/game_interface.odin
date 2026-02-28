@@ -70,14 +70,16 @@ game_init :: proc(app: ^ap.Application) {
 		camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
 	)
 	game.world_session = new(w.World_Session)
-	w.world_init(game.world_session)
+	w.world_session_init(game.world_session)
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
 	current_world := new(w.World)
-	current_world^ = make_basic_world()
+	w.world_init(current_world)
+	make_basic_world(current_world)
+	game.world = current_world
 
-	w.set_snapshot_world(game, current_world)
-	w.restore_from_snapshot(game)
+	// w.set_snapshot_world(game, current_world)
+	// w.restore_from_snapshot(game)
 
 	players: ^plrs.Players = &game.players
 	plrs.init_players(players)
@@ -132,6 +134,10 @@ game_deinit :: proc(app: ^ap.Application) {
 
 	// cm.deinit(&game.world_session)
 
+	cs.deinit_collision_scene(&game.collision_scene)
+	cm.deinit(&game.col_meshes)
+	w.world_deinit(game.world)
+	free(game.world)
 	free(game.world_session)
 	logs.warnf(.Gamelogic, "Finished Deinitializing Game")
 }
@@ -338,8 +344,8 @@ setup_mouse :: proc(
 }
 
 
-make_basic_world :: proc() -> (world: w.World) {
-	cm.init(&world.collision_scene.collision_meshes)
+make_basic_world :: proc(world: ^w.World) {
+	cm.init(&world.collision_scene.collision_meshes, world.world_allocator)
 	ents := &world.entities
 
 	ent1 := sent.spawn_box(
@@ -350,6 +356,7 @@ make_basic_world :: proc() -> (world: w.World) {
 		},
 		&world.collision_scene,
 		&world.entities,
+		world.world_allocator,
 	)
 	gent.add_traits_checked({.Grabable}, ent1)
 
@@ -361,14 +368,16 @@ make_basic_world :: proc() -> (world: w.World) {
 		},
 		&world.collision_scene,
 		&world.entities,
+		world.world_allocator,
 	)
 
-	sent.reconstruct_spatial_hash_grid_from_entities(&world.collision_scene, &world.entities)
+	sent.reconstruct_spatial_hash_grid_from_entities(
+		&world.collision_scene,
+		&world.entities,
+		world.world_allocator,
+	)
 
 	csq.shg_valid_checked(world.entities, world.collision_scene.spatial_hash_grid)
-
-
-	return world
 }
 
 generate_camera :: proc() -> rl.Camera {

@@ -316,7 +316,11 @@ update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: 
 			// 	position_transform_tool.target_object_id,
 			// )
 			//
-			sent.reconstruct_spatial_hash_grid_from_entities(&game.collision_scene, &game.entities)
+			sent.reconstruct_spatial_hash_grid_from_entities(
+				&game.collision_scene,
+				&game.entities,
+				game.world_session.world_allocator,
+			)
 		}
 
 

@@ -146,12 +146,11 @@ layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.A
 
 	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_over_game {}", game.mouse_over_game))
 
-	level := game.world_session.world
 	layout_details_panel(
 		game.ui_context,
 		&game.world_session.players,
 		&game.game_state,
-		level,
+		game.world_session,
 		active_elems,
 	)
 }
@@ -447,7 +446,7 @@ layout_details_panel :: proc(
 	ctx: ^ui.Context,
 	players: ^plrs.Players,
 	game_state: ^gs.Game_State,
-	level: ^w.World,
+	world_session: ^w.World_Session,
 	active_elems: ^layout.Active_Elements,
 ) {
 	current_id := players.editor.transform_tool.target_object_id
@@ -455,7 +454,7 @@ layout_details_panel :: proc(
 	_, player_forward, _ := player_data.calculate_direction_from_look(players.editor.look_data)
 
 
-	col_scene := &level.collision_scene
+	col_scene := &world_session.collision_scene
 
 	@(static) spawn_entities_drowdown := false
 	if ui.layout_dropdown(ctx, fmt.tprintf("Spawn Entities"), &spawn_entities_drowdown) {
@@ -466,8 +465,9 @@ layout_details_panel :: proc(
 					rotation = spat.QUATERNION_IDENTITY,
 					scale = spat.ONE_VEC3,
 				},
-				&level.collision_scene,
-				&level.entities,
+				&world_session.collision_scene,
+				&world_session.entities,
+				world_session.world_allocator,
 			)
 
 		}
@@ -476,7 +476,7 @@ layout_details_panel :: proc(
 
 	@(static) object_manip_dropdown := false
 	if current_id != {} {
-		ent: ^gent.Entity = hm.get(&level.entities, current_id)
+		ent: ^gent.Entity = hm.get(&world_session.entities, current_id)
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
 			if !gent.has_traits({.Grabable}, ent^) {
@@ -669,7 +669,7 @@ layout_details_panel :: proc(
 			// )
 
 			character.notify_level_loaded(&players.game)
-			initial_state := level.player_initial_state
+			initial_state := world_session.player_initial_state
 			character.reset_run(
 				&players.game,
 				initial_state.position,
