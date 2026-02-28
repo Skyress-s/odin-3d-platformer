@@ -19,6 +19,7 @@ sphere_trace_triangle_intersect :: proc(
 	bool,
 	Vector,
 ) {
+	assert(sphere_trace.radius > 0)
 	if ray_length(&sphere_trace.ray) == 0 do return false, ZERO_VEC3
 
 	i: i32

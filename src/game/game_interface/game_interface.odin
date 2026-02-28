@@ -19,6 +19,7 @@ import game_ui "../../game/game_ui/"
 import sent "../../game/spawn_entities/"
 import w "../../game/world/"
 import gs "../../game_state/"
+import player_data "../../player_data/"
 import plrs "../../players/"
 import rlb "../../raylib_bridge/"
 import render "../../render/"
@@ -27,6 +28,7 @@ import "../../serialization/"
 import g "../game"
 import hm "core:container/handle_map"
 import "core:fmt"
+import "core:math/linalg"
 import rl "vendor:raylib"
 
 import "base:runtime"
@@ -63,6 +65,10 @@ game_init :: proc(app: ^ap.Application) {
 		},
 	)
 
+	game.camera_state = camera.init(
+		rl.Camera{fovy = 95, projection = .PERSPECTIVE},
+		camera.Settings{fovy_increase_per_unit_speed = 0.35, lerp_speed = 5},
+	)
 	game.world_session = new(w.World_Session)
 	w.world_init(game.world_session)
 
@@ -73,11 +79,19 @@ game_init :: proc(app: ^ap.Application) {
 	w.set_snapshot_world(game, current_world)
 	w.restore_from_snapshot(game)
 
-	// character.reset_run(&players.game, &current_level.World, &current_level.World)
+	players: ^plrs.Players = &game.players
+	plrs.init_players(players)
+	players.editor.transform_tool = e_tools.init_transform_tool()
 
-	// players.editor.transform_tool = e_tools.init_transform_tool()
+	player_initial_state := game.player_initial_state
+	character.reset_run(
+		&players.game,
+		player_initial_state.position,
+		player_initial_state.speed,
+		player_initial_state.look_direction,
+	)
+	character.start_speedrun(&players.game)
 
-	// character.start_speedrun(&players.game)
 
 	rlb.raylib_init()
 
@@ -122,20 +136,48 @@ game_deinit :: proc(app: ^ap.Application) {
 	logs.warnf(.Gamelogic, "Finished Deinitializing Game")
 }
 
+get_camera_from_active_player :: proc(game: g.Game, players: plrs.Players) -> rl.Camera {
+	switch (players.mode) {
+	case .Game:
+		camera_state := game.camera_state
+		// camera_state := game.camera_state
+		return camera.create_camera(camera_state)
+	// game_player: character.CharacternData = players.game
+	// player_pos := game_player.verlet_component.position
+	// _, forward, _ := player_data.calculate_direction_from_look(game_player.look_angles)
+	// cam := rl.Camera {
+	// 	position   = player_pos,
+	// 	target     = player_pos + forward,
+	// 	up         = {0, 3, 0},
+	// 	fovy       = 95 + linalg.length(game_player.verlet_component.velocity) * 0.5,
+	// 	projection = .PERSPECTIVE,
+	// }
+	//
+	// return cam
+
+	case .Editor:
+		game_player := players.editor
+		player_pos := game_player.position
+		_, forward, _ := player_data.calculate_direction_from_look(game_player.look_data)
+		cam := rl.Camera {
+			position   = player_pos,
+			target     = player_pos + forward,
+			up         = {0, 3, 0},
+			fovy       = 95,
+			projection = .PERSPECTIVE,
+		}
+
+		return cam
+	}
+
+	panic("players.mode should never be nil!")
+}
 
 @(private)
 game_update :: proc(app: ^ap.Application) {
-	logs.warnf(.Gamelogic, "Game Update")
 	game := get_game_checked(app^)
 
-	cam := rl.Camera {
-		position   = {5, 1, 5},
-		target     = {0, 0, 3},
-		up         = {0, 3, 0},
-		fovy       = 95,
-		projection = .PERSPECTIVE,
-	}
-
+	cam := get_camera_from_active_player(game^, game.players)
 
 	debug_draw_data, game_rect := update_all(game, cam)
 
@@ -143,7 +185,6 @@ game_update :: proc(app: ^ap.Application) {
 
 	ui.end_frame(game.ui_context)
 	free_all(context.temp_allocator)
-	logs.warnf(.Gamelogic, "Finished Game Update")
 }
 
 
@@ -156,20 +197,8 @@ update_all :: proc(game: ^g.Game, cam: rl.Camera) -> (render.Debug_Draw_Data, rl
 	ui_context := game.ui_context
 	layout_ctx := &ui_context.layout_ctx
 
-	if rl.IsWindowResized() {
-		game.game_rt_needs_update = true
-	}
-
 	// Get game rect from layout system (after first frame, use cached bounding box)
 	game_rect := get_game_rect(&game.ui_context.layout_ctx, game.game_window_handle)
-
-	// Check if render target needs resize
-	if game.game_rt_needs_update ||
-	   (game.textures.render_targets.game.texture.width != i32(game_rect.width)) ||
-	   (game.textures.render_targets.game.texture.height != i32(game_rect.height)) {
-		render.resize_render_targets(&game.textures.render_targets, game_rect)
-		game.game_rt_needs_update = false
-	}
 
 	debug_draw_data := game2.update(
 		game,
@@ -188,6 +217,17 @@ render_all :: proc(
 	game_rect: rl.Rectangle,
 	cam: rl.Camera,
 ) {
+	if rl.IsWindowResized() {
+		game.game_rt_needs_update = true
+	}
+	// Check if render target needs resize
+	if game.game_rt_needs_update ||
+	   (game.textures.render_targets.game.texture.width != i32(game_rect.width)) ||
+	   (game.textures.render_targets.game.texture.height != i32(game_rect.height)) {
+		render.resize_render_targets(&game.textures.render_targets, game_rect)
+		game.game_rt_needs_update = false
+	}
+
 	layout_ctx := &game.ui_context.layout_ctx
 	// render to RT
 	render_game.render(game, debug_draw_data, game_rect, cam)

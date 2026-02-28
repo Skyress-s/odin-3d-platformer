@@ -1,10 +1,10 @@
 package editor_player
 
-import spat "../engine/core/spatial"
 import e_tools "../editor/tools"
+import spat "../engine/core/spatial"
+import vmouse "../engine/core/virtual_mouse/"
 import "../input"
 import player_data "../player_data/"
-import vmouse "../engine/core/virtual_mouse/"
 import "core:math/linalg"
 import rl "vendor:raylib"
 

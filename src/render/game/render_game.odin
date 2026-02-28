@@ -171,7 +171,6 @@ render :: proc(
 	defer delete(drawn_collision_objects_ids)
 
 	itr := hm.iterator_make(&game.entities)
-	logs.warnf(.Gamelogic, "Render {}", rawptr(game.world_session.world))
 	for entity in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, entity^) do continue
 
@@ -182,7 +181,6 @@ render :: proc(
 
 		draw_collision_object(entity.handle, game.world, col, rl.WHITE)
 	}
-	logs.warnf(.Gamelogic, "Render")
 
 	// for star_id, picked_up in level.collsion_scene.stars {
 	// 	drawn_collision_objects_ids[star_id] = true

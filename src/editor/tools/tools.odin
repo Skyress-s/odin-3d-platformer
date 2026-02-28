@@ -64,7 +64,7 @@ init_transform_tool :: proc() -> (data: Transform_Tool_Data) {
 
 on_click :: proc(
 	transform_tool: ^Transform_Tool_Data,
-	cam: ^rl.Camera3D,
+	cam: rl.Camera3D,
 	collision_scene: ^cs.Collision_Scene,
 	entities: ^gent.Game_Entity_Handle_Map,
 	mouse_pos: rl.Vector2,
@@ -223,7 +223,7 @@ on_click_scale_tool :: proc(
 }
 update_transform_tool :: proc(
 	data: ^Transform_Tool_Data,
-	cam: ^rl.Camera3D,
+	cam: rl.Camera3D,
 	left_mouse_button_pressed: bool,
 	left_mouse_button_down: bool,
 	object_map: ^gent.Game_Entity_Handle_Map,

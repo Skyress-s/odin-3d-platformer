@@ -3,6 +3,7 @@ package world
 import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene/"
 import hent "../../engine/core/entity_handle/"
+import logs "../../engine/core/logs"
 import spat "../../engine/core/spatial/"
 import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"

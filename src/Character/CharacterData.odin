@@ -68,14 +68,18 @@ get_current_speedrun_time :: proc(game_player: ^CharacternData) -> f64 {
 	return time.duration_seconds(time.stopwatch_duration(game_player.speedrun_stop_watch))
 }
 
-
-reset_run :: proc(character_data: ^CharacternData, start_location, start_velocity: ^spat.Vector) {
+reset_run :: proc(
+	character_data: ^CharacternData,
+	start_location, start_velocity, start_look_direciton: spat.Vector,
+) {
 	reset_speedrun(character_data)
 	start_speedrun(character_data)
 
-	character_data.verlet_component.position = start_location^
-	character_data.verlet_component.velocity = start_velocity^
-	character_data.look_angles = player_data.calculate_look_angles_from_direction(start_velocity^)
+	character_data.verlet_component.position = start_location
+	character_data.verlet_component.velocity = start_velocity
+	character_data.look_angles = player_data.calculate_look_angles_from_direction(
+		start_look_direciton,
+	)
 	character_data.is_hooked = false
 	character_data.hooked_position = spat.ZERO_VEC3
 }

@@ -116,9 +116,12 @@ reconstruct_spatial_hash_grid_from_entities :: proc(
 	col_ctx: ^cm.Collider_Mesh_Context = &col_scene.collision_meshes
 	cs.clear_spatial_hash_grid(shg)
 
+	num_ents_in_shg: i64
+
 	itr := hm.iterator_make(ents)
 	for item in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, item^) do return
+		num_ents_in_shg += 1
 
 		col_mesh := cm.get_mesh_checked(col_ctx, item.collision_component.mesh_id)
 		bound := spat.calculate_bounds_from_tris_transform(
@@ -127,5 +130,21 @@ reconstruct_spatial_hash_grid_from_entities :: proc(
 		)
 
 		cs.add_to_spatial_hash_grid(shg, item.handle, bound, context.allocator) // TODO: Okay?
+	}
+
+
+	// Validation
+	{
+		objects_ids: map[hent.Entity_Handle]bool = make(
+			map[hent.Entity_Handle]bool,
+			context.temp_allocator,
+		)
+		for key, cell in shg {
+			for ent_handle in cell.objects_ids {
+				objects_ids[ent_handle] = true
+			}
+		}
+
+		assert(i64(len(objects_ids)) == num_ents_in_shg)
 	}
 }

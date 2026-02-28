@@ -23,6 +23,7 @@ import plrs "../players"
 import rlb "../raylib_bridge"
 import render "../render/"
 import "core:math/linalg"
+import "core:unicode/utf8/utf8string"
 
 import hm "core:container/handle_map"
 import rl "vendor:raylib"
@@ -75,6 +76,16 @@ update :: proc(
 			}
 		}
 
+	}
+
+	players := &game.players
+	switch game.players.mode {
+	case plrs.Player_Mode.Game:
+		update_game_player(game, &debug_draw_data, dt)
+	case plrs.Player_Mode.Editor:
+		update_editor_player(game)
+		editor_player.update(&players.editor, game.virtual_mouse_ctx, dt)
+		update_transform_tool(game, cam, ray, dt)
 	}
 
 
@@ -133,33 +144,33 @@ update_entities :: proc(world_session: ^world.World_Session) {
 	// }
 }
 
-update_game_player :: proc(gc: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, dt: f32) {
+update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data, dt: f32) {
 	camera.interp_fov(
-		&gc.camera_state,
-		linalg.length(gc.players.game.verlet_component.velocity),
+		&game.camera_state,
+		linalg.length(game.players.game.verlet_component.velocity),
 		dt,
 	)
 	update_character.update_character(
-		&gc.players.game,
-		gc.world,
-		&gc.game_state,
+		&game.players.game,
+		game.world,
+		&game.game_state,
 		dt,
-		gc.virtual_mouse_ctx^,
+		game.virtual_mouse_ctx^,
 	)
 
 	ents_in_player_position_cell := cmq.entities_in_bound(
-		gc.entities,
-		gc.collision_scene.spatial_hash_grid,
-		spat.make_bound_by_position(gc.players.game.verlet_component.position),
+		game.entities,
+		game.collision_scene.spatial_hash_grid,
+		spat.make_bound_by_position(game.players.game.verlet_component.position),
 		context.temp_allocator,
 	)
 
 
 	overlapping_finish_volume :=
 		cmq.any_entity_in_bound_has_traits(
-			gc.entities,
-			gc.collision_scene.spatial_hash_grid,
-			spat.make_bound_by_position(gc.players.game.verlet_component.position),
+			game.entities,
+			game.collision_scene.spatial_hash_grid,
+			spat.make_bound_by_position(game.players.game.verlet_component.position),
 			{.Finish},
 			context.temp_allocator,
 		) !=
@@ -175,71 +186,73 @@ update_game_player :: proc(gc: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data
 	// }
 
 	if overlapping_finish_volume {
-		gc.game_state.finished_level = true
-		character.pause_speedrun(&gc.players.game)
-		run_time := character.get_current_speedrun_time(&gc.players.game)
+		game.game_state.finished_level = true
+		character.pause_speedrun(&game.players.game)
+		run_time := character.get_current_speedrun_time(&game.players.game)
 
-		if gc.players.game.best_time > run_time || gc.players.game.best_time == 0 {
-			gc.players.game.best_time = run_time
+		if game.players.game.best_time > run_time || game.players.game.best_time == 0 {
+			game.players.game.best_time = run_time
 		}
 	}
 
 	// Kill volumes
 	//
-	cmq.shg_valid_checked(gc.entities, gc.collision_scene.spatial_hash_grid)
+	cmq.shg_valid_checked(game.entities, game.collision_scene.spatial_hash_grid)
 
 	overlapping_kill_volumes :=
 		cmq.any_entity_in_bound_has_traits(
-			gc.entities,
-			gc.collision_scene.spatial_hash_grid,
-			spat.make_bound_by_position(gc.players.game.verlet_component.position),
+			game.entities,
+			game.collision_scene.spatial_hash_grid,
+			spat.make_bound_by_position(game.players.game.verlet_component.position),
 			{.Kill},
 			context.temp_allocator,
 		) !=
 		{}
 	if overlapping_kill_volumes {
+		initial_state := game.player_initial_state
 		character.reset_run(
-			&gc.players.game,
-			&gc.player_initial_state.position,
-			&gc.player_initial_state.look_direction,
+			&game.players.game,
+			initial_state.position,
+			initial_state.speed,
+			initial_state.look_direction,
 		)
 	}
 
 	// TODO we should not hash the location, but the entire shape. So we can overlap two (or 8) cells simultainiusly
 	player_bounds := spat.Bound {
-		gc.players.game.verlet_component.position - spat.ONE_VEC3 * gc.players.game.radius,
-		gc.players.game.verlet_component.position + spat.ONE_VEC3 * gc.players.game.radius,
+		game.players.game.verlet_component.position - spat.ONE_VEC3 * game.players.game.radius,
+		game.players.game.verlet_component.position + spat.ONE_VEC3 * game.players.game.radius,
 	}
 	player_overlapping_cells := cs.calculate_overlapping_cells_by_bound(player_bounds)
 	defer delete(player_overlapping_cells)
 
-	active_hash_key := cs.Hash_Location(gc.players.game.verlet_component.position)
-	active_cell := gc.spatial_hash_grid[active_hash_key]
+	active_hash_key := cs.Hash_Location(game.players.game.verlet_component.position)
+	active_cell := game.spatial_hash_grid[active_hash_key]
 
 	// Collide with cubes / planes
 	active_cell_objects_ids := &active_cell.objects_ids
 
 
-	switch gc.players.mode {
+	switch game.players.mode {
 	case plrs.Player_Mode.Game:
-		if !gc.game_state.finished_level {
-			verlet.velocity_verlet_leap(&gc.players.game.verlet_component, dt)
+		if !game.game_state.finished_level {
+			verlet.velocity_verlet_leap(&game.players.game.verlet_component, dt)
 
 			update_character.update_character_physics(
-				&gc.players.game,
-				gc.world,
-				gc.world,
+				&game.players.game,
+				game.world,
+				game.world,
 				&player_overlapping_cells,
 				dt,
 			)
 
-			gc.players.game.verlet_component.position_last_update =
-				gc.players.game.verlet_component.position
-			verlet.velocity_verlet_frog(&gc.players.game.verlet_component, dt)
+			game.players.game.verlet_component.position_last_update =
+				game.players.game.verlet_component.position
+			verlet.velocity_verlet_frog(&game.players.game.verlet_component, dt)
 
 
 			// Add gravity
-			gc.players.game.verlet_component.acceleration += {0, -30, 0}
+			game.players.game.verlet_component.acceleration += {0, -30, 0}
 		}
 	case plrs.Player_Mode.Editor:
 	}
@@ -248,18 +261,20 @@ update_game_player :: proc(gc: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data
 	// 	linalg.length(cam.target - cam.position) > 0,
 	// 	"camera target and position should never be equal",
 	// )
-
 	// game ui START TODO: If we get some rendering issues, this might be causing some of them?
 	// game ui END
 
 	// Update Camera
-	switch gc.players.mode {
+	switch game.players.mode {
 	case plrs.Player_Mode.Game:
-		_, forward, right := player_data.calculate_direction_from_look(gc.players.game.look_angles)
+		// update_game_player(game, debug_draw_data, dt)
+		_, forward, right := player_data.calculate_direction_from_look(
+			game.players.game.look_angles,
+		)
 
 		camera.update_transform(
-			&gc.camera_state,
-			gc.players.game.verlet_component.position,
+			&game.camera_state,
+			game.players.game.verlet_component.position,
 			forward,
 			right,
 		)
@@ -269,9 +284,9 @@ update_game_player :: proc(gc: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data
 	// gc.cam.up = linalg.cross(forward, right)
 	}
 
-	player_loction := gc.players.game.verlet_component.position
+	player_loction := game.players.game.verlet_component.position
 	_, player_look_direction, _ := player_data.calculate_direction_from_look(
-		gc.players.game.look_angles,
+		game.players.game.look_angles,
 	)
 
 
@@ -279,14 +294,14 @@ update_game_player :: proc(gc: ^g.Game, debug_draw_data: ^render.Debug_Draw_Data
 	debug_draw_data.active_cell_hash = active_hash_key
 }
 
-update_editor_player :: proc(game: ^g.Game, ent: ^gent.Entity) {
+update_editor_player :: proc(game: ^g.Game) {
 	_, forward, right := player_data.calculate_direction_from_look(game.players.editor.look_data)
 
 	camera.update_transform(&game.camera_state, game.players.editor.position, forward, right)
+
 }
 
 update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: f32) {
-	cam := cam
 	position_transform_tool := &game.players.editor.transform_tool
 
 	if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) &&
@@ -327,7 +342,7 @@ update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: 
 			)
 			e_tools.on_click(
 				position_transform_tool,
-				&cam,
+				cam,
 				&game.collision_scene,
 				&game.entities,
 				game.virtual_mouse_ctx.mouse_position,
@@ -339,7 +354,7 @@ update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: 
 			if position_transform_tool.dragging {
 				e_tools.update_transform_tool(
 					position_transform_tool,
-					&cam,
+					cam,
 					rl.IsMouseButtonPressed(rl.MouseButton.LEFT),
 					rl.IsMouseButtonDown(rl.MouseButton.LEFT),
 					&game.entities,
@@ -347,7 +362,6 @@ update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: 
 				)
 			}
 		}
-		editor_player.update(&game.players.editor, game.virtual_mouse_ctx, dt)
 
 	}
 

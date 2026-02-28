@@ -95,7 +95,7 @@ layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 				},
 			) {
 
-				// layout_stats(&gc.players, gc.current_level)
+				layout_stats(&game.players)
 			}
 			// } else {
 			// 	// Might want to have something here?
@@ -119,7 +119,7 @@ layout_game_cheats_window :: proc(
 	game := cast(^g.Game)node.userdata
 	assert(game != nil)
 
-	layout_cheats_panel(game.ui_context)
+	layout_cheats_panel(game.ui_context, &game.players, &game.game_state)
 }
 
 layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
@@ -143,8 +143,11 @@ layout_log_window :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Activ
 layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_Elements) {
 
 	ui.layout_dynamic_text_entry("To be built")
-	// 	gc := cast(^gctx.Global_Context)node.userdata
-	// 	assert(gc != nil)
+	game := cast(^g.Game)node.userdata
+	assert(game != nil)
+
+	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_over_game {}", game.mouse_over_game))
+
 	//
 	// 	layout_details_panel(
 	// 		gc.ui_context,
@@ -203,74 +206,74 @@ make_log_window_node :: proc(ctx: ^layout.Context, game: ^g.Game) -> layout.Layo
 }
 
 
-// layout_stats :: proc(
-// 	players: ^plrs.Players,
-// 	// game_state: ^game_state.Game_State,
-// 	// screen_rect: rl.Rectangle,
-// ) {
-// 	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
-// 	// clay.BeginLayout()
-// 	if clay.UI(clay.ID("stats_main"))(
-// 	{
-// 		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},
-// 		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
-// 		// floating = clay.FloatingElementConfig {
-// 		// 	offset = {50, 50},
-// 		// 	attachTo = .Parent,
-// 		// 	zIndex = 1000,
-// 		// },
-// 		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
-// 	},
-// 	) {
-// 		char_data := &players.game
-// 		ui.layout_dynamic_text_entry(
-// 			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
-// 		)
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
-//
-// 		// Velocities
-// 		ui.layout_dynamic_text_entry(
-// 			fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity),
-// 		)
-// 		ui.layout_dynamic_text_entry(
-// 			fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)),
-// 		)
-// 		vel_xz := char_data.verlet_component.velocity
-// 		vel_xz.y = 0
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Current State {}", char_data.current_state))
-//
-// 		// Rope length
-// 		rope_length := linalg.distance(
-// 			char_data.verlet_component.position,
-// 			char_data.hooked_position,
-// 		)
-// 		ui.layout_dynamic_text_entry(
-// 			fmt.tprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0),
-// 		)
-//
-// 		// Enegies
-// 		m: f32 = 0.01
-// 		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
-// 		kinetic_energy :=
-// 			0.5 *
-// 			m *
-// 			linalg.length(char_data.verlet_component.velocity) *
-// 			linalg.length(char_data.verlet_component.velocity)
-// 		total_energy := potential_energy + kinetic_energy
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Potential {:.1f}", potential_energy))
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Kinetic {:.1f}", kinetic_energy))
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Total {:.1f}", total_energy))
-// 		ui.layout_dynamic_text_entry(
-// 			fmt.tprintf(
-// 				"Best run    {}",
-// 				players.game.best_time != 0 ? fmt.tprintf("{:.3f}", players.game.best_time) : fmt.tprint("No Time Set"),
-// 			),
-// 		)
-// 		// ui.layout_dynamic_text_entry(fmt.tprintf("Author time {:.3f}", level.author_time))
-// 		ui.layout_dynamic_text_entry(fmt.tprintf("Author time Needs Implementation"))
-// 	}
-// }
+layout_stats :: proc(
+	players: ^plrs.Players,
+	// game_state: ^game_state.Game_State,
+	// screen_rect: rl.Rectangle,
+) {
+	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
+	// clay.BeginLayout()
+	if clay.UI(clay.ID("stats_main"))(
+	{
+		// layout = {layoutDirection = node.layout_dir, sizing = {clay.SizingGrow(), clay.SizingGrow()}, padding = clay.PaddingAll(node_leaf_distance(node) == 1 ? 8/2 : 0), childGap = node_leaf_distance(node) == 1 ? 8 : 0},
+		layout = {layoutDirection = .TopToBottom, sizing = {clay.SizingGrow(), clay.SizingGrow()}},
+		// floating = clay.FloatingElementConfig {
+		// 	offset = {50, 50},
+		// 	attachTo = .Parent,
+		// 	zIndex = 1000,
+		// },
+		backgroundColor = {0, 0, 0, 0}, // node_leaf_distance(node^) == 0 ? auto_hightlight_color() : leaf_dist_to_color(node_leaf_distance(node^)),
+	},
+	) {
+		char_data := &players.game
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
+		)
+		ui.layout_dynamic_text_entry(fmt.tprintf("FPS {}", rl.GetFPS()))
+
+		// Velocities
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("Velocity {:.1f}", char_data.verlet_component.velocity),
+		)
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("speed {:.1f}", linalg.length(char_data.verlet_component.velocity)),
+		)
+		vel_xz := char_data.verlet_component.velocity
+		vel_xz.y = 0
+		ui.layout_dynamic_text_entry(fmt.tprintf("Speed_XZ {:.1f}", linalg.length(vel_xz)))
+		ui.layout_dynamic_text_entry(fmt.tprintf("Current State {}", char_data.current_state))
+
+		// Rope length
+		rope_length := linalg.distance(
+			char_data.verlet_component.position,
+			char_data.hooked_position,
+		)
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf("Rope Length {:.1f}", char_data.is_hooked ? rope_length : 0),
+		)
+
+		// Enegies
+		m: f32 = 0.01
+		potential_energy := m * 30.0 * (char_data.verlet_component.position.y + 50.0)
+		kinetic_energy :=
+			0.5 *
+			m *
+			linalg.length(char_data.verlet_component.velocity) *
+			linalg.length(char_data.verlet_component.velocity)
+		total_energy := potential_energy + kinetic_energy
+		ui.layout_dynamic_text_entry(fmt.tprintf("Potential {:.1f}", potential_energy))
+		ui.layout_dynamic_text_entry(fmt.tprintf("Kinetic {:.1f}", kinetic_energy))
+		ui.layout_dynamic_text_entry(fmt.tprintf("Total {:.1f}", total_energy))
+		ui.layout_dynamic_text_entry(
+			fmt.tprintf(
+				"Best run    {}",
+				players.game.best_time != 0 ? fmt.tprintf("{:.3f}", players.game.best_time) : fmt.tprint("No Time Set"),
+			),
+		)
+		// ui.layout_dynamic_text_entry(fmt.tprintf("Author time {:.3f}", level.author_time))
+		ui.layout_dynamic_text_entry(fmt.tprintf("Author time Needs Implementation"))
+	}
+}
 
 
 layout_reticle :: proc() {
@@ -374,7 +377,7 @@ Cheats_Panel_UI_State :: struct {
 }
 
 
-layout_cheats_panel :: proc(ctx: ^ui.Context) { 	// , players: ^plrs.Players, game_state: ^gs.Game_State
+layout_cheats_panel :: proc(ctx: ^ui.Context, players: ^plrs.Players, game_state: ^gs.Game_State) {
 
 
 	if clay.UI(clay.ID("cheats_panel_main"))(
@@ -415,18 +418,17 @@ layout_cheats_panel :: proc(ctx: ^ui.Context) { 	// , players: ^plrs.Players, ga
 				layout_controls_sheet()
 			}
 			if ui.layout_dropdown(ctx, fmt.tprint("Cheats"), &cheats_dropdown) {
+				ui.layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
 
-				// ui.layout_checkbox("air_jumping", &players.game.air_jumping_cheat)
-				//
-				// ui.layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
-				// ui.layout_checkbox(
-				// 	"debug_draw_utils",
-				// 	&game_state.cheat_state.draw_debug_draw_utilities_instructions,
-				// )
-				// ui.layout_checkbox(
-				// 	"player_in_active_cell",
-				// 	&game_state.cheat_state.change_color_when_player_in_cell,
-				// )
+				ui.layout_checkbox("SHG_bounds", &game_state.cheat_state.draw_bounds)
+				ui.layout_checkbox(
+					"debug_draw_utils",
+					&game_state.cheat_state.draw_debug_draw_utilities_instructions,
+				)
+				ui.layout_checkbox(
+					"player_in_active_cell",
+					&game_state.cheat_state.change_color_when_player_in_cell,
+				)
 			}
 		}
 	}
@@ -667,10 +669,12 @@ layout_details_panel :: proc(
 			// )
 
 			character.notify_level_loaded(&players.game)
+			initial_state := level.player_initial_state
 			character.reset_run(
 				&players.game,
-				&level.player_initial_state.position,
-				&level.player_initial_state.look_direction,
+				initial_state.position,
+				initial_state.speed,
+				initial_state.look_direction,
 			)
 		}
 

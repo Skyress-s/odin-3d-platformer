@@ -306,12 +306,13 @@ update_character :: proc(
 	rot, forward, right := player_data.calculate_direction_from_look(character_data)
 
 	if rl.IsKeyPressed(.R) {
+		initial_state := world.player_initial_state
 		character.reset_run(
 			character_data,
-			&world.player_initial_state.position,
-			&world.player_initial_state.look_direction,
+			initial_state.position,
+			initial_state.speed,
+			initial_state.look_direction,
 		)
-		gamestate.finished_level = false
 	}
 
 

@@ -40,6 +40,11 @@ interp_fov :: proc(gs: ^Global_State, player_speed: f32, dt: f32) {
 
 }
 
+create_camera :: proc(gs: Global_State) -> rl.Camera {
+	return gs.current_camera
+
+}
+
 update_transform :: proc(gc: ^Global_State, position, forward, right: rl.Vector3) {
 	gc.current_camera.position = position
 	gc.current_camera.target = gc.current_camera.position + forward
