@@ -135,7 +135,7 @@ game_deinit :: proc(app: ^ap.Application) {
 	// cm.deinit(&game.world_session)
 
 	cs.deinit_collision_scene(&game.collision_scene)
-	cm.deinit(&game.col_meshes)
+
 	w.world_deinit(game.world)
 	free(game.world)
 	free(game.world_session)

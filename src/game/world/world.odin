@@ -46,7 +46,6 @@ Time_Trail_Float :: f64
 World_Contents :: struct {
 	using collision_scene:        cs.Collision_Scene, // Reset between speedruns
 	using entities:               gent.Game_Entity_Handle_Map,
-	using col_meshes:             cm.Collider_Mesh_Context, // Persist between speedruns
 	author_best_speedrun_capture: Speedrun_Capture,
 	player_initial_state:         Player_Initial_State,
 }
