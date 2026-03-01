@@ -24,6 +24,7 @@ Collision_Scene :: struct {
 
 init_collision_scene :: proc(col_scene: ^Collision_Scene, allocator: runtime.Allocator) {
 	col_scene.spatial_hash_grid = make(Spatial_Hash_Grid, allocator)
+	cm.init(&col_scene.collision_meshes, allocator)
 	// add basic primitives
 }
 

@@ -10,14 +10,14 @@ import "core:time"
 
 Context :: struct {
 	// logs_cache: rb.RingBuffer(Log_Entry),
-	logs_buf: rb.RingBuffer(byte),
-	levels:   [len(System)]log.Level, // This is really cool!
+	logs_buf:    rb.RingBuffer(byte),
+	levels:      [len(System)]log.Level, // This is really cool!
+	initialized: bool,
 }
 
 global_ctx: Context
 
 NUM_BYTES_FOR_RUNTIME_LOGS :: 1024 << 2 // 1024 ~ 1 kb
-// NUM_BYTES_FOR_RUNTIME_LOGS :: 1 << 9 // 1024 ~ 1 kb
 @(private)
 logs_memory: [NUM_BYTES_FOR_RUNTIME_LOGS]byte // contains our runtime logs
 @(private)
@@ -69,8 +69,8 @@ main :: proc() {
  */
 
 init :: proc() -> (logger: log.Logger) {
+	global_ctx.initialized = true
 	global_ctx.logs_buf = rb.init(logs_memory[:])
-	// global_ctx.logs_cache = rb.init(backing[:])
 	for &system_log_level in global_ctx.levels {
 		system_log_level = .Debug
 	}
@@ -191,27 +191,24 @@ _format_string :: proc(
 }
 
 _fire_string :: proc(level: log.Level, string_with_system: string, location := #caller_location) {
+	if !global_ctx.initialized do return
 	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
-	maybe_string := _format_string(level = level, str = string_with_system, location = location)
-	string, ok := maybe_string.(string)
-	assert(ok)
-	if ok {
-		// ugh
-		// if (int(global_ctx.logs_cache.len) == len(global_ctx.logs_cache.elements)) {
-		// 	i := rb.get_index(global_ctx.logs_cache, 0)
-		// 	delete(global_ctx.logs_cache.elements[i].log)
-		// }
-		string_as_bytes := transmute([]byte)(string)
-		for b in string_as_bytes {
-			rb.add_back_overrite(&global_ctx.logs_buf, b)
-		}
-		// rb.add_back_overrite(&global_ctx.logs_cache, Log_Entry{string})
-		context.logger.options += {.Terminal_Color, .Long_File_Path, .Procedure}
 
-		context.logger.options -= {.Short_File_Path}
-		log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
-		//fmt.print(string)
+	maybe_string := _format_string(level = level, str = string_with_system, location = location)
+	string, string_ok := maybe_string.(string)
+	if string_ok {
+		if global_ctx.levels[0:0] != nil {
+			string_as_bytes := transmute([]byte)(string)
+			for b in string_as_bytes {
+				rb.add_back_overrite(&global_ctx.logs_buf, b)
+			}
+
+		}
 	}
+	context.logger.options += {.Terminal_Color, .Long_File_Path, .Procedure}
+
+	context.logger.options -= {.Short_File_Path}
+	log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
 
 }
 
@@ -223,20 +220,20 @@ _console_logger_proc :: proc(
 	text: string,
 	options: log.Options,
 	location := #caller_location,
-) -> string {
+) -> Maybe(string) {
+	if logger_data == nil do return {}
 	options := options
 	data := cast(^log.File_Console_Logger_Data)logger_data
+	if data == nil do return {}
 	h: os.Handle = ---
 	if level < log.Level.Error {
 		h = os.stdout
-		// options -= log.global_subtract_stdout_options
 	} else {
 		h = os.stderr
-		// options -= log.global_subtract_stderr_options
 	}
-	// _file_console_logger_proc(h, data.ident, level, text, options, location)
 	backing: [1024]byte
 	buf := strings.builder_from_bytes(backing[:])
+
 	_format_logger_proc(&buf, data.ident, level, text, options, location)
 	return fmt.tprintf("{}{}\n", strings.to_string(buf), text) // called takes ownership
 }
