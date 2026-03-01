@@ -185,7 +185,6 @@ _format_string :: proc(
 	if level < logger.lowest_level {
 		return {}
 	}
-	// runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
 
 	return _console_logger_proc(logger.data, level, str, logger.options, location)
 }
@@ -209,7 +208,6 @@ _fire_string :: proc(level: log.Level, string_with_system: string, location := #
 
 	context.logger.options -= {.Short_File_Path}
 	log.log(level = level, args = {string_with_system}, sep = "", location = location) // Slightly more expensive to do logic again. But fine for now
-
 }
 
 

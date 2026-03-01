@@ -16,7 +16,7 @@ import "core:testing"
 
 Serial_Entity :: struct {
 	handle:    u32,
-	traits:    gent.Traits,
+	// traits:    gent.Traits,
 	transform: gent.Transform_Component,
 	collision: gent.Collision_Component,
 }
@@ -25,7 +25,7 @@ Serial_World :: struct {
 	ents:                         [dynamic]Serial_Entity,
 	author_best_speedrun_capture: w.Speedrun_Capture,
 	player_initial_state:         w.Player_Initial_State,
-	collision_scene:              cs.Collision_Scene,
+	// collision_scene:              cs.Collision_Scene,
 }
 
 serialize_world :: proc(world: ^w.World) -> Serial_World {
@@ -38,14 +38,14 @@ serialize_world :: proc(world: ^w.World) -> Serial_World {
 	for ent, handle in hm.iterate(&it) {
 		serial_ent := Serial_Entity {
 			handle    = u32(handle.idx),
-			traits    = ent.traits,
+			// traits    = ent.traits,
 			transform = ent.transform_component,
 			collision = ent.collision_component,
 		}
 		append(&result.ents, serial_ent)
 	}
 
-	result.collision_scene = world.collision_scene
+	// result.collision_scene = world.collision_scene
 
 	return result
 }
@@ -74,7 +74,7 @@ world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 		new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
 		assert(new_ent != nil)
 
-		new_ent.traits = serial_ent.traits
+		// new_ent.traits = serial_ent.traits
 		new_ent.transform_component = serial_ent.transform
 		new_ent.collision_component = serial_ent.collision
 		new_ent.handle = new_ent_handle
