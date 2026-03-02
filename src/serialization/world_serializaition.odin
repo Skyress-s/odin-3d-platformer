@@ -6,12 +6,16 @@ import gent "../game/game_entities/"
 import sent "../game/spawn_entities/"
 import w "../game/world/"
 import wutils "../game/world_utils/"
+import "core:io"
 import "core:log"
+import "core:math/linalg"
 
+import "base:runtime"
 import hm "core:container/handle_map"
 import "core:encoding/json"
 import "core:fmt"
 import "core:os"
+import "core:strconv"
 import "core:testing"
 
 Serial_Entity :: struct {
@@ -131,4 +135,37 @@ test_world_serial_flow :: proc(t: ^testing.T) {
 			len(serial_world.ents),
 		),
 	)
+}
+user_serializers: map[typeid]json.User_Marshaler
+
+quat64_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
+	ti := runtime.type_info_base(type_info_of(v.id))
+	a := any{v.data, ti.id}
+	q := v.(quaternion64)
+
+	json.opt_write_start(w, opt, '[') or_return
+	json.opt_write_iteration(w, opt, true) or_return
+	io.write_f16(w, real(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, imag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, jmag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, kmag(q))
+	json.opt_write_end(w, opt, ']') or_return
+
+	return nil
+}
+
+setup_user_serializers :: proc() {
+	user_serializers[typeid_of(quaternion64)] = quat64_marshal
+	json.set_user_marshalers(&user_serializers)
+}
+
+@(test)
+test_user_serializers :: proc(t: ^testing.T) {
+	q64: quaternion64 = linalg.QUATERNIONF16_IDENTITY
+	data, err := json.marshal(q64)
+	testing.expect(t, err == nil, fmt.tprintf("Error: {}", err))
+
 }
