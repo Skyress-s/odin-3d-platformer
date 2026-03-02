@@ -104,10 +104,204 @@ load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
 }
 
 
+user_marshalers: map[typeid]json.User_Marshaler
+user_unmarshalers: map[typeid]json.User_Unmarshaler
+
+quat64_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
+	ti := runtime.type_info_base(type_info_of(v.id))
+	a := any{v.data, ti.id}
+	q := v.(quaternion64)
+
+	json.opt_write_start(w, opt, '[') or_return
+	json.opt_write_iteration(w, opt, true) or_return
+	io.write_f16(w, real(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, imag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, jmag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f16(w, kmag(q))
+	json.opt_write_end(w, opt, ']') or_return
+
+	return nil
+}
+quat128_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
+	ti := runtime.type_info_base(type_info_of(v.id))
+	a := any{v.data, ti.id}
+	q := v.(quaternion128)
+
+	json.opt_write_start(w, opt, '[') or_return
+	json.opt_write_iteration(w, opt, true) or_return
+	io.write_f32(w, real(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f32(w, imag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f32(w, jmag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f32(w, kmag(q))
+	json.opt_write_end(w, opt, ']') or_return
+
+	return nil
+}
+quat256_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
+	ti := runtime.type_info_base(type_info_of(v.id))
+	a := any{v.data, ti.id}
+	q := v.(quaternion256)
+
+	json.opt_write_start(w, opt, '[') or_return
+	json.opt_write_iteration(w, opt, true) or_return
+	io.write_f64(w, real(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f64(w, imag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f64(w, jmag(q))
+	json.opt_write_iteration(w, opt, false) or_return
+	io.write_f64(w, kmag(q))
+	json.opt_write_end(w, opt, ']') or_return
+
+	return nil
+}
+
+quat64_unmarshal :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
+	q := cast(^quaternion64)v.data
+	json.expect_token(p, .Open_Bracket)
+
+	token, token_err := json.advance_token(p)
+	r, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	i, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	j, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	k, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Close_Bracket)
+	q^ = quaternion(real = r, imag = i, jmag = j, kmag = k)
+
+	return {}
+}
+quat128_unmarshal :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
+	// q := v.(quaternion64)
+	q := cast(^quaternion128)v.data
+	json.expect_token(p, .Open_Bracket)
+
+	token, token_err := json.advance_token(p)
+	r, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	i, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	j, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	k, _ := strconv.parse_f32(token.text)
+
+	json.expect_token(p, .Close_Bracket)
+	q^ = quaternion(real = r, imag = i, jmag = j, kmag = k)
+
+	return {}
+}
+quat256_unmarshal :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
+	// q := v.(quaternion64)
+	q := cast(^quaternion256)v.data
+	json.expect_token(p, .Open_Bracket)
+
+	token, token_err := json.advance_token(p)
+	r, _ := strconv.parse_f64(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	i, _ := strconv.parse_f64(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	j, _ := strconv.parse_f64(token.text)
+
+	json.expect_token(p, .Comma)
+
+	token, token_err = json.advance_token(p)
+	k, _ := strconv.parse_f64(token.text)
+
+	json.expect_token(p, .Close_Bracket)
+	q^ = quaternion(real = r, imag = i, jmag = j, kmag = k)
+
+	return {}
+}
+
+
+init_user_serializers :: proc() {
+	user_marshalers[typeid_of(quaternion64)] = quat64_marshal
+	user_marshalers[typeid_of(quaternion128)] = quat128_marshal
+	user_marshalers[typeid_of(quaternion256)] = quat256_marshal
+	json.set_user_marshalers(&user_marshalers)
+	user_unmarshalers[typeid_of(quaternion64)] = quat64_unmarshal
+	user_unmarshalers[typeid_of(quaternion128)] = quat128_unmarshal
+	user_unmarshalers[typeid_of(quaternion256)] = quat256_unmarshal
+	json.set_user_unmarshalers(&user_unmarshalers)
+}
+denit_user_serializers :: proc() {
+	json._user_marshalers = nil
+	json._user_unmarshalers = nil
+}
+
+
+@(deferred_none = denit_user_serializers)
+scoped_user_serializers :: proc() {
+	init_user_serializers()
+}
+
+
+@(test)
+test_user_serializers :: proc(t: ^testing.T) {
+	scoped_user_serializers()
+
+	test_quat :: proc($T: typeid, t: ^testing.T) {
+		q: T = quaternion(real = 1.123, imag = 2.234, jmag = 3.345, kmag = .456)
+		data, marshal_err := json.marshal(q)
+		testing.expect(t, marshal_err == nil, fmt.tprintf("Error: {}", marshal_err))
+
+		q2: T
+		unmarshal_err := json.unmarshal(data, &q2)
+		testing.expect(t, unmarshal_err == nil, fmt.tprintf("Error: {}", unmarshal_err))
+
+		testing.expect(t, q == q2, fmt.tprintf("{} != {}", q, q2))
+
+	}
+
+	test_quat(quaternion64, t)
+	test_quat(quaternion128, t)
+	test_quat(quaternion256, t)
+
+	free_all(context.temp_allocator)
+
+
+	// log.infof("---------------- ")
+	// log.infof("{}", string(data))
+	// log.infof("---------------- {} | {}", q64, q64_2)
+
+}
+
 @(test)
 test_world_serial_flow :: proc(t: ^testing.T) {
-	// context.logger = logs.init()
-	// defer log.destroy_console_logger(context.logger)
+	scoped_user_serializers()
 
 	world := new(w.World)
 	defer free(world)
@@ -135,37 +329,4 @@ test_world_serial_flow :: proc(t: ^testing.T) {
 			len(serial_world.ents),
 		),
 	)
-}
-user_serializers: map[typeid]json.User_Marshaler
-
-quat64_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
-	ti := runtime.type_info_base(type_info_of(v.id))
-	a := any{v.data, ti.id}
-	q := v.(quaternion64)
-
-	json.opt_write_start(w, opt, '[') or_return
-	json.opt_write_iteration(w, opt, true) or_return
-	io.write_f16(w, real(q))
-	json.opt_write_iteration(w, opt, false) or_return
-	io.write_f16(w, imag(q))
-	json.opt_write_iteration(w, opt, false) or_return
-	io.write_f16(w, jmag(q))
-	json.opt_write_iteration(w, opt, false) or_return
-	io.write_f16(w, kmag(q))
-	json.opt_write_end(w, opt, ']') or_return
-
-	return nil
-}
-
-setup_user_serializers :: proc() {
-	user_serializers[typeid_of(quaternion64)] = quat64_marshal
-	json.set_user_marshalers(&user_serializers)
-}
-
-@(test)
-test_user_serializers :: proc(t: ^testing.T) {
-	q64: quaternion64 = linalg.QUATERNIONF16_IDENTITY
-	data, err := json.marshal(q64)
-	testing.expect(t, err == nil, fmt.tprintf("Error: {}", err))
-
 }
