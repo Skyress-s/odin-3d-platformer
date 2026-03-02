@@ -1,4 +1,5 @@
 package serialization
+import cc "../engine/core/collision_channel/"
 import cm "../engine/core/collision_mesh/"
 import cs "../engine/core/collision_scene/"
 import logs "../engine/core/logs"
@@ -106,6 +107,19 @@ load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
 
 user_marshalers: map[typeid]json.User_Marshaler
 user_unmarshalers: map[typeid]json.User_Unmarshaler
+
+marshal_cc_responses :: proc(
+	w: io.Writer,
+	v: any,
+	opt: ^json.Marshal_Options,
+) -> json.Marshal_Error {
+
+	ti := runtime.type_info_base(type_info_of(v.id))
+	a := any{v.data, ti.id}
+	q := v.(cc.Responses)
+
+
+}
 
 quat64_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
 	ti := runtime.type_info_base(type_info_of(v.id))
@@ -248,30 +262,36 @@ quat256_unmarshal :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
 
 
 init_user_serializers :: proc() {
-	user_marshalers[typeid_of(quaternion64)] = quat64_marshal
-	user_marshalers[typeid_of(quaternion128)] = quat128_marshal
-	user_marshalers[typeid_of(quaternion256)] = quat256_marshal
-	json.set_user_marshalers(&user_marshalers)
-	user_unmarshalers[typeid_of(quaternion64)] = quat64_unmarshal
-	user_unmarshalers[typeid_of(quaternion128)] = quat128_unmarshal
-	user_unmarshalers[typeid_of(quaternion256)] = quat256_unmarshal
-	json.set_user_unmarshalers(&user_unmarshalers)
+	if json._user_marshalers == nil {
+		user_marshalers[typeid_of(quaternion64)] = quat64_marshal
+		user_marshalers[typeid_of(quaternion128)] = quat128_marshal
+		user_marshalers[typeid_of(quaternion256)] = quat256_marshal
+		json.set_user_marshalers(&user_marshalers)
+
+	}
+	if json._user_unmarshalers == nil {
+		user_unmarshalers[typeid_of(quaternion64)] = quat64_unmarshal
+		user_unmarshalers[typeid_of(quaternion128)] = quat128_unmarshal
+		user_unmarshalers[typeid_of(quaternion256)] = quat256_unmarshal
+		json.set_user_unmarshalers(&user_unmarshalers)
+
+	}
 }
+
 denit_user_serializers :: proc() {
 	json._user_marshalers = nil
 	json._user_unmarshalers = nil
 }
 
-
-@(deferred_none = denit_user_serializers)
-scoped_user_serializers :: proc() {
-	init_user_serializers()
-}
+// @(deferred_none = denit_user_serializers)
+// scoped_user_serializers :: proc() {
+// 	init_user_serializers()
+// }
 
 
 @(test)
 test_user_serializers :: proc(t: ^testing.T) {
-	scoped_user_serializers()
+	init_user_serializers()
 
 	test_quat :: proc($T: typeid, t: ^testing.T) {
 		q: T = quaternion(real = 1.123, imag = 2.234, jmag = 3.345, kmag = .456)
@@ -296,12 +316,11 @@ test_user_serializers :: proc(t: ^testing.T) {
 	// log.infof("---------------- ")
 	// log.infof("{}", string(data))
 	// log.infof("---------------- {} | {}", q64, q64_2)
-
 }
 
 @(test)
 test_world_serial_flow :: proc(t: ^testing.T) {
-	scoped_user_serializers()
+	init_user_serializers()
 
 	world := new(w.World)
 	defer free(world)
