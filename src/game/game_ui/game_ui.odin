@@ -649,6 +649,11 @@ layout_details_panel :: proc(
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
+			serial_world := serialization.serialize_world(world_session.world)
+			serialization.save_world_to_file(
+				serial_world,
+				to_cwd_map_path_from_local(string(buf[:buf_len])),
+			)
 			// level.author_best_speedrun_capture. = players.game.best_time
 			// slevel, slevel_ok := serialization.serialize_level(level)
 			// assert(slevel_ok)
@@ -664,18 +669,32 @@ layout_details_panel :: proc(
 		// }
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Load Level")) {
-			// level^ = serialization.load_from_file_level(
-			// 	to_cwd_map_path_from_local(string(buf[:buf_len])),
-			// )
+			serial_world, serial_world_ok := serialization.load_serial_world_from_file(
+				to_cwd_map_path_from_local(string(buf[:buf_len])),
+			)
+			assert(serial_world_ok)
 
-			character.notify_level_loaded(&players.game)
-			initial_state := world_session.player_initial_state
+
+			fresh_world := new(w.World)
+			serialization.world_from_serial_world(serial_world, fresh_world)
+			// TODO: Stuff like this should maybe be moved to some sort of event queue to not be handeled in the middle of logic
+			w.world_goto_next_level(world_session, fresh_world)
+
 			character.reset_run(
 				&players.game,
-				initial_state.position,
-				initial_state.speed,
-				initial_state.look_direction,
+				world_session.player_initial_state.position,
+				world_session.player_initial_state.speed,
+				world_session.player_initial_state.look_direction,
 			)
+
+			// character.notify_level_loaded(&players.game)
+			// initial_state := world_session.player_initial_state
+			// character.reset_run(
+			// 	&players.game,
+			// 	initial_state.position,
+			// 	initial_state.speed,
+			// 	initial_state.look_direction,
+			// )
 		}
 
 	}

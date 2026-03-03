@@ -20,8 +20,8 @@ import "core:strconv"
 import "core:testing"
 
 Serial_Entity :: struct {
-	handle:    u32,
-	// traits:    gent.Traits,
+	idx:       u32,
+	traits:    gent.Traits,
 	transform: gent.Transform_Component,
 	collision: gent.Collision_Component,
 }
@@ -42,8 +42,8 @@ serialize_world :: proc(world: ^w.World) -> Serial_World {
 	it := hm.iterator_make(&world.entities)
 	for ent, handle in hm.iterate(&it) {
 		serial_ent := Serial_Entity {
-			handle    = u32(handle.idx),
-			// traits    = ent.traits,
+			idx       = u32(handle.idx),
+			traits    = ent.traits,
 			transform = ent.transform_component,
 			collision = ent.collision_component,
 		}
@@ -56,6 +56,7 @@ serialize_world :: proc(world: ^w.World) -> Serial_World {
 }
 
 save_world_to_file :: proc(world: Serial_World, filepath: string) -> bool {
+	init_user_serializers()
 	data, marshal_err := json.marshal(world, {pretty = true})
 	assert(marshal_err == nil, fmt.tprint(marshal_err))
 	defer delete(data)
@@ -79,7 +80,7 @@ world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 		new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
 		assert(new_ent != nil)
 
-		// new_ent.traits = serial_ent.traits
+		new_ent.traits = serial_ent.traits
 		new_ent.transform_component = serial_ent.transform
 		new_ent.collision_component = serial_ent.collision
 		new_ent.handle = new_ent_handle
@@ -89,6 +90,7 @@ world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 }
 
 load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
+	init_user_serializers()
 	data, ok := os.read_entire_file(filepath)
 	if !ok {
 		return {}, false
@@ -118,7 +120,22 @@ marshal_cc_responses :: proc(
 	a := any{v.data, ti.id}
 	responses := v.(cc.Responses)
 
+	io.write_i64(w, i64(responses))
 
+	return {}
+}
+
+unmarshal_cc_responses :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
+	responses := cast(^cc.Responses)v.data
+
+	token, token_err := json.advance_token(p)
+	i, ok := strconv.parse_i64(token.text)
+	if !ok do return json.Unsupported_Type_Error{}
+
+	// value = Integer(i)
+	responses^ = cc.Responses(i)
+
+	return {}
 }
 
 quat64_marshal :: proc(w: io.Writer, v: any, opt: ^json.Marshal_Options) -> json.Marshal_Error {
@@ -266,6 +283,7 @@ init_user_serializers :: proc() {
 		user_marshalers[typeid_of(quaternion64)] = quat64_marshal
 		user_marshalers[typeid_of(quaternion128)] = quat128_marshal
 		user_marshalers[typeid_of(quaternion256)] = quat256_marshal
+		user_marshalers[typeid_of(cc.Responses)] = marshal_cc_responses
 		json.set_user_marshalers(&user_marshalers)
 
 	}
@@ -273,8 +291,8 @@ init_user_serializers :: proc() {
 		user_unmarshalers[typeid_of(quaternion64)] = quat64_unmarshal
 		user_unmarshalers[typeid_of(quaternion128)] = quat128_unmarshal
 		user_unmarshalers[typeid_of(quaternion256)] = quat256_unmarshal
+		user_unmarshalers[typeid_of(cc.Responses)] = unmarshal_cc_responses
 		json.set_user_unmarshalers(&user_unmarshalers)
-
 	}
 }
 
@@ -306,9 +324,25 @@ test_user_serializers :: proc(t: ^testing.T) {
 
 	}
 
+	test_cc_responses :: proc(t: ^testing.T) {
+		respones1 := cc.Responses{}
+		respones1.player = cc.BLOCK
+
+		data, marshal_err := json.marshal(respones1)
+		testing.expect(t, marshal_err == nil, fmt.tprint(marshal_err))
+
+		respones2: cc.Responses
+		unmarshal_err := json.unmarshal(data, &respones2)
+		testing.expect(t, unmarshal_err == nil, fmt.tprint(unmarshal_err))
+
+		testing.expect(t, respones1 == respones2, fmt.tprintf("{} != {}", respones1, respones2))
+	}
+
 	test_quat(quaternion64, t)
 	test_quat(quaternion128, t)
 	test_quat(quaternion256, t)
+	test_cc_responses(t)
+
 
 	free_all(context.temp_allocator)
 
@@ -343,9 +377,50 @@ test_world_serial_flow :: proc(t: ^testing.T) {
 		t,
 		len(serial_world.ents) == len(loaded_serial_world.ents),
 		fmt.aprintf(
-			"Entity count mismatch: got %d, want %d",
+			"Serial World Mismatch: Entity count: got %d, want %d",
 			len(loaded_serial_world.ents),
 			len(serial_world.ents),
 		),
 	)
+
+	loaded_world := new(w.World)
+	defer free(loaded_world)
+	world_from_serial_world(loaded_serial_world, loaded_world)
+
+
+	testing.expect(
+		t,
+		world.player_initial_state == loaded_world.player_initial_state,
+		fmt.aprintf(
+			"Player Initial State Mismatch got {}, want {}",
+			world.player_initial_state,
+			loaded_world.player_initial_state,
+		),
+	)
+
+	test_propety :: proc(t: ^testing.T, T1, T2: $T) {
+		testing.expect(t, T1 == T2, fmt.tprintf("{} != {}", T1, T2))
+
+	}
+
+	itr := hm.iterator_make(&world.entities)
+	for entity_ptr, i in hm.iterate(&itr) {
+		entity: gent.Entity = entity_ptr^
+		loaded_entity := loaded_world.entities.items[i.idx]
+
+		testing.expect(
+			t,
+			entity.traits == loaded_entity.traits,
+			fmt.tprintf("{} != {}", entity.traits, loaded_entity.traits),
+		)
+
+
+		testing.expect(
+			t,
+			entity.collision_component == loaded_entity.collision_component,
+			fmt.tprintf("{} != {}", entity.traits, loaded_entity.collision_component),
+		)
+
+		test_propety(t, entity.collision_component, loaded_entity.collision_component)
+	}
 }
