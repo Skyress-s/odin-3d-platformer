@@ -54,6 +54,9 @@ deinit_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: run
 game_init :: proc(app: ^ap.Application) {
 	logs.warnf(.Gamelogic, "Initializing Game")
 
+	serialization.init_user_serializers()
+
+
 	game := cast(^g.Game)app.game_interface.data
 	assert(game != nil)
 	game.ui_context = &app.ui_context
@@ -139,6 +142,9 @@ game_deinit :: proc(app: ^ap.Application) {
 	w.world_deinit(game.world)
 	free(game.world)
 	free(game.world_session)
+
+	serialization.denit_user_serializers()
+
 	logs.warnf(.Gamelogic, "Finished Deinitializing Game")
 }
 
@@ -146,21 +152,7 @@ get_camera_from_active_player :: proc(game: g.Game, players: plrs.Players) -> rl
 	switch (players.mode) {
 	case .Game:
 		camera_state := game.camera_state
-		// camera_state := game.camera_state
 		return camera.create_camera(camera_state)
-	// game_player: character.CharacternData = players.game
-	// player_pos := game_player.verlet_component.position
-	// _, forward, _ := player_data.calculate_direction_from_look(game_player.look_angles)
-	// cam := rl.Camera {
-	// 	position   = player_pos,
-	// 	target     = player_pos + forward,
-	// 	up         = {0, 3, 0},
-	// 	fovy       = 95 + linalg.length(game_player.verlet_component.velocity) * 0.5,
-	// 	projection = .PERSPECTIVE,
-	// }
-	//
-	// return cam
-
 	case .Editor:
 		game_player := players.editor
 		player_pos := game_player.position
@@ -176,7 +168,7 @@ get_camera_from_active_player :: proc(game: g.Game, players: plrs.Players) -> rl
 		return cam
 	}
 
-	panic("players.mode should never be nil!")
+	unreachable()
 }
 
 @(private)

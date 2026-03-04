@@ -353,7 +353,6 @@ set_focus :: proc(ctx: ^Context, id: u32) {
 	ctx.updated_focus = true
 }
 
-
 set_focus_2 :: proc(ctx: ^Context, id: u32) {
 	ctx.focus_id = id
 	ctx.updated_focus = true

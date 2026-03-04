@@ -98,7 +98,12 @@ load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
 	defer delete(data)
 
 	serial_world: Serial_World
-	unmarshal_err := json.unmarshal(data, &serial_world)
+	unmarshal_err := json.unmarshal(
+		data,
+		&serial_world,
+		json.DEFAULT_SPECIFICATION,
+		context.temp_allocator,
+	)
 	if unmarshal_err != nil {
 		return {}, false
 	}
@@ -107,6 +112,8 @@ load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
 }
 
 
+@(private)
+user_un_marshalers_initialized: bool
 user_marshalers: map[typeid]json.User_Marshaler
 user_unmarshalers: map[typeid]json.User_Unmarshaler
 
@@ -279,6 +286,9 @@ quat256_unmarshal :: proc(p: ^json.Parser, v: any) -> json.Unmarshal_Error {
 
 
 init_user_serializers :: proc() {
+	if user_un_marshalers_initialized do return
+	user_un_marshalers_initialized = true
+
 	if json._user_marshalers == nil {
 		user_marshalers[typeid_of(quaternion64)] = quat64_marshal
 		user_marshalers[typeid_of(quaternion128)] = quat128_marshal
@@ -297,6 +307,8 @@ init_user_serializers :: proc() {
 }
 
 denit_user_serializers :: proc() {
+	delete(user_marshalers)
+	delete(user_unmarshalers)
 	json._user_marshalers = nil
 	json._user_unmarshalers = nil
 }
@@ -408,19 +420,8 @@ test_world_serial_flow :: proc(t: ^testing.T) {
 		entity: gent.Entity = entity_ptr^
 		loaded_entity := loaded_world.entities.items[i.idx]
 
-		testing.expect(
-			t,
-			entity.traits == loaded_entity.traits,
-			fmt.tprintf("{} != {}", entity.traits, loaded_entity.traits),
-		)
-
-
-		testing.expect(
-			t,
-			entity.collision_component == loaded_entity.collision_component,
-			fmt.tprintf("{} != {}", entity.traits, loaded_entity.collision_component),
-		)
-
+		test_propety(t, entity.traits, loaded_entity.traits)
 		test_propety(t, entity.collision_component, loaded_entity.collision_component)
+		test_propety(t, entity.transform_component, loaded_entity.transform_component)
 	}
 }

@@ -46,33 +46,33 @@ update :: proc(
 	ray := rlb.ray_from_game_rect_cam_mouse(cam, mouse_pos, game_rect)
 
 	players := &game.players
-	switch game.players.mode {
-	case plrs.Player_Mode.Game:
-		if rl.IsKeyPressed(.TAB) {
-
-			if vmouse.is_cursor_hidden(game.virtual_mouse_ctx^) {
-				vmouse.show_cursor(game.virtual_mouse_ctx)
-				vmouse.free_mouse(game.virtual_mouse_ctx)
-			} else {
-				vmouse.hide_cursor(game.virtual_mouse_ctx)
-				vmouse.restrict_mouse(
-					game.virtual_mouse_ctx,
-					vmouse.Vec2 {
-						game_rect.x + game_rect.width / 2,
-						game_rect.y + game_rect.height / 2,
-					},
-				)
-			}
-		}
-		update_game_player(game, &debug_draw_data, dt)
-	case plrs.Player_Mode.Editor:
-		update_editor_player(game)
-		editor_player.update(&players.editor, game.virtual_mouse_ctx, dt)
-		update_transform_tool(game, cam, ray, dt)
-	}
 
 
 	if can_receive_input {
+		switch game.players.mode {
+		case plrs.Player_Mode.Game:
+			if rl.IsKeyPressed(.TAB) {
+
+				if vmouse.is_cursor_hidden(game.virtual_mouse_ctx^) {
+					vmouse.show_cursor(game.virtual_mouse_ctx)
+					vmouse.free_mouse(game.virtual_mouse_ctx)
+				} else {
+					vmouse.hide_cursor(game.virtual_mouse_ctx)
+					vmouse.restrict_mouse(
+						game.virtual_mouse_ctx,
+						vmouse.Vec2 {
+							game_rect.x + game_rect.width / 2,
+							game_rect.y + game_rect.height / 2,
+						},
+					)
+				}
+			}
+			update_game_player(game, &debug_draw_data, dt)
+		case plrs.Player_Mode.Editor:
+			update_editor_player(game)
+			editor_player.update(&players.editor, game.virtual_mouse_ctx, dt)
+			update_transform_tool(game, cam, ray, dt)
+		}
 		// should we change to another state
 		if rl.IsKeyPressed(.Q) {
 			switch game.players.mode {
