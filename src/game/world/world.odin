@@ -44,6 +44,7 @@ Time_Trail_Float :: f64
 
 // Lifetime: For the duration a single "speedrun"" on a map lasts.
 World_Contents :: struct {
+	name:                         string,
 	using collision_scene:        cs.Collision_Scene, // Reset between speedruns
 	using entities:               gent.Game_Entity_Handle_Map,
 	author_best_speedrun_capture: Speedrun_Capture,
@@ -52,8 +53,8 @@ World_Contents :: struct {
 
 World :: struct {
 	using world_contents: World_Contents,
-	world_allocator:      mem.Allocator,
-	level_arena:          vmem.Arena,
+	allocator:            mem.Allocator,
+	arena:                vmem.Arena,
 }
 
 // Lifetime: For the duration the player is on a map.
@@ -83,14 +84,14 @@ Speedrun_Capture :: struct {
 // }
 //
 world_init :: proc(world: ^World) {
-	arena_err := vmem.arena_init_growing(&world.level_arena)
+	arena_err := vmem.arena_init_growing(&world.arena)
 	assert(arena_err == nil, fmt.tprint(arena_err))
-	world.world_allocator = vmem.arena_allocator(&world.level_arena)
+	world.allocator = vmem.arena_allocator(&world.arena)
 
 }
 
 world_deinit :: proc(world: ^World) {
-	vmem.arena_destroy(&world.level_arena)
+	vmem.arena_destroy(&world.arena)
 }
 
 world_session_init :: proc(world: ^World_Session) {
@@ -107,7 +108,7 @@ world_session_deinit :: proc(world: ^World_Session) {
 // }
 //
 // restore_from_snapshot :: proc(world_session: ^World_Session) {
-// 	free_all(world_session.world_allocator)
+// 	free_all(world_session.allocator)
 // 	fresh_world := new(World)
 // 	w.world_init(fresh_world)
 // 	fresh_world.world_contents = world_session.world_snapshot.world_contents

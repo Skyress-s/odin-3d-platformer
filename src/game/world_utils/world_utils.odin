@@ -5,15 +5,18 @@ import csq "../../engine/core/collision_scene/query/"
 import spat "../../engine/core/spatial/"
 import gent "../game_entities/"
 import sent "../spawn_entities/"
+import "core:strings"
 
 import w "../world/"
 
 
 make_basic_world :: proc(world: ^w.World) {
 	w.world_init(world)
-	cm.init(&world.collision_scene.collision_meshes, world.world_allocator)
-	cs.init_collision_scene(&world.collision_scene, world.world_allocator)
+	cm.init(&world.collision_scene.collision_meshes, world.allocator)
+	cs.init_collision_scene(&world.collision_scene, world.allocator)
 	ents := &world.entities
+
+	world.name = strings.clone("basic world", world.allocator)
 
 	ent1 := sent.spawn_box(
 		{
@@ -23,7 +26,7 @@ make_basic_world :: proc(world: ^w.World) {
 		},
 		&world.collision_scene,
 		&world.entities,
-		world.world_allocator,
+		world.allocator,
 	)
 	gent.add_traits_checked({.Grabable}, ent1)
 
@@ -35,13 +38,13 @@ make_basic_world :: proc(world: ^w.World) {
 		},
 		&world.collision_scene,
 		&world.entities,
-		world.world_allocator,
+		world.allocator,
 	)
 
 	sent.reconstruct_spatial_hash_grid_from_entities(
 		&world.collision_scene,
 		&world.entities,
-		world.world_allocator,
+		world.allocator,
 	)
 
 	csq.shg_valid_checked(world.entities, world.collision_scene.spatial_hash_grid)

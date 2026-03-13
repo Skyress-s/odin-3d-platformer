@@ -294,7 +294,7 @@ update_transform_tool :: proc(game: ^g.Game, cam: rl.Camera, ray: spat.Ray, dt: 
 			sent.reconstruct_spatial_hash_grid_from_entities(
 				&game.collision_scene,
 				&game.entities,
-				game.world_session.world_allocator,
+				game.world_session.allocator,
 			)
 		}
 

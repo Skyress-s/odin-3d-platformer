@@ -144,8 +144,6 @@ layout_editor_details :: proc(node: ^layout.Layout_Item, active_elems: ^layout.A
 	game := cast(^g.Game)node.userdata
 	assert(game != nil)
 
-	ui.layout_dynamic_text_entry(fmt.tprintf("mouse_over_game {}", game.mouse_over_game))
-
 	layout_details_panel(
 		game.ui_context,
 		&game.world_session.players,
@@ -467,7 +465,7 @@ layout_details_panel :: proc(
 				},
 				&world_session.collision_scene,
 				&world_session.entities,
-				world_session.world_allocator,
+				world_session.allocator,
 			)
 
 		}
@@ -479,15 +477,42 @@ layout_details_panel :: proc(
 		ent: ^gent.Entity = hm.get(&world_session.entities, current_id)
 		if ui.layout_dropdown(ctx, fmt.tprintf("Object Manipulation"), &object_manip_dropdown) {
 
-			if !gent.has_traits({.Grabable}, ent^) {
-				if ui.layout_button_immediate(ctx, fmt.tprintf("Add Grabbable Component")) {
-					ent.traits += {.Grabable}
+			toggle_component :: proc(
+				ctx: ^ui.Context,
+				trait: gent.Trait,
+				ent: ^gent.Entity,
+				add_x_comp_string, remove_x_comp_string: string,
+			) {
+				if !gent.has_traits({trait}, ent^) {
+					if ui.layout_button_immediate(ctx, add_x_comp_string) {
+						ent.traits += {trait}
+					}
+				} else {
+					if ui.layout_button_immediate(ctx, remove_x_comp_string) {
+						ent.traits -= {trait}
+					}
 				}
-			} else {
-				if ui.layout_button_immediate(ctx, fmt.tprintf("Remove Grabbable Component")) {
-					ent.traits -= {.Grabable}
-				}
+
 			}
+
+			toggle_component(
+				ctx,
+				.Grabable,
+				ent,
+				"Add Grabbable Component",
+				"Remove Grabbable Component",
+			)
+
+			toggle_component(ctx, .Kill, ent, "Add Kill Component", "Remove Kill Component")
+			toggle_component(ctx, .Finish, ent, "Add Finish Component", "Remove Finish Component")
+			toggle_component(
+				ctx,
+				.Collision,
+				ent,
+				"Add Collision Component",
+				"Remove Collision Component",
+			)
+
 
 			// ui.layout_dynamic_text_entry(fmt.tprint(current_id))
 			// if ui.layout_button_immediate(ctx, fmt.tprint("Duplicate")) {
@@ -673,7 +698,6 @@ layout_details_panel :: proc(
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 			)
 			assert(serial_world_ok)
-
 
 			fresh_world := new(w.World)
 			serialization.world_from_serial_world(serial_world, fresh_world)

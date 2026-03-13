@@ -10,12 +10,14 @@ import wutils "../game/world_utils/"
 import "core:io"
 import "core:log"
 import "core:math/linalg"
+import "core:strings"
 
 import "base:runtime"
 import hm "core:container/handle_map"
 import "core:encoding/json"
 import "core:fmt"
 import "core:os"
+import fp "core:path/filepath"
 import "core:strconv"
 import "core:testing"
 
@@ -28,6 +30,7 @@ Serial_Entity :: struct {
 
 Serial_World :: struct {
 	ents:                         [dynamic]Serial_Entity,
+	name:                         string,
 	author_best_speedrun_capture: w.Speedrun_Capture,
 	player_initial_state:         w.Player_Initial_State,
 	// collision_scene:              cs.Collision_Scene,
@@ -66,8 +69,9 @@ save_world_to_file :: proc(world: Serial_World, filepath: string) -> bool {
 
 world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 	w.world_init(world)
-	cm.init(&world.collision_scene.collision_meshes, world.world_allocator)
-	cs.init_collision_scene(&world.collision_scene, world.world_allocator)
+	world.name = strings.clone(serial_world.name, world.allocator)
+	cm.init(&world.collision_scene.collision_meshes, world.allocator)
+	cs.init_collision_scene(&world.collision_scene, world.allocator)
 
 	world.author_best_speedrun_capture = serial_world.author_best_speedrun_capture
 	world.player_initial_state = serial_world.player_initial_state
@@ -86,24 +90,27 @@ world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 		new_ent.handle = new_ent_handle
 	}
 
-	sent.reconstruct_spatial_hash_grid_from_entities(col_scene, ents, world.world_allocator)
+	sent.reconstruct_spatial_hash_grid_from_entities(col_scene, ents, world.allocator)
 }
 
-load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
+load_serial_world_from_file :: proc(
+	filepath: string,
+	allocator := context.temp_allocator,
+) -> (
+	Serial_World,
+	bool,
+) {
 	init_user_serializers()
-	data, err := os.read_entire_file_from_path(filepath, context.allocator)
+	data, err := os.read_entire_file_from_path(filepath, allocator)
 	if err != nil {
 		return {}, false
 	}
 	defer delete(data)
 
 	serial_world: Serial_World
-	unmarshal_err := json.unmarshal(
-		data,
-		&serial_world,
-		json.DEFAULT_SPECIFICATION,
-		context.temp_allocator,
-	)
+
+	serial_world.name = strings.clone(filepath[strings.last_index(filepath, "/"):], allocator)
+	unmarshal_err := json.unmarshal(data, &serial_world, json.DEFAULT_SPECIFICATION, allocator)
 	if unmarshal_err != nil {
 		return {}, false
 	}
