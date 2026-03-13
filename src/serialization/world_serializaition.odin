@@ -61,7 +61,7 @@ save_world_to_file :: proc(world: Serial_World, filepath: string) -> bool {
 	assert(marshal_err == nil, fmt.tprint(marshal_err))
 	defer delete(data)
 
-	return os.write_entire_file(filepath, data)
+	return os.write_entire_file(filepath, data) == nil
 }
 
 world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
@@ -91,8 +91,8 @@ world_from_serial_world :: proc(serial_world: Serial_World, world: ^w.World) {
 
 load_serial_world_from_file :: proc(filepath: string) -> (Serial_World, bool) {
 	init_user_serializers()
-	data, ok := os.read_entire_file(filepath)
-	if !ok {
+	data, err := os.read_entire_file_from_path(filepath, context.allocator)
+	if err != nil {
 		return {}, false
 	}
 	defer delete(data)

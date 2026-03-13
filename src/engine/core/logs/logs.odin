@@ -223,7 +223,7 @@ _console_logger_proc :: proc(
 	options := options
 	data := cast(^log.File_Console_Logger_Data)logger_data
 	if data == nil do return {}
-	h: os.Handle = ---
+	h: ^os.File = nil
 	if level < log.Level.Error {
 		h = os.stdout
 	} else {
@@ -260,7 +260,7 @@ _format_logger_proc :: proc(
 	if .Thread_Id in options {
 		// NOTE(Oskar): not using context.thread_id here since that could be
 		// incorrect when replacing context for a thread.
-		fmt.sbprintf(buf, "[{}] ", os.current_thread_id())
+		fmt.sbprintf(buf, "[{}] ", os.get_current_thread_id())
 	}
 
 	if ident != "" {

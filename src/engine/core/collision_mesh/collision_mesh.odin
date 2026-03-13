@@ -40,7 +40,7 @@ init :: proc(ctx: ^Collider_Mesh_Context, allocator: runtime.Allocator) {
 deinit :: proc(ctx: ^Collider_Mesh_Context) {
 	logs.debugf(.Physics, "Deinitializing Collider Mesh Context.")
 	itr := hm.iterator_make(&ctx.mesh_map)
-	for item in hm.iterate(&itr) {
+	for item, _ in hm.iterate(&itr) {
 		delete(item.tris)
 	}
 }

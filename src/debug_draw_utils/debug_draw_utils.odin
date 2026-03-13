@@ -172,7 +172,7 @@ update_lifetime_and_clean :: proc(dt: f32) {
 	defer delete(to_remove)
 
 	itr := hm.iterator_make(&ins_handle_map)
-	for i in hm.iterate(&itr) {
+	for i, _ in hm.iterate(&itr) {
 		if i.duration >= 0 {
 			i.duration -= dt
 			if i.duration < 0 {
@@ -188,7 +188,7 @@ update_lifetime_and_clean :: proc(dt: f32) {
 
 draw_all_instructions_and_reset :: proc() {
 	itr := hm.iterator_make(&ins_handle_map)
-	for e in hm.iterate(&itr) {
+	for e, _ in hm.iterate(&itr) {
 		draw_instruction(&e.instruction)
 	}
 }

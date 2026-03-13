@@ -171,7 +171,7 @@ render :: proc(
 	defer delete(drawn_collision_objects_ids)
 
 	itr := hm.iterator_make(&game.entities)
-	for entity in hm.iterate(&itr) {
+	for entity, _ in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, entity^) do continue
 
 		col := rl.WHITE

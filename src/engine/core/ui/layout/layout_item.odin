@@ -25,8 +25,11 @@ Context :: struct {
 	clay_arena:                                        clay.Arena,
 	lic:                                               Layout_Item_Container,
 	root, dragging_handle:                             Layout_Item_Handle,
+	hover_layout_handle:                               Layout_Item_Handle,
+	fullscreen_layout_handle:                          Layout_Item_Handle,
 	debug_settings:                                    Debug_Settings,
 	remove_click, add_click, resize_click, move_click: clay.PointerDataInteractionState,
+	pressed_fullscreen_this_frame:                     bool,
 	active_elements:                                   Active_Elements,
 
 	// Not exposed by clay. So need to cache them here too
@@ -35,7 +38,6 @@ Context :: struct {
 	screen_dimensions:                                 clay.Dimensions,
 	// I am abit unsure if this library should have this responsebility...
 	// controlling_layout_item:                           Layout_Item_Handle, // Tells ui which one has control / can receive inputs. if {}, we are in layout edit mode
-	hover_layout_handle:                               Layout_Item_Handle,
 }
 
 Layout_Item :: struct {
@@ -85,7 +87,104 @@ get_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> (^L
 }
 
 @(private)
-make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
+make_parent_layout_item :: proc(
+	ctx: ^Context,
+) -> // @(private)
+
+
+	// Note, do not use the passed in layout item. This will make a copy that now own the memory
+
+
+	// deletes item.
+
+
+	// Returns the handle that was hit and not deleted
+
+
+	// root node
+
+
+	// continue walking
+
+
+	// delete_tail(ctx, parent_handle)
+
+
+	// Is not the fastest. Could do something more local. But this is simpler.
+
+
+	// all children
+
+
+	// / f32(num_grand_grand_children) //
+
+
+	// if len(parent_layout_item.child_nodes) == 0 {
+	// 	parent_handle = delete_tail(ctx, parent_handle)
+	// }
+	//
+	// clean_upwards(ctx, parent_handle)
+
+
+	// TODO: make recursive TODO: Make work
+	// if len(parent_layout_item.child_nodes) == 0 {
+	// 	grand_parent_handle := parent_layout_item.parent_handle
+	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
+	// 	delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
+	// 	delete_layout_item(ctx, parent_handle)
+	// }
+
+	// if true do return
+	// parent only has one child, reduce it
+	// if len(parent_layout_item.child_nodes) == 1 {
+	// 	grand_parent_handle := parent_layout_item.parent_handle
+	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
+	//
+	// 	grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
+	// 	for &h in grand_parent.child_nodes {
+	// 		if h == parent_handle {
+	// 			h = parent_layout_item.child_nodes[0]
+	// 			single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
+	// 			single_child.parent_handle = grand_parent_handle
+	// 			single_child.size_percent = parent_layout_item.size_percent
+	// 			delete_layout_item(ctx, parent_handle)
+	// 			break
+	// 		}
+	// 	}
+	//
+	// 	update_layout_dir(&ctx.lic, grand_parent_handle)
+	// 	normalize_sizes_recursive(&ctx.lic, grand_parent_handle)
+	// }
+
+
+	// slice_layout_item :: proc(lic: ^Layout_Item_Container, handle_to_slice: Layout_Item_Handle) {
+	// 	assert(hm.valid(lic^, handle_to_slice))
+	// 	layout_item_to_slice := hm.get(lic, handle_to_slice)
+	//
+	// 	grand_parent_handle := layout_item_to_slice.parent_handle
+	// 	if !hm.valid(lic^, grand_parent_handle) do return // root node
+	//
+	// 	grand_parent := hm.get(lic, grand_parent_handle)
+	// 	for &h in grand_parent.child_nodes {
+	// 		if h == parent_handle {
+	// 			h = parent_layout_item.child_nodes[0]
+	//
+	// 			break
+	// 		}
+	// 	}
+	// 	grand_parent.child_nodes
+	// }
+
+	// delete item and potential children
+
+
+	// setup state
+
+
+	// setup state
+
+
+	Layout_Item {// TODO: Add handles that should retain its percent
 
 	@(static) debug_gen_id: u32 = 0
 	layout_item := make_layout_item(ctx, fmt.tprintf("parent_{}", debug_gen_id))
@@ -94,7 +193,7 @@ make_parent_layout_item :: proc(ctx: ^Context) -> Layout_Item {
 	return layout_item
 }
 
-// @(private)
+
 make_debug_leaf_layout_item :: proc(
 	ctx: ^Context,
 	layout_proc: proc(parent_node: ^Layout_Item, active_elems: ^Active_Elements) = nil,
@@ -126,12 +225,12 @@ make_layout_item :: proc(
 	return
 }
 
-// Note, do not use the passed in layout item. This will make a copy that now own the memory
+
 add_to_context :: proc(ctx: ^Context, layout_item: Layout_Item) -> Layout_Item_Handle {
 	return hm.add(&ctx.lic, layout_item)
 }
 
-// deletes item.
+
 delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	if hm.get(&ctx.lic, handle) == nil do return
 	layout_item := hm.get(&ctx.lic, handle)
@@ -142,15 +241,15 @@ delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	hm.remove(&ctx.lic, handle)
 }
 
-// Returns the handle that was hit and not deleted
+
 delete_tail :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) -> Layout_Item_Handle {
 	item := get_item_checked(&ctx.lic, item_handle)
 	parent_item := hm.get(&ctx.lic, item.parent_handle)
-	if parent_item == nil do return item.handle // root node
+	if parent_item == nil do return item.handle
 
 	parent := get_item_checked(&ctx.lic, item.parent_handle)
 
-	if len(parent.child_nodes) == 1 { 	// continue walking
+	if len(parent.child_nodes) == 1 {
 		delete_handle_from_node(&ctx.lic, item.parent_handle, item.handle)
 		delete_layout_item(ctx, item.handle)
 
@@ -219,9 +318,6 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	}
 
 
-	// delete_tail(ctx, parent_handle)
-
-
 	if len(parent_layout_item.child_nodes) == 1 {
 		single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
 		grand_parent, grand_parent_ok := get_item(&ctx.lic, parent_layout_item.parent_handle)
@@ -241,12 +337,12 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	update_layout_dir(&ctx.lic, ctx.root)
 	normalize_sizes_recursive(&ctx.lic, ctx.root)
 
-	// Is not the fastest. Could do something more local. But this is simpler.
+
 	clean_tree :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 		item := get_item_checked(&ctx.lic, handle)
 
 		#reverse for child_handle, i in item.child_nodes {
-			child := get_item_checked(&ctx.lic, child_handle) // all children
+			child := get_item_checked(&ctx.lic, child_handle)
 			if len(child.child_nodes) == 1 {
 				delete_handle_from_node(&ctx.lic, item.handle, child.handle)
 				grand_child := get_item_checked(&ctx.lic, child.child_nodes[0])
@@ -257,7 +353,7 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 				for j := 0; j < num_grand_grand_children; j += 1 {
 					grand_grand_child := get_item_checked(&ctx.lic, grand_child.child_nodes[j])
 					grand_grand_child.parent_handle = item.handle
-					grand_grand_child.size_percent *= size_percent // / f32(num_grand_grand_children) //
+					grand_grand_child.size_percent *= size_percent
 					inject_at(&item.child_nodes, i + j, grand_grand_child.handle)
 				}
 
@@ -273,42 +369,6 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	}
 
 
-	// if len(parent_layout_item.child_nodes) == 0 {
-	// 	parent_handle = delete_tail(ctx, parent_handle)
-	// }
-	//
-	// clean_upwards(ctx, parent_handle)
-
-
-	// TODO: make recursive TODO: Make work
-	// if len(parent_layout_item.child_nodes) == 0 {
-	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
-	// 	delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
-	// 	delete_layout_item(ctx, parent_handle)
-	// }
-
-	// if true do return
-	// parent only has one child, reduce it
-	// if len(parent_layout_item.child_nodes) == 1 {
-	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
-	//
-	// 	grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
-	// 	for &h in grand_parent.child_nodes {
-	// 		if h == parent_handle {
-	// 			h = parent_layout_item.child_nodes[0]
-	// 			single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
-	// 			single_child.parent_handle = grand_parent_handle
-	// 			single_child.size_percent = parent_layout_item.size_percent
-	// 			delete_layout_item(ctx, parent_handle)
-	// 			break
-	// 		}
-	// 	}
-	//
-	// 	update_layout_dir(&ctx.lic, grand_parent_handle)
-	// 	normalize_sizes_recursive(&ctx.lic, grand_parent_handle)
-	// }
 }
 
 
@@ -327,25 +387,7 @@ update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layo
 	}
 }
 
-// slice_layout_item :: proc(lic: ^Layout_Item_Container, handle_to_slice: Layout_Item_Handle) {
-// 	assert(hm.valid(lic^, handle_to_slice))
-// 	layout_item_to_slice := hm.get(lic, handle_to_slice)
-//
-// 	grand_parent_handle := layout_item_to_slice.parent_handle
-// 	if !hm.valid(lic^, grand_parent_handle) do return // root node
-//
-// 	grand_parent := hm.get(lic, grand_parent_handle)
-// 	for &h in grand_parent.child_nodes {
-// 		if h == parent_handle {
-// 			h = parent_layout_item.child_nodes[0]
-//
-// 			break
-// 		}
-// 	}
-// 	grand_parent.child_nodes
-// }
 
-// delete item and potential children
 delete_layout_item_and_children :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	if hm.get(&ctx.lic, handle) == nil do return
 
@@ -392,7 +434,7 @@ add_layout_node :: proc(
 	new_layout_item := hm.get(lic, new_handle)
 	inject_at(&parent_layout_item.child_nodes, index, new_handle)
 
-	// setup state
+
 	new_layout_item.parent_handle = parent_handle
 	new_layout_item.layout_dir =
 		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
@@ -410,7 +452,7 @@ add_layout_item_node :: proc(
 
 	inject_at(&parent_layout_item.child_nodes, index, homeless_item_handle)
 
-	// setup state
+
 	homeless_item.parent_handle = parent_handle
 	homeless_item.layout_dir =
 		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
@@ -486,7 +528,7 @@ get_average_size :: proc(
 	return
 }
 
-// TODO: Add handles that should retain its percent
+
 normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_Item_Handle) {
 	layout_item := get_item_checked(lic, layout_item_handle)
 
@@ -884,7 +926,7 @@ get_hovered_layout_item_leaf :: proc(ctx: ^Context) -> Layout_Item_Handle {
 
 	// brute force find the if we are hovering a Layout_Item
 	itr := hm.iterator_make(&ctx.lic)
-	for layout_item in hm.iterate(&itr) {
+	for layout_item, _ in hm.iterate(&itr) {
 		if !is_leaf(&ctx.lic, layout_item.handle) do continue
 
 		if layout_item.handle == ctx.dragging_handle do continue

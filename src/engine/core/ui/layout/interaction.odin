@@ -33,6 +33,12 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 		handle_remove_click(ctx, ctx.remove_click, hovered_layout_item)
 	} else if ctx.move_click != .Released {
 		handle_move_click(ctx, ctx.move_click, corner, edge, hovered_layout_item)
+	} else if (ctx.pressed_fullscreen_this_frame) {
+		if ctx.fullscreen_layout_handle == {} {
+			ctx.fullscreen_layout_handle = ctx.hover_layout_handle
+		} else {
+			ctx.fullscreen_layout_handle = {}
+		}
 	}
 }
 

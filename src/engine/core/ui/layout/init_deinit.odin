@@ -124,6 +124,8 @@ update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.move_click, .LEFT, .LEFT_ALT)
 
+	ctx.pressed_fullscreen_this_frame = raylib.IsKeyPressed(.F)
+
 	ctx.hover_layout_handle = get_hovered_layout_item_leaf(ctx)
 	// if raylib.IsKeyPressed(.L) {
 	// 	ctx.controlling_layout_item = {}

@@ -110,7 +110,7 @@ reconstruct_spatial_hash_grid_from_entities :: proc(
 	num_ents_in_shg: i64
 
 	itr := hm.iterator_make(ents)
-	for item in hm.iterate(&itr) {
+	for item, _ in hm.iterate(&itr) {
 		if !gent.has_traits({.Transform, .Collision}, item^) do return
 		num_ents_in_shg += 1
 

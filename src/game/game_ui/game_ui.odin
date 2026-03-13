@@ -711,7 +711,11 @@ layout_editor_options :: proc(ctx: ^ui.Context) {
 
 map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout.Active_Elements) -> string {
 
-	cwd := os.get_current_directory(context.temp_allocator)
+	cwd, cwd_err := os.get_working_directory(context.temp_allocator)
+	if cwd_err != nil {
+		fmt.eprintln("Could not get working directory", cwd_err)
+		os.exit(1)
+	}
 	f, err := os.open(cwd)
 	defer os.close(f)
 	if err != os.ERROR_NONE {
@@ -719,23 +723,22 @@ map_directory :: proc(ctx: ^ui.Context, active_elems: ^layout.Active_Elements) -
 		os.exit(1)
 	}
 	fis: []os.File_Info
-	defer os.file_info_slice_delete(fis)
+	defer os.file_info_slice_delete(fis, context.temp_allocator)
 
-	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	fis, err = os.read_dir(f, -1, context.temp_allocator) // -1 reads all file infos
 	if err != os.ERROR_NONE {
 		fmt.eprintln("Could not read directory", err)
 		os.exit(2)
 	}
 
 
-	return vis_dir(
-		ctx,
-		os.File_Info {
-			fullpath = filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD}, context.temp_allocator),
-		},
-		active_elems,
-		true,
-	)
+	joined_path, join_err := filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD}, context.temp_allocator)
+	if join_err != nil {
+		fmt.eprintln("Could not join paths", join_err)
+		os.exit(1)
+	}
+
+	return vis_dir(ctx, os.File_Info{fullpath = joined_path}, active_elems, true)
 }
 
 vis_dir :: proc(
@@ -753,9 +756,9 @@ vis_dir :: proc(
 		os.exit(1)
 	}
 	fis: []os.File_Info
-	defer os.file_info_slice_delete(fis)
+	defer os.file_info_slice_delete(fis, context.temp_allocator)
 
-	fis, err = os.read_dir(f, -1) // -1 reads all file infos
+	fis, err = os.read_dir(f, -1, context.temp_allocator) // -1 reads all file infos
 	if err != os.ERROR_NONE {
 		fmt.eprintln("Could not read directory", err)
 		os.exit(2)
@@ -775,7 +778,7 @@ vis_dir :: proc(
 
 			if len(name) > MAP_FILE_EXTENSION_LENGTH do name = name[:(len(name) - MAP_FILE_EXTENSION_LENGTH)]
 
-			if fi.is_dir {
+			if fi.type == .Directory {
 				dir_name := vis_dir(ctx, fi, active_elems)
 				if dir_name != "" do clicked_map_name = dir_name
 			} else if strings.contains(filepath.ext(fi.name), MAP_FILE_EXTENSION) {
@@ -812,25 +815,33 @@ vis_dir :: proc(
 
 // Example: will transform Morgan_Amazing to content/levels/Morgan_Amazing.map
 to_cwd_map_path_from_local :: proc(local_path: string) -> string {
-	return filepath.join(
+	joined_path, join_err := filepath.join(
 		{
 			PATH_TO_LEVELS_FROM_CWD,
 			strings.concatenate({local_path, MAP_FILE_EXTENSION}, context.temp_allocator),
 		},
 		context.temp_allocator,
 	)
+	if join_err != nil {
+		return ""
+	}
+	return joined_path
 }
 
 // Example: will transform content/levels/Morgan_Amazing.map to Morgan_Amazing
 to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
-	local_path, _ := filepath.rel(
-		filepath.join(
-			{os.get_current_directory(context.temp_allocator), PATH_TO_LEVELS_FROM_CWD},
-			context.temp_allocator,
-		),
-		cwd_path,
-		context.temp_allocator,
-	)
+	cwd, cwd_err := os.get_working_directory(context.temp_allocator)
+	if cwd_err != nil {
+		return ""
+	}
+	joined_path, join_err := filepath.join({cwd, PATH_TO_LEVELS_FROM_CWD}, context.temp_allocator)
+	if join_err != nil {
+		return ""
+	}
+	local_path, rel_err := filepath.rel(joined_path, cwd_path)
+	if rel_err != nil {
+		return ""
+	}
 	local_path = local_path[:(len(local_path) - MAP_FILE_EXTENSION_LENGTH)]
 
 	return local_path

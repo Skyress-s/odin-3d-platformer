@@ -37,12 +37,15 @@ layout :: proc(ctx: ^Context) {
 		},
 	},
 	) {
-		layout_tiling_layout_item(ctx, ctx.root)
+
+		if ctx.fullscreen_layout_handle != {} {
+			layout_tiling_layout_item(ctx, ctx.fullscreen_layout_handle, true)
+			return
+		}
+		layout_tiling_layout_item(ctx, ctx.root, true)
 
 		layout_floating_item(ctx)
 	}
-
-
 }
 
 // todo same style as the normal items
@@ -101,7 +104,11 @@ layout_floating_item :: proc(ctx: ^Context) {
 }
 
 // TODO: Can we use non ptr?
-layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) {
+layout_tiling_layout_item :: proc(
+	ctx: ^Context,
+	item_handle: Layout_Item_Handle,
+	is_root := false,
+) {
 	assert(hm.get(&ctx.lic, item_handle) != nil)
 	item := hm.get(&ctx.lic, item_handle)
 
@@ -114,16 +121,14 @@ layout_tiling_layout_item :: proc(ctx: ^Context, item_handle: Layout_Item_Handle
 	outline_color := is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND
 	// if ctx.controlling_layout_item == item_handle do outline_color = COLOR_LEAF_OUTLINE_CONTROLLING
 
+	size_percent := is_root ? [2]f32{1.0, 1.0} : item.size_percent
 	if clay.UI(clay.ID(fmt.tprintf("{}", item.id)))(
 	{
 		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
 		// clip = clay.ClipElementConfig{true, true, clay.GetScrollOffset()},
 		layout = {
 			layoutDirection = item.layout_dir,
-			sizing = {
-				clay.SizingPercent(item.size_percent.x),
-				clay.SizingPercent(item.size_percent.y),
-			},
+			sizing = {clay.SizingPercent(size_percent.x), clay.SizingPercent(size_percent.y)},
 			padding = is_leaf(&ctx.lic, item_handle) ? clay.PaddingAll(OUTLINE_WIDTH) : clay.PaddingAll(0),
 			childGap = 4,
 		},
