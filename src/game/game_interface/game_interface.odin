@@ -79,9 +79,11 @@ game_init :: proc(app: ^ap.Application) {
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
 	current_world := new(w.World)
 	wutils.make_basic_world(current_world)
-	game.world = current_world
+	game.world_session.last_loaded_world = serial.world_to_bytes(current_world, context.allocator)
+	free(current_world)
 
-	game.world_session.serial_world = serial.serialize_world(game.world)
+
+	wutils.reload_world(game.world_session)
 
 	// w.set_snapshot_world(game, current_world)
 	// w.restore_from_snapshot(game)

@@ -2,7 +2,6 @@ package game_ui
 
 import character "../../Character/"
 import et "../../editor/tools/"
-import cc "../../engine/core/collision_channel/"
 import spat "../../engine/core/spatial/"
 import ui "../../engine/core/ui/"
 import gent "../../game/game_entities/"
@@ -10,6 +9,7 @@ import sent "../../game/spawn_entities"
 import w "../../game/world/"
 import gs "../../game_state/"
 import g "../game"
+import wutils "../world_utils/"
 import rl "vendor:raylib"
 // import lfu "../../level_flow_utils/"
 import "../../engine/core/logs/"
@@ -675,7 +675,7 @@ layout_details_panel :: proc(
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
-			serial_world := serial.serialize_world(world_session.world)
+			serial_world := serial.serialize_world(world_session.world, context.allocator)
 			serial.save_world_to_file(
 				serial_world,
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
@@ -695,15 +695,24 @@ layout_details_panel :: proc(
 		// }
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Load Level")) {
-			serial_world, serial_world_ok := serial.load_serial_world_from_file(
+			world_as_bytes, world_as_bytes_err := serial.filename_to_bytes(
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
+				context.allocator,
 			)
-			assert(serial_world_ok)
+			assert(world_as_bytes_err == nil)
 
-			fresh_world := new(w.World)
-			serial.world_from_serial_world(serial_world, fresh_world)
-			// TODO: Stuff like this should maybe be moved to some sort of event queue to not be handeled in the middle of logic
-			w.world_goto_next_level(world_session, fresh_world)
+			if world_session.last_loaded_world != nil {
+				delete(world_session.last_loaded_world)
+			}
+			world_session.last_loaded_world = world_as_bytes
+
+
+			wutils.reload_world(world_session)
+
+			// fresh_world := new(w.World)
+			// serial.world_from_serial_world(serial_world, fresh_world)
+			// // TODO: Stuff like this should maybe be moved to some sort of event queue to not be handeled in the middle of logic
+			// wutils.world_goto_next_level(world_session, fresh_world)
 
 			character.reset_run(
 				&players.game,
@@ -863,7 +872,7 @@ to_local_from_cwd_map_path :: proc(cwd_path: string) -> string {
 	if join_err != nil {
 		return ""
 	}
-	local_path, rel_err := filepath.rel(joined_path, cwd_path)
+	local_path, rel_err := filepath.rel(joined_path, cwd_path, context.temp_allocator)
 	if rel_err != nil {
 		return ""
 	}

@@ -63,7 +63,7 @@ World :: struct {
 // Maybe better name is world session?
 World_Session :: struct {
 	using world:                   ^World, // Only one level active at the time. Lets not overscope this project.
-	serial_world:                  serial_types.Serial_World,
+	last_loaded_world:             []byte,
 	using players:                 plrs.Players,
 	// Copied when we restart the run. Important that all
 	// world_snapshot:                ^World,
@@ -94,7 +94,7 @@ world_session_init :: proc(world: ^World_Session) {
 }
 
 world_session_deinit :: proc(world: ^World_Session) {
-	serial_types.serial_world_deinit(&world.serial_world)
+	delete(world.last_loaded_world)
 }
 
 // set_snapshot_world :: proc(world: ^World_Session, level: ^World) {
@@ -119,18 +119,6 @@ world_unload_level :: proc(world: ^World_Session) {
 	// reset collision scene
 }
 
-// External memory?
-world_goto_next_level :: proc(world_session: ^World_Session, world: ^World) {
-	world_deinit(world_session.world)
-
-	free(world_session.world)
-
-	world_session.world = world
-	// load level
-	// assign it
-	// remove unused colmeshes
-	// recalc shg
-}
 
 // world_restart :: proc(world: ^World_Session, level_path: string) {
 // 	world_goto_next_level(world, level_path)

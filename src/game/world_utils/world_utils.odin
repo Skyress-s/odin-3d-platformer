@@ -3,6 +3,7 @@ import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene"
 import csq "../../engine/core/collision_scene/query/"
 import spat "../../engine/core/spatial/"
+import serial "../../serialization/serialize/"
 import gent "../game_entities/"
 import sent "../spawn_entities/"
 import "core:strings"
@@ -10,9 +11,31 @@ import "core:strings"
 import w "../world/"
 
 reload_world :: proc(world_session: ^w.World_Session) {
+	if (world_session.world != nil) {
+		w.world_deinit(world_session.world)
+		free(world_session.world)
+		world_session.world = nil
+	}
+
+	new_world := new(w.World)
+	// w.world_init(new_world)
+
+	serial.bytes_to_world(world_session.last_loaded_world, new_world, context.temp_allocator)
+
+	world_session.world = new_world
+}
+
+// External memory?
+world_goto_next_level :: proc(world_session: ^w.World_Session, world: ^w.World) {
 	w.world_deinit(world_session.world)
 
+	free(world_session.world)
 
+	world_session.world = world
+	// load level
+	// assign it
+	// remove unused colmeshes
+	// recalc shg
 }
 
 make_basic_world :: proc(world: ^w.World) {

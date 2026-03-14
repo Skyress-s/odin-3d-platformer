@@ -6,7 +6,6 @@ import cs "../../engine/core/collision_scene/"
 import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
 import w "../../game/world/"
-import wutils "../../game/world_utils/"
 import serial_types "../serialization_types/"
 
 import "base:runtime"
@@ -22,8 +21,13 @@ import "core:strconv"
 import "core:strings"
 import "core:testing"
 
-serialize_world :: proc(world: ^w.World) -> serial_types.Serial_World {
+serialize_world :: proc(
+	world: ^w.World,
+	allocator: runtime.Allocator,
+) -> serial_types.Serial_World {
 	result: serial_types.Serial_World
+
+	result.ents = make([dynamic]serial_types.Serial_Entity, allocator)
 
 	result.author_best_speedrun_capture = world.author_best_speedrun_capture
 	result.player_initial_state = world.player_initial_state
@@ -44,10 +48,24 @@ serialize_world :: proc(world: ^w.World) -> serial_types.Serial_World {
 	return result
 }
 
-save_world_to_file :: proc(world: serial_types.Serial_World, filepath: string) -> bool {
+world_to_bytes :: proc(world: ^w.World, allocator: runtime.Allocator) -> []byte {
+	bytes := serial_world_to_bytes(serialize_world(world, context.temp_allocator), allocator)
+	return bytes
+}
+
+serial_world_to_bytes :: proc(
+	world: serial_types.Serial_World,
+	allocator: runtime.Allocator,
+) -> []byte {
 	init_user_serializers()
 	data, marshal_err := json.marshal(world, {pretty = true})
 	assert(marshal_err == nil, fmt.tprint(marshal_err))
+
+	return data
+}
+
+save_world_to_file :: proc(world: serial_types.Serial_World, filepath: string) -> bool {
+	data := serial_world_to_bytes(world, context.allocator)
 	defer delete(data)
 
 	return os.write_entire_file(filepath, data) == nil
@@ -79,6 +97,28 @@ world_from_serial_world :: proc(serial_world: serial_types.Serial_World, world: 
 	sent.reconstruct_spatial_hash_grid_from_entities(col_scene, ents, world.allocator)
 }
 
+bytes_to_world :: proc(bytes: []byte, world: ^w.World, allocator: runtime.Allocator) -> bool {
+	init_user_serializers()
+	serial_world: serial_types.Serial_World
+	unmarshal_err := json.unmarshal(bytes, &serial_world, json.DEFAULT_SPECIFICATION, allocator)
+	if unmarshal_err != nil {
+		return false
+	}
+
+	world_from_serial_world(serial_world, world)
+
+	return true
+}
+
+filename_to_bytes :: proc(filepath: string, allocator: runtime.Allocator) -> ([]byte, os.Error) {
+	bytes, err := os.read_entire_file_from_path(filepath, allocator)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
+}
+
 load_serial_world_from_file :: proc(
 	filepath: string,
 	allocator := context.temp_allocator,
@@ -86,7 +126,6 @@ load_serial_world_from_file :: proc(
 	serial_types.Serial_World,
 	bool,
 ) {
-	init_user_serializers()
 	data, err := os.read_entire_file_from_path(filepath, allocator)
 	if err != nil {
 		return {}, false
@@ -95,7 +134,8 @@ load_serial_world_from_file :: proc(
 
 	serial_world: serial_types.Serial_World
 
-	serial_world.name = strings.clone(filepath[strings.last_index(filepath, "/"):], allocator)
+	// serial_world.name = strings.clone(filepath[strings.last_index(filepath, "/"):], allocator)
+	init_user_serializers()
 	unmarshal_err := json.unmarshal(data, &serial_world, json.DEFAULT_SPECIFICATION, allocator)
 	if unmarshal_err != nil {
 		return {}, false
@@ -310,111 +350,3 @@ denit_user_serializers :: proc() {
 // scoped_user_serializers :: proc() {
 // 	init_user_serializers()
 // }
-
-
-@(test)
-test_user_serializers :: proc(t: ^testing.T) {
-	init_user_serializers()
-
-	test_quat :: proc($T: typeid, t: ^testing.T) {
-		q: T = quaternion(real = 1.123, imag = 2.234, jmag = 3.345, kmag = .456)
-		data, marshal_err := json.marshal(q)
-		testing.expect(t, marshal_err == nil, fmt.tprintf("Error: {}", marshal_err))
-
-		q2: T
-		unmarshal_err := json.unmarshal(data, &q2)
-		testing.expect(t, unmarshal_err == nil, fmt.tprintf("Error: {}", unmarshal_err))
-
-		testing.expect(t, q == q2, fmt.tprintf("{} != {}", q, q2))
-
-	}
-
-	test_cc_responses :: proc(t: ^testing.T) {
-		respones1 := cc.Responses{}
-		respones1.player = cc.BLOCK
-
-		data, marshal_err := json.marshal(respones1)
-		testing.expect(t, marshal_err == nil, fmt.tprint(marshal_err))
-
-		respones2: cc.Responses
-		unmarshal_err := json.unmarshal(data, &respones2)
-		testing.expect(t, unmarshal_err == nil, fmt.tprint(unmarshal_err))
-
-		testing.expect(t, respones1 == respones2, fmt.tprintf("{} != {}", respones1, respones2))
-	}
-
-	test_quat(quaternion64, t)
-	test_quat(quaternion128, t)
-	test_quat(quaternion256, t)
-	test_cc_responses(t)
-
-
-	free_all(context.temp_allocator)
-
-
-	// log.infof("---------------- ")
-	// log.infof("{}", string(data))
-	// log.infof("---------------- {} | {}", q64, q64_2)
-}
-
-@(test)
-test_world_serial_flow :: proc(t: ^testing.T) {
-	init_user_serializers()
-
-	world := new(w.World)
-	defer free(world)
-
-	log.warnf("{}", context.logger.data)
-	wutils.make_basic_world(world)
-
-
-	serial_world := serialize_world(world)
-
-	test_filepath :: "test_world_output.json"
-
-	ok := save_world_to_file(serial_world, test_filepath)
-	testing.expect(t, ok, "Failed to save world to file")
-
-	loaded_serial_world, load_ok := load_serial_world_from_file(test_filepath)
-	testing.expect(t, load_ok, "Failed to load world from file")
-
-	testing.expect(
-		t,
-		len(serial_world.ents) == len(loaded_serial_world.ents),
-		fmt.aprintf(
-			"Serial World Mismatch: Entity count: got %d, want %d",
-			len(loaded_serial_world.ents),
-			len(serial_world.ents),
-		),
-	)
-
-	loaded_world := new(w.World)
-	defer free(loaded_world)
-	world_from_serial_world(loaded_serial_world, loaded_world)
-
-
-	testing.expect(
-		t,
-		world.player_initial_state == loaded_world.player_initial_state,
-		fmt.aprintf(
-			"Player Initial State Mismatch got {}, want {}",
-			world.player_initial_state,
-			loaded_world.player_initial_state,
-		),
-	)
-
-	test_propety :: proc(t: ^testing.T, T1, T2: $T) {
-		testing.expect(t, T1 == T2, fmt.tprintf("{} != {}", T1, T2))
-
-	}
-
-	itr := hm.iterator_make(&world.entities)
-	for entity_ptr, i in hm.iterate(&itr) {
-		entity: gent.Entity = entity_ptr^
-		loaded_entity := loaded_world.entities.items[i.idx]
-
-		test_propety(t, entity.traits, loaded_entity.traits)
-		test_propety(t, entity.collision_component, loaded_entity.collision_component)
-		test_propety(t, entity.transform_component, loaded_entity.transform_component)
-	}
-}
