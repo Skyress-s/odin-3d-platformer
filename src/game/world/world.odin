@@ -94,6 +94,7 @@ world_session_init :: proc(world: ^World_Session) {
 }
 
 world_session_deinit :: proc(world: ^World_Session) {
+	serial_types.serial_world_deinit(&world.serial_world)
 }
 
 // set_snapshot_world :: proc(world: ^World_Session, level: ^World) {

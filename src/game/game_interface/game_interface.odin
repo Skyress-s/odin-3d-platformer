@@ -26,13 +26,13 @@ import render "../../render/"
 import render_game "../../render/game/"
 import serial "../../serialization/serialize/"
 import g "../game"
-import lutils "../world_utils/"
+import wutils "../world_utils/"
 import hm "core:container/handle_map"
-import "core:fmt"
-import "core:math/linalg"
 import rl "vendor:raylib"
 
 import "base:runtime"
+import "core:fmt"
+import "core:math/linalg"
 
 init_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: runtime.Allocator) {
 	game := new(g.Game, allocator)
@@ -78,8 +78,10 @@ game_init :: proc(app: ^ap.Application) {
 
 	// current_level := serialization.load_from_file_level("content/levels/2.I.map")
 	current_world := new(w.World)
-	lutils.make_basic_world(current_world)
+	wutils.make_basic_world(current_world)
 	game.world = current_world
+
+	game.world_session.serial_world = serial.serialize_world(game.world)
 
 	// w.set_snapshot_world(game, current_world)
 	// w.restore_from_snapshot(game)
@@ -135,12 +137,12 @@ game_deinit :: proc(app: ^ap.Application) {
 	rlb.raylib_deinit()
 
 
-	// cm.deinit(&game.world_session)
-
 	cs.deinit_collision_scene(&game.collision_scene)
 
 	w.world_deinit(game.world)
 	free(game.world)
+
+	w.world_session_deinit(game.world_session)
 	free(game.world_session)
 
 	serial.denit_user_serializers()

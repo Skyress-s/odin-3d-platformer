@@ -3,7 +3,6 @@ package serialize
 import cc "../../engine/core/collision_channel/"
 import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene/"
-import logs "../../engine/core/logs"
 import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
 import w "../../game/world/"

@@ -17,3 +17,8 @@ Serial_World :: struct {
 	player_initial_state:         gmisc.Player_Initial_State,
 	// collision_scene:              cs.Collision_Scene,
 }
+
+serial_world_deinit :: proc(serial_world: ^Serial_World) {
+	delete(serial_world.name)
+	delete(serial_world.ents)
+}

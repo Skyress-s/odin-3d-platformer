@@ -10,6 +10,7 @@ import "core:strings"
 import w "../world/"
 
 reload_world :: proc(world_session: ^w.World_Session) {
+	w.world_deinit(world_session.world)
 
 
 }
