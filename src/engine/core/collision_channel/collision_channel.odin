@@ -9,8 +9,13 @@ package collision_channel
 
 
 IGNORE :: 0
+IGNORE_BINARY: u8 : 0b00
+
 OVERLAP :: 1
+OVERLAP_BINARY: u8 : 0b01
+
 BLOCK :: 2
+BLOCK_BINARY: u8 : 0b10
 
 Response_Size :: distinct u16
 

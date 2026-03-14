@@ -771,15 +771,9 @@ layout_checkbox_immediate :: proc(
 // 	}
 // }
 
-@(deferred_none = clay._CloseElement)
-layout_dropdown :: proc(
-	ctx: ^Context,
-	text: string,
-	dropped_down: ^bool,
-	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
-) -> bool {
-	layout_checkbox_immediate(ctx, text, dropped_down, 'v', '>')
 
+@(deferred_none = clay._CloseElement)
+layout_indent :: proc(ctx: ^Context, color_config: Color_Configuration = DEFAULT_COLOR_CONFIG) {
 	clay._OpenElement()
 	clay.ConfigureOpenElement(
 		config = clay.ElementDeclaration {
@@ -792,7 +786,18 @@ layout_dropdown :: proc(
 			backgroundColor = clay.Hovered() ? color_config.hover : color_config.normal,
 		},
 	)
+}
 
+layout_dropdown :: proc(
+	ctx: ^Context,
+	text: string,
+	dropped_down: ^bool,
+	color_config: Color_Configuration = DEFAULT_COLOR_CONFIG,
+) -> bool {
+	layout_checkbox_immediate(ctx, text, dropped_down, 'v', '>')
+
+
+	layout_indent(ctx, color_config)
 
 	// mainly here for ergonomics. can use in if
 	return dropped_down^

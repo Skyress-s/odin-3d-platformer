@@ -12,6 +12,7 @@ import g "../game"
 import wutils "../world_utils/"
 import rl "vendor:raylib"
 // import lfu "../../level_flow_utils/"
+import cc "../../engine/core/collision_channel/"
 import "../../engine/core/logs/"
 import clay "../../engine/core/ui/clay-odin/"
 import layout "../../engine/core/ui/layout"
@@ -505,6 +506,7 @@ layout_details_panel :: proc(
 			)
 
 			toggle_component(ctx, .Kill, ent, "Add Kill Component", "Remove Kill Component")
+
 			toggle_component(ctx, .Finish, ent, "Add Finish Component", "Remove Finish Component")
 			toggle_component(
 				ctx,
@@ -513,6 +515,12 @@ layout_details_panel :: proc(
 				"Add Collision Component",
 				"Remove Collision Component",
 			)
+			if gent.has_traits({.Collision}, ent^) {
+				ui.layout_indent(ctx)
+
+
+				layout_collision_responses(&ent.collision_component)
+			}
 
 
 			// ui.layout_dynamic_text_entry(fmt.tprint(current_id))
@@ -680,11 +688,6 @@ layout_details_panel :: proc(
 				serial_world,
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 			)
-			// level.author_best_speedrun_capture. = players.game.best_time
-			// slevel, slevel_ok := serialization.serialize_level(level)
-			// assert(slevel_ok)
-			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len])))
-			// serialization.save_to_file(level, to_cwd_map_path_from_local(string(buf[:buf_len]))) TODO: RE REIMPLEMENT
 		}
 
 		// if mu.Result.SUBMIT in mu.button(ctx, "save_level") {
@@ -986,4 +989,43 @@ setup_initial_window_layout :: proc(game: ^g.Game) -> (game_handle: layout.Layou
 
 	}
 	return game_window_handle
+}
+
+layout_collision_responses :: proc(collision_comp: ^gent.Collision_Component) {
+	layout_response_buttons :: proc(response: ^u8) {
+		if clay.UI()(
+			config = clay.ElementDeclaration {
+				layout = clay.LayoutConfig {
+					sizing = {clay.SizingGrow(), clay.SizingFit()},
+					layoutDirection = .LeftToRight,
+				},
+			},
+		) {
+
+			ignore: bool = response^ ~ cc.IGNORE == 0
+			ui.layout_checkbox("Ignore", &ignore)
+			if (ignore != (response^ ~ cc.IGNORE == 0)) do response^ = cc.IGNORE
+
+			overlap: bool = response^ & cc.OVERLAP == cc.OVERLAP
+			ui.layout_checkbox("Overlap", &overlap)
+			// if (overlap) do response^ = cc.OVERLAP
+
+			block: bool = response^ & cc.BLOCK == cc.BLOCK
+			ui.layout_checkbox("Block", &block)
+			// if (block) do response^ = cc.BLOCK
+		}
+	}
+
+	if clay.UI()(
+		config = clay.ElementDeclaration {
+			layout = clay.LayoutConfig {
+				sizing = {clay.SizingGrow(), clay.SizingFit()},
+				layoutDirection = .TopToBottom,
+			},
+		},
+	) {
+		player_res := collision_comp.collision_response.player
+		layout_response_buttons(&player_res)
+		collision_comp.collision_response.player = player_res
+	}
 }
