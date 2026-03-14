@@ -24,7 +24,7 @@ import plrs "../../players/"
 import rlb "../../raylib_bridge/"
 import render "../../render/"
 import render_game "../../render/game/"
-import "../../serialization/"
+import serial "../../serialization/serialize/"
 import g "../game"
 import lutils "../world_utils/"
 import hm "core:container/handle_map"
@@ -54,7 +54,7 @@ deinit_game_interface :: proc(game_interface: ^ap.Game_Interface, allocator: run
 game_init :: proc(app: ^ap.Application) {
 	logs.warnf(.Gamelogic, "Initializing Game")
 
-	serialization.init_user_serializers()
+	serial.init_user_serializers()
 
 
 	game := cast(^g.Game)app.game_interface.data
@@ -143,7 +143,7 @@ game_deinit :: proc(app: ^ap.Application) {
 	free(game.world)
 	free(game.world_session)
 
-	serialization.denit_user_serializers()
+	serial.denit_user_serializers()
 
 	logs.warnf(.Gamelogic, "Finished Deinitializing Game")
 }

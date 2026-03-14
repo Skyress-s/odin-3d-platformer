@@ -310,6 +310,7 @@ update_character :: proc(
 	if rl.IsKeyPressed(.R) {
 		initial_state := world_session.player_initial_state
 		fresh_world := new(w.World)
+
 		// TODO: Load world from previous loaded world. Maybe store in World_Session?
 
 		wutils.make_basic_world(fresh_world)

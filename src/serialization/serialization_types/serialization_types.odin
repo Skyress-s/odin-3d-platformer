@@ -1,7 +1,7 @@
-package serialization
+package serialization_types
 
-import gent "../game/game_entities/"
-import gmisc "../game/misc/"
+import gent "../../game/game_entities/"
+import gmisc "../../game/misc/"
 
 Serial_Entity :: struct {
 	idx:       u32,

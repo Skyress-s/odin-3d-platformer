@@ -9,6 +9,8 @@ import gent "../../game/game_entities/"
 import sent "../../game/spawn_entities/"
 import w "../../game/world/"
 import plrs "../../players/"
+import serial_types "../../serialization/serialization_types/"
+import gmisc "../misc/"
 
 
 import "base:runtime"
@@ -47,8 +49,8 @@ World_Contents :: struct {
 	name:                         string,
 	using collision_scene:        cs.Collision_Scene, // Reset between speedruns
 	using entities:               gent.Game_Entity_Handle_Map,
-	author_best_speedrun_capture: Speedrun_Capture,
-	player_initial_state:         Player_Initial_State,
+	author_best_speedrun_capture: gmisc.Speedrun_Capture,
+	player_initial_state:         gmisc.Player_Initial_State,
 }
 
 World :: struct {
@@ -61,19 +63,13 @@ World :: struct {
 // Maybe better name is world session?
 World_Session :: struct {
 	using world:                   ^World, // Only one level active at the time. Lets not overscope this project.
+	serial_world:                  serial_types.Serial_World,
 	using players:                 plrs.Players,
 	// Copied when we restart the run. Important that all
 	// world_snapshot:                ^World,
-	current_best_speedrun_capture: Speedrun_Capture,
+	current_best_speedrun_capture: gmisc.Speedrun_Capture,
 }
 
-Player_Initial_State :: struct {
-	position, speed, look_direction: spat.Vector,
-}
-
-Speedrun_Capture :: struct {
-	time: time.Stopwatch,
-}
 
 // game_init :: proc(game: ^Game) {
 //

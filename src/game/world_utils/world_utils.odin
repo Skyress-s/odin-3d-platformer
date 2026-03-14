@@ -9,6 +9,10 @@ import "core:strings"
 
 import w "../world/"
 
+reload_world :: proc(world_session: ^w.World_Session) {
+
+
+}
 
 make_basic_world :: proc(world: ^w.World) {
 	w.world_init(world)

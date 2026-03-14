@@ -1,14 +1,5 @@
 package game_ui
 
-import "core:c"
-import "core:fmt"
-import "core:math"
-import "core:math/linalg"
-import "core:os"
-import "core:path/filepath"
-import "core:strings"
-import "core:time"
-
 import character "../../Character/"
 import et "../../editor/tools/"
 import cc "../../engine/core/collision_channel/"
@@ -28,9 +19,19 @@ import ui_rr "../../engine/core/ui/raylib/"
 import vmouse "../../engine/core/virtual_mouse/"
 import player_data "../../player_data/"
 import plrs "../../players/"
-import "../../serialization/"
+import serial "../../serialization/serialize/"
+import gmisc "../misc/"
 import world "../world/"
 import hm "core:container/handle_map"
+
+import "core:c"
+import "core:fmt"
+import "core:math"
+import "core:math/linalg"
+import "core:os"
+import "core:path/filepath"
+import "core:strings"
+import "core:time"
 
 PATH_TO_LEVELS_FROM_CWD :: "content/levels/"
 MAP_FILE_EXTENSION :: ".map"
@@ -349,7 +350,7 @@ layout_game_speed_indicator :: proc(
 }
 
 
-layout_speedrun_timer :: proc(speedrun_stopwatch: world.Speedrun_Capture) {
+layout_speedrun_timer :: proc(speedrun_stopwatch: gmisc.Speedrun_Capture) {
 
 	duration_seconds := time.duration_seconds(time.stopwatch_duration(speedrun_stopwatch.time))
 
@@ -674,8 +675,8 @@ layout_details_panel :: proc(
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Save Level")) {
 
-			serial_world := serialization.serialize_world(world_session.world)
-			serialization.save_world_to_file(
+			serial_world := serial.serialize_world(world_session.world)
+			serial.save_world_to_file(
 				serial_world,
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 			)
@@ -694,13 +695,13 @@ layout_details_panel :: proc(
 		// }
 
 		if ui.layout_button_immediate(ctx, fmt.tprint("Load Level")) {
-			serial_world, serial_world_ok := serialization.load_serial_world_from_file(
+			serial_world, serial_world_ok := serial.load_serial_world_from_file(
 				to_cwd_map_path_from_local(string(buf[:buf_len])),
 			)
 			assert(serial_world_ok)
 
 			fresh_world := new(w.World)
-			serialization.world_from_serial_world(serial_world, fresh_world)
+			serial.world_from_serial_world(serial_world, fresh_world)
 			// TODO: Stuff like this should maybe be moved to some sort of event queue to not be handeled in the middle of logic
 			w.world_goto_next_level(world_session, fresh_world)
 
