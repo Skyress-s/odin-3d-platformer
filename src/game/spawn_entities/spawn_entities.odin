@@ -19,7 +19,7 @@ spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Ha
 // add_static_mesh_trait :: proc(
 // 	ents: ^gent.Game_Entity_Handle_Map,
 // 	handle: hent.Entity_Handle,
-// 	col_scene: ^cs.Collision_Scene,
+// 	cs: ^cs.Collision_Scene,
 // 	data: spat.Collision_Shape,
 // ) {
 // 	ent: ^gent.Entity = hm.get(ents, handle)
@@ -32,19 +32,19 @@ spawn_empty_entity :: proc(ents: ^gent.Game_Entity_Handle_Map) -> hent.Entity_Ha
 // 	tris, transform := spat.shape_to_collision_triangles(data)
 //
 // 	ent.collision_scene_id = spat.add_to_level(
-// 		&col_scene.collision_object_map,
-// 		&col_scene.spatial_hash_grid,
+// 		&cs.collision_object_map,
+// 		&cs.spatial_hash_grid,
 // 		collision_object_data,
 // 	)
 // }
 
 add_trait_collision_shape :: proc(
 	ents: ^gent.Game_Entity_Handle_Map,
-	col_scene: ^cs.Collision_Scene,
+	cs: ^cs.Collision_Scene,
 	handle: hent.Entity_Handle,
 	shape: spat.Shape,
 ) -> cm.Mesh_Handle {
-	col_meshes: ^cm.Collider_Mesh_Context = &col_scene.collision_meshes
+	col_meshes: ^cm.Collider_Mesh_Context = &cs.collision_meshes
 
 	ent: ^gent.Entity = hm.get(ents, handle)
 	assert(ent != nil)
@@ -81,7 +81,7 @@ add_trait_transform :: proc(
 
 spawn_box :: proc(
 	transform: spat.Transform,
-	col_scene: ^cs.Collision_Scene,
+	cs: ^cs.Collision_Scene,
 	ents: ^gent.Game_Entity_Handle_Map,
 	allocator: runtime.Allocator,
 ) -> ^gent.Entity {
@@ -89,9 +89,9 @@ spawn_box :: proc(
 	new_ent: ^gent.Entity = hm.get(ents, new_ent_handle)
 
 	add_trait_transform(ents, new_ent_handle, transform)
-	add_trait_collision_shape(ents, col_scene, new_ent_handle, .Box)
+	add_trait_collision_shape(ents, cs, new_ent_handle, .Box)
 
-	reconstruct_spatial_hash_grid_from_entities(col_scene, ents, allocator)
+	reconstruct_spatial_hash_grid_from_entities(cs, ents, allocator)
 
 	return new_ent
 }

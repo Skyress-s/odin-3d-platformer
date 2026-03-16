@@ -1,6 +1,5 @@
 package query
 
-import col_scene "../"
 import logs "../../../../engine/core/logs/"
 import gent "../../../../game/game_entities/"
 import cc "../../collision_channel/"
@@ -43,9 +42,9 @@ import rlgl "vendor:raylib/rlgl"
 //
 // 	test :: struct {
 // 		id:  int,
-// 		key: col_scene.Hash_Key,
+// 		key: cs.Hash_Key,
 // 	}
-// 	cells_to_remove: [dynamic]col_scene.Hash_Key = {}
+// 	cells_to_remove: [dynamic]cs.Hash_Key = {}
 // 	object_to_remove: [dynamic]test = {}
 // 	// Remove from spatial_hash_grid TODO: This is slow very inefficient
 // 	for id, &cell in spatial_hash_grid {
@@ -90,13 +89,13 @@ import rlgl "vendor:raylib/rlgl"
 
 // add_shape_to_hash_map :: proc(
 // 	collision_object_map: ^gent.Game_Entity_Handle_Map,
-// 	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
+// 	spatial_hash_grid: ^map[cs.Hash_Key]cs.Hash_Cell,
 // 	shape: spat.Collision_Shape,
 // 	blocking_geo: bool = true,
 // ) -> hent.Entity_Handle {
 // 	bounds := spat.get_bounds(shape)
 //
-// 	collision_object_data := col_scene.shape_to_collision_object(shape)
+// 	collision_object_data := cs.shape_to_collision_object(shape)
 //
 // 	// id := add_to_object_map(collision_object_map, collision_object_data)
 // 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
@@ -105,7 +104,7 @@ import rlgl "vendor:raylib/rlgl"
 // }
 
 // create_and_add_collision_object_from_tris_transform :: proc(
-// 	collision_scene: ^col_scene.Collision_Scene,
+// 	collision_scene: ^cs.Collision_Scene,
 // 	collision_object_map: ^gent.Game_Entity_Handle_Map,
 // 	spatial_hash_grid: ^Spatial_Hash_Grid,
 // 	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
@@ -147,7 +146,7 @@ import rlgl "vendor:raylib/rlgl"
 // 		for hash_key in potential_hash_keys {
 // 			cell := &spatial_hash_grid[hash_key]
 // 			if cell != nil {
-// 				spatial_hash_grid[hash_key] = col_scene.Hash_Cell{}
+// 				spatial_hash_grid[hash_key] = cs.Hash_Cell{}
 // 				cell = &spatial_hash_grid[hash_key]
 // 				for obj_id, i in &cell.objects_ids {
 // 					if obj_id == id {
@@ -162,23 +161,40 @@ import rlgl "vendor:raylib/rlgl"
 
 entities_in_bound :: proc(
 	ents: gent.Game_Entity_Handle_Map,
-	shg: col_scene.Spatial_Hash_Grid,
+	col_scene: cs.Collision_Scene,
 	bound: spat.Bound,
 	allocator := context.allocator,
 ) -> [dynamic]hent.Entity_Handle {
+	col_scene := col_scene
 
 	ent_handles := make([dynamic]hent.Entity_Handle, allocator)
 
 	ents := ents // copy right? So this is probably very slow
-	cells := col_scene.calculate_overlapping_cells_by_bound(bound, context.temp_allocator)
+	cells := cs.calculate_overlapping_cells_by_bound(bound, context.temp_allocator)
 
 	for hash in cells {
-		cell, cell_ok := shg[hash]
+		cell, cell_ok := col_scene.spatial_hash_grid[hash]
 		if !cell_ok do continue // no entries in cell
 
 		for id in cell.objects_ids {
-			ent := hm.get(&ents, id)
+			ent: ^gent.Entity = hm.get(&ents, id)
 			assert(ent != nil)
+
+			if !gent.has_traits({.Collision}, ent^) do continue
+
+			found_coll_mesh: ^cm.Mesh = hm.get(
+				&col_scene.collision_meshes.mesh_map,
+				ent.collision_component.mesh_id,
+			)
+			assert(found_coll_mesh != nil)
+
+			for tri in found_coll_mesh.tris {
+				// if spat.distance_to_tri(tri, )
+				// TODO: Continue here. Need a AABB v TRiangle collision.
+
+			}
+
+			append(&ent_handles, id)
 		}
 	}
 
@@ -187,14 +203,14 @@ entities_in_bound :: proc(
 
 any_entity_in_bound_has :: proc(
 	ents: gent.Game_Entity_Handle_Map,
-	shg: col_scene.Spatial_Hash_Grid,
+	col_scene: cs.Collision_Scene,
 	bound: spat.Bound,
 	has_proc: proc(ent: gent.Entity, user_data: rawptr) -> bool,
 	user_data: rawptr,
 	allocator := context.allocator,
 ) -> hent.Entity_Handle {
 	ents := ents
-	ents_in_bound := entities_in_bound(ents, shg, bound, allocator)
+	ents_in_bound := entities_in_bound(ents, col_scene, bound, allocator)
 	for ent_handle in ents_in_bound {
 		ent := hm.get(&ents, ent_handle)
 		assert(ent != nil)
@@ -205,7 +221,7 @@ any_entity_in_bound_has :: proc(
 
 any_entity_in_bound_has_traits :: proc(
 	ents: gent.Game_Entity_Handle_Map,
-	shg: col_scene.Spatial_Hash_Grid,
+	col_scene: cs.Collision_Scene,
 	bound: spat.Bound,
 	traits: gent.Traits,
 	allocator := context.allocator,
@@ -217,10 +233,10 @@ any_entity_in_bound_has_traits :: proc(
 		return gent.has_traits(traits^, ent)
 	}
 
-	return any_entity_in_bound_has(ents, shg, bound, has_proc, &traits, allocator)
+	return any_entity_in_bound_has(ents, col_scene, bound, has_proc, &traits, allocator)
 }
 
-shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spatial_Hash_Grid) {
+shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: cs.Spatial_Hash_Grid) {
 	ents := ents
 	for key, cell in shg {
 		for id in cell.objects_ids {
@@ -235,8 +251,8 @@ shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spat
 // add_to_level :: proc(
 // 	level: ^l.Level,
 // 	// collision_object_map: ^gent.Game_Entity_Handle_Map,
-// 	// spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
-// 	collision_object_data: col_scene.Collision_Object_Data,
+// 	// spatial_hash_grid: ^map[cs.Hash_Key]cs.Hash_Cell,
+// 	collision_object_data: cs.Collision_Object_Data,
 // ) -> hent.Entity_Handle {
 // 	id := add_to_object_map(collision_object_map, collision_object_data)
 // 	add_to_spatial_hash_grid(spatial_hash_grid, collision_object_data, id)
@@ -246,7 +262,7 @@ shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spat
 //
 // remove_from_level :: proc(
 // 	collision_object_map: ^gent.Game_Entity_Handle_Map,
-// 	spatial_hash_grid: ^map[col_scene.Hash_Key]col_scene.Hash_Cell,
+// 	spatial_hash_grid: ^map[cs.Hash_Key]cs.Hash_Cell,
 // 	id: hent.Entity_Handle,
 // ) {
 // 	remove_from_spatial_hash_grid(spatial_hash_grid, collision_object_map, id)
@@ -258,7 +274,7 @@ shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spat
 
 // create_and_add_collision_object_from_tris :: proc(
 // 	collision_object_map: ^gent.Game_Entity_Handle_Map,
-// 	spatial_hash_grid: ^col_scene.Spatial_Hash_Grid,
+// 	spatial_hash_grid: ^cs.Spatial_Hash_Grid,
 // 	tris: [dynamic]spat.Collision_Triangle, // todo this is by ref right???
 // 	blocking: cc.Responses = cc.BLOCK_ALL,
 // ) {
@@ -289,7 +305,7 @@ shg_valid_checked :: proc(ents: gent.Game_Entity_Handle_Map, shg: col_scene.Spat
 
 // sphere_trace_spatial_hash_grid :: proc(
 // 	sphere_trace: ^spat.Sphere_Trace,
-// 	shg: ^col_scene.Spatial_Hash_Grid,
+// 	shg: ^cs.Spatial_Hash_Grid,
 // 	col_mesh_ctx: ^cm.Collider_Mesh_Context,
 // 	com: ^gent.Game_Entity_Handle_Map,
 // ) -> (

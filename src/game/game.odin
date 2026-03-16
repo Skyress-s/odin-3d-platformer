@@ -144,7 +144,7 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 
 	ents_in_player_position_cell := cmq.entities_in_bound(
 		game.entities,
-		game.collision_scene.spatial_hash_grid,
+		game.collision_scene,
 		spat.make_bound_by_position(game.players.game.verlet_component.position),
 		context.temp_allocator,
 	)
@@ -153,7 +153,7 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 	overlapping_finish_volume :=
 		cmq.any_entity_in_bound_has_traits(
 			game.entities,
-			game.collision_scene.spatial_hash_grid,
+			game.collision_scene,
 			spat.make_bound_by_position(game.players.game.verlet_component.position),
 			{.Finish},
 			context.temp_allocator,
@@ -186,8 +186,11 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 	overlapping_kill_volumes :=
 		cmq.any_entity_in_bound_has_traits(
 			game.entities,
-			game.collision_scene.spatial_hash_grid,
-			spat.make_bound_by_position(game.players.game.verlet_component.position),
+			game.collision_scene,
+			spat.make_bound_by_position_radius(
+				game.players.game.verlet_component.position,
+				game.players.game.radius,
+			),
 			{.Kill},
 			context.temp_allocator,
 		) !=

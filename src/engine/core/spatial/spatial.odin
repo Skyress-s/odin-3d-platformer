@@ -93,6 +93,9 @@ make_bound_by_position :: proc(pos: Vector) -> Bound {
 	return Bound{pos, pos}
 }
 
+make_bound_by_position_radius :: proc(pos: Vector, rad: f32) -> Bound {
+	return Bound{pos - Vector{rad, rad, rad}, pos + Vector{rad, rad, rad}}
+}
 
 ray_plane_intersect :: proc(
 	ray: Ray,
@@ -200,9 +203,9 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
 }
 
-distance_to_tri :: proc(t: ^Collision_Triangle, position: ^Vector) -> (dist: f32, normal: Vector) {
-	closest := closest_point_on_triangle(position^, t.points[0], t.points[1], t.points[2])
-	diff := position^ - closest
+distance_to_tri :: proc(t: ^Collision_Triangle, position: Vector) -> (dist: f32, normal: Vector) {
+	closest := closest_point_on_triangle(position, t.points[0], t.points[1], t.points[2])
+	diff := position - closest
 
 	dist = linalg.length(diff)
 	normal = diff / dist
@@ -218,7 +221,7 @@ reflect_dampen :: proc(vector, normal: Vector, dampen: f32) -> Vector {
 
 // NOTE this has keep the momentum if you collide at a certain angle.
 collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position)
+	dist, normal := distance_to_tri(t, position^)
 
 	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
 
@@ -248,7 +251,7 @@ collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius,
 
 // NOTE this has keep the momentum if you collide at a certain angle.
 clamp_to_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position)
+	dist, normal := distance_to_tri(t, position^)
 
 	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
 

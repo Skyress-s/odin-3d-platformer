@@ -81,7 +81,7 @@ world_from_serial_world :: proc(serial_world: serial_types.Serial_World, world: 
 	world.player_initial_state = serial_world.player_initial_state
 
 	ents := &world.entities
-	col_scene := &world.collision_scene
+	cs := &world.collision_scene
 
 	for serial_ent in serial_world.ents {
 		new_ent_handle := hm.add(ents, gent.Entity{})
@@ -94,7 +94,7 @@ world_from_serial_world :: proc(serial_world: serial_types.Serial_World, world: 
 		new_ent.handle = new_ent_handle
 	}
 
-	sent.reconstruct_spatial_hash_grid_from_entities(col_scene, ents, world.allocator)
+	sent.reconstruct_spatial_hash_grid_from_entities(cs, ents, world.allocator)
 }
 
 bytes_to_world :: proc(bytes: []byte, world: ^w.World, allocator: runtime.Allocator) -> bool {
