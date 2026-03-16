@@ -519,7 +519,9 @@ layout_details_panel :: proc(
 				ui.layout_indent(ctx)
 
 
-				layout_collision_responses(&ent.collision_component)
+				@(static) col_dummy := gent.Collision_Component{}
+
+				layout_collision_responses(ctx, &ent.collision_component)
 			}
 
 
@@ -991,8 +993,8 @@ setup_initial_window_layout :: proc(game: ^g.Game) -> (game_handle: layout.Layou
 	return game_window_handle
 }
 
-layout_collision_responses :: proc(collision_comp: ^gent.Collision_Component) {
-	layout_response_buttons :: proc(response: ^u8) {
+layout_collision_responses :: proc(ctx: ^ui.Context, collision_comp: ^gent.Collision_Component) {
+	layout_response_buttons :: proc(ctx: ^ui.Context, response: ^u8) {
 		if clay.UI()(
 			config = clay.ElementDeclaration {
 				layout = clay.LayoutConfig {
@@ -1002,17 +1004,25 @@ layout_collision_responses :: proc(collision_comp: ^gent.Collision_Component) {
 			},
 		) {
 
-			ignore: bool = response^ ~ cc.IGNORE == 0
-			ui.layout_checkbox("Ignore", &ignore)
-			if (ignore != (response^ ~ cc.IGNORE == 0)) do response^ = cc.IGNORE
+			if ui.layout_button_immediate(
+				ctx,
+				fmt.tprintf("{} {}", (response^ ~ cc.IGNORE == 0 ? "x " : ""), "Ignore"),
+			) {
+				response^ = cc.IGNORE
+			}
+			if ui.layout_button_immediate(
+				ctx,
+				fmt.tprintf("{} {}", (response^ ~ cc.OVERLAP == 0 ? "x " : ""), "Overlap"),
+			) {
+				response^ = cc.OVERLAP
+			}
+			if ui.layout_button_immediate(
+				ctx,
+				fmt.tprintf("{} {}", (response^ ~ cc.BLOCK == 0 ? "x " : ""), "Block"),
+			) {
+				response^ = cc.BLOCK
+			}
 
-			overlap: bool = response^ & cc.OVERLAP == cc.OVERLAP
-			ui.layout_checkbox("Overlap", &overlap)
-			// if (overlap) do response^ = cc.OVERLAP
-
-			block: bool = response^ & cc.BLOCK == cc.BLOCK
-			ui.layout_checkbox("Block", &block)
-			// if (block) do response^ = cc.BLOCK
 		}
 	}
 
@@ -1025,7 +1035,7 @@ layout_collision_responses :: proc(collision_comp: ^gent.Collision_Component) {
 		},
 	) {
 		player_res := collision_comp.collision_response.player
-		layout_response_buttons(&player_res)
+		layout_response_buttons(ctx, &player_res)
 		collision_comp.collision_response.player = player_res
 	}
 }
