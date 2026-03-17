@@ -188,13 +188,13 @@ entities_in_bound :: proc(
 			)
 			assert(found_coll_mesh != nil)
 
-			for tri in found_coll_mesh.tris {
-				// if spat.distance_to_tri(tri, )
-				// TODO: Continue here. Need a AABB v TRiangle collision.
-
+			bound := spat.calculate_bounds_from_tris(found_coll_mesh.tris)
+			for &tri in found_coll_mesh.tris {
+				if spat.aabb_triangle_overlap(bound, tri) {
+					append(&ent_handles, id)
+					break
+				}
 			}
-
-			append(&ent_handles, id)
 		}
 	}
 

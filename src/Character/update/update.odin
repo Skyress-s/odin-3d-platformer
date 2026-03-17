@@ -84,7 +84,7 @@ update_character_physics :: proc(
 					p = (transform_matrix * spat.Vector4{p.x, p.y, p.z, 1}).xyz // heck yes it works!
 					// p += coll_obj.transform.position
 				}
-				hit, loc := spat.sphere_trace_triangle_intersect(&movement_sphere_trace, &tri, nil)
+				hit, loc := spat.sphere_trace_triangle_intersect(&movement_sphere_trace, tri, nil)
 
 				if hit {
 					dist := linalg.distance(loc, movement_sphere_trace.origin)

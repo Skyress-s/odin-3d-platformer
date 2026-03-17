@@ -8,7 +8,7 @@ Collision_Triangle :: struct {
 }
 
 
-collision_triangle_normal :: proc(coll_tri: ^Collision_Triangle) -> Vector {
+collision_triangle_normal :: proc(coll_tri: Collision_Triangle) -> Vector {
 	return linalg.normalize(
 		linalg.cross(coll_tri.points.z - coll_tri.points.y, coll_tri.points.x - coll_tri.points.y),
 	)
@@ -19,10 +19,10 @@ collision_triangle_center :: proc(coll_tri: ^Collision_Triangle) -> Vector {
 }
 
 // This function uses the Dan Sunday's algorithm.
-collision_triangle_point_inside :: proc(coll_tri: ^Collision_Triangle, point: ^Vector) -> bool {
+collision_triangle_point_inside :: proc(coll_tri: Collision_Triangle, point: Vector) -> bool {
 	u: Vector = coll_tri.points.y - coll_tri.points.x
 	v: Vector = coll_tri.points.z - coll_tri.points.x
-	w: Vector = point^ - coll_tri.points.x
+	w: Vector = point - coll_tri.points.x
 
 	uu: f32 = linalg.dot(u, u)
 	uv: f32 = linalg.dot(u, v)

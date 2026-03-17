@@ -13,7 +13,7 @@ Sphere_Trace :: distinct struct {
 
 sphere_trace_triangle_intersect :: proc(
 	sphere_trace: ^Sphere_Trace,
-	tri: ^Collision_Triangle,
+	tri: Collision_Triangle,
 	reaction: ^Vector,
 ) -> (
 	bool,
@@ -44,7 +44,7 @@ sphere_trace_triangle_intersect :: proc(
 		if (dot != 0) {
 			t: f32 = -h / dot
 			onPlane: Vector = sphere_trace.ray.origin + nvelo * t
-			if (collision_triangle_point_inside(tri, &onPlane)) {
+			if (collision_triangle_point_inside(tri, onPlane)) {
 				if (t < _distTravel) {
 					_distTravel = t
 					if reaction != nil {

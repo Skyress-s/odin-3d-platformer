@@ -501,6 +501,39 @@ calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 
 	return bound
 }
+
+aabb_triangle_overlap :: proc(aabb: Bound, tri: Collision_Triangle) -> bool {
+	for p in tri.points {
+		if p.x >= aabb.min.x &&
+		   p.x <= aabb.max.x &&
+		   p.y >= aabb.min.y &&
+		   p.y <= aabb.max.y &&
+		   p.z >= aabb.min.z &&
+		   p.z <= aabb.max.z {
+			return true
+		}
+	}
+
+	aabb_corners := [8]Vector {
+		{aabb.min.x, aabb.min.y, aabb.min.z},
+		{aabb.max.x, aabb.min.y, aabb.min.z},
+		{aabb.min.x, aabb.max.y, aabb.min.z},
+		{aabb.max.x, aabb.max.y, aabb.min.z},
+		{aabb.min.x, aabb.min.y, aabb.max.z},
+		{aabb.max.x, aabb.min.y, aabb.max.z},
+		{aabb.min.x, aabb.max.y, aabb.max.z},
+		{aabb.max.x, aabb.max.y, aabb.max.z},
+	}
+
+	for &c in aabb_corners {
+		if collision_triangle_point_inside(tri, c) {
+			return true
+		}
+	}
+
+	return false
+}
+
 shape_to_collision_triangles :: proc(
 	shape: Collision_Shape,
 ) -> (
