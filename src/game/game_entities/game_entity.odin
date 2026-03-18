@@ -14,6 +14,7 @@ Entity :: struct {
 	traits:              Traits,
 	transform_component: Transform_Component,
 	collision_component: Collision_Component,
+	star_component:      Star_Component,
 }
 
 Transform_Component :: struct {
@@ -23,6 +24,10 @@ Transform_Component :: struct {
 Collision_Component :: struct {
 	mesh_id:            col_mesh.Mesh_Handle,
 	collision_response: cc.Responses,
+}
+
+Star_Component :: struct {
+	picked_up: bool,
 }
 
 Traits :: bit_set[Trait]

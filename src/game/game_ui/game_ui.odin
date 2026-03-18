@@ -97,7 +97,7 @@ layout_game_ui :: proc(node: ^layout.Layout_Item, active_elems: ^layout.Active_E
 				},
 			) {
 
-				layout_stats(&game.players)
+				layout_stats(game)
 			}
 			// } else {
 			// 	// Might want to have something here?
@@ -206,10 +206,11 @@ make_log_window_node :: proc(ctx: ^layout.Context, game: ^g.Game) -> layout.Layo
 
 
 layout_stats :: proc(
-	players: ^plrs.Players,
+	game: ^g.Game,
 	// game_state: ^game_state.Game_State,
 	// screen_rect: rl.Rectangle,
 ) {
+	players := &game.players
 	// target_rect := mu.Rect{0, 0, screen_rect.w / 2, screen_rect.h}
 	// clay.BeginLayout()
 	if clay.UI(clay.ID("stats_main"))(
@@ -225,6 +226,18 @@ layout_stats :: proc(
 	},
 	) {
 		char_data := &players.game
+
+		{
+			num_stars := 0
+			itr := hm.iterator_make(&game.entities)
+			for ent, ent_ok in hm.iterate(&itr) {
+				if gent.has_traits({.Star}, ent^) {
+					if ent.star_component.picked_up do num_stars += 1
+				}
+			}
+			ui.layout_dynamic_text_entry(fmt.tprintf("num_stars picked up {}", num_stars))
+		}
+
 		ui.layout_dynamic_text_entry(
 			fmt.tprintf("Position {:4.0f}", char_data.verlet_component.position),
 		)

@@ -183,6 +183,25 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 	//
 	cmq.shg_valid_checked(game.entities, game.collision_scene.spatial_hash_grid)
 
+
+	overlapping_star_handle := cmq.any_entity_in_bound_has_traits(
+		game.entities,
+		game.collision_scene,
+		spat.make_bound_by_position_radius(
+			game.players.game.verlet_component.position,
+			game.players.game.radius,
+		),
+		{.Star},
+		context.temp_allocator,
+	)
+
+	if overlapping_star_handle != {} {
+		star, ok := hm.get(&game.entities, overlapping_star_handle)
+		if ok {
+			star.star_component.picked_up = true
+		}
+	}
+
 	overlapping_kill_volumes :=
 		cmq.any_entity_in_bound_has_traits(
 			game.entities,
