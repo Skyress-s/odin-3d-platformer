@@ -188,9 +188,43 @@ entities_in_bound :: proc(
 			)
 			assert(found_coll_mesh != nil)
 
-			bound := spat.calculate_bounds_from_tris(found_coll_mesh.tris)
-			for &tri in found_coll_mesh.tris {
-				if spat.aabb_triangle_overlap(bound, tri) {
+			mat := spat.get_matrix_from_transform(ent.transform_component.transform)
+
+			for t in found_coll_mesh.tris {
+				transformed_tri := t
+				for &p in transformed_tri.points {
+					p4 := mat * spat.Vector4{p.x, p.y, p.z, 1}
+					p = p4.xyz
+				}
+
+				// intersect, depth, axis := spat.aabb_triangle_intersect(
+				// 	bound.min,
+				// 	bound.max,
+				// 	transformed_tri.points.x,
+				// 	transformed_tri.points.y,
+				// 	transformed_tri.points.z,
+				// )
+				//
+				// if intersect {
+				// 	append(&ent_handles, id)
+				// 	break
+				// }
+
+			}
+
+
+			for tri in found_coll_mesh.tris {
+				tri := spat.transform_triangle_by_transform(tri, ent.transform_component.transform)
+
+				intersect, depth, axis := spat.aabb_triangle_intersect(
+					bound.min,
+					bound.max,
+					tri.points.x,
+					tri.points.y,
+					tri.points.z,
+				)
+
+				if intersect {
 					append(&ent_handles, id)
 					break
 				}

@@ -72,6 +72,8 @@ reset_run :: proc(
 	character_data: ^CharacternData,
 	start_location, start_velocity, start_look_direciton: spat.Vector,
 ) {
+	logs.infof(.Gamelogic, "Realoading World")
+
 	reset_speedrun(character_data)
 	start_speedrun(character_data)
 

@@ -6,6 +6,7 @@ Transform :: distinct struct {
 	scale:    Vector,
 }
 
+
 transform_vector :: proc(t: Transform, v: Vector) -> Vector {
 	v := v
 

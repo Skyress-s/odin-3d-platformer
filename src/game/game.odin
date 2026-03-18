@@ -195,8 +195,10 @@ update_game_player :: proc(game: ^g.Game, debug_draw_data: ^render.Debug_Draw_Da
 			context.temp_allocator,
 		) !=
 		{}
+
 	if overlapping_kill_volumes {
 		initial_state := game.player_initial_state
+
 		character.reset_run(
 			&game.players.game,
 			initial_state.position,

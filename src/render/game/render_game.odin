@@ -108,10 +108,9 @@ render :: proc(
 		rl.DrawLine3D(player_root_pos_for_drawing, players.game.hooked_position, rl.VIOLET)
 	}
 
-
 	draw_collision_tri :: proc(
-		transform: ^spat.Transform,
-		t: ^spat.Collision_Triangle,
+		transform: spat.Transform,
+		t: spat.Collision_Triangle,
 		face_color, edge_color: rl.Color,
 	) {
 		rlgl.PushMatrix()
@@ -121,9 +120,9 @@ render :: proc(
 		// rlgl.Rotatef(euler_y, 0, 1, 0)
 		// rlgl.Rotatef(euler_z, 0, 0, 1)
 
-		mat := spat.get_matrix_from_transform(transform^)
+		mat := spat.get_matrix_from_transform(transform)
 
-		transformed_tri := t^
+		transformed_tri := t
 
 		for &p in transformed_tri.points {
 			p4 := mat * spat.Vector4{p.x, p.y, p.z, 1}
@@ -163,7 +162,7 @@ render :: proc(
 		assert(gent.Trait.Collision in entity.traits)
 
 		for &t in collision_mesh.tris {
-			draw_collision_tri(&entity.transform_component.transform, &t, face_color, edge_color)
+			draw_collision_tri(entity.transform_component.transform, t, face_color, edge_color)
 		}
 	}
 

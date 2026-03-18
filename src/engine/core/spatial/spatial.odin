@@ -1,9 +1,12 @@
 package Spatial
 
 import "base:runtime"
+import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
+
+import logs "../logs/"
 
 Vector :: rl.Vector3
 Vector2 :: rl.Vector2
@@ -203,12 +206,28 @@ closest_point_on_triangle :: proc(p, a, b, c: rl.Vector3) -> rl.Vector3 {
 	return a + ab * v + ac * w // = u*a + v*b + w*c, u = va * denom = 1.0-v-w
 }
 
-distance_to_tri :: proc(t: ^Collision_Triangle, position: Vector) -> (dist: f32, normal: Vector) {
+distance_to_tri :: proc(t: Collision_Triangle, position: Vector) -> (dist: f32, normal: Vector) {
 	closest := closest_point_on_triangle(position, t.points[0], t.points[1], t.points[2])
 	diff := position - closest
 
 	dist = linalg.length(diff)
 	normal = diff / dist
+	return
+}
+
+distance_to_tri_signed :: proc(
+	t: Collision_Triangle,
+	position: Vector,
+) -> (
+	dist: f32,
+	normal: Vector,
+) {
+	closest := closest_point_on_triangle(position, t.points[0], t.points[1], t.points[2])
+	diff := position - closest
+
+	dist = linalg.length(diff)
+	normal = diff / dist
+	dist = linalg.dot(normal, diff)
 	return
 }
 
@@ -221,7 +240,7 @@ reflect_dampen :: proc(vector, normal: Vector, dampen: f32) -> Vector {
 
 // NOTE this has keep the momentum if you collide at a certain angle.
 collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position^)
+	dist, normal := distance_to_tri(t^, position^)
 
 	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
 
@@ -251,7 +270,7 @@ collide_with_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius,
 
 // NOTE this has keep the momentum if you collide at a certain angle.
 clamp_to_tri :: proc(t: ^Collision_Triangle, vel, position: ^Vector, radius, dt: f32) {
-	dist, normal := distance_to_tri(t, position^)
+	dist, normal := distance_to_tri(t^, position^)
 
 	//rl.DrawCubeV(closest, 0.05, dist > char_data.radius ? rl.ORANGE : rl.WHITE)
 
@@ -425,13 +444,13 @@ get_bounds :: proc(collision_shape: Collision_Shape) -> (bound: Bound) { 	// Tod
 transform_triangle_by_matrix :: proc(
 	tri: Collision_Triangle,
 	mat: rl.Matrix,
-) -> (
-	ret_tri: Collision_Triangle,
-) {
-	for &p in ret_tri.points {
+) -> Collision_Triangle {
+	tri := tri
+
+	for &p in tri.points {
 		p = (mat * rl.Vector4{p.x, p.y, p.z, 1}).xyz
 	}
-	return ret_tri
+	return tri
 }
 
 transform_triangle_by_transform :: proc(
@@ -502,6 +521,10 @@ calculate_bounds_from_tris :: proc(tris: [dynamic]Collision_Triangle) -> Bound {
 	return bound
 }
 
+// aabb_triangle_overlap2 :: proc() {
+//
+// }
+
 aabb_triangle_overlap :: proc(aabb: Bound, tri: Collision_Triangle) -> bool {
 	for p in tri.points {
 		if p.x >= aabb.min.x &&
@@ -526,12 +549,115 @@ aabb_triangle_overlap :: proc(aabb: Bound, tri: Collision_Triangle) -> bool {
 	}
 
 	for &c in aabb_corners {
-		if collision_triangle_point_inside(tri, c) {
+		dist, normal := distance_to_tri_signed(tri, c)
+		logs.infof(.Physics, "distance {}, normal {}", dist, normal)
+		if dist <= 0 {
 			return true
 		}
 	}
 
 	return false
+}
+
+aabb_triangle_intersect :: proc(
+	aabb_min, aabb_max: Vector,
+	v0, v1, v2: Vector,
+) -> (
+	intersects: bool,
+	penetration: f32,
+	axis: Vector,
+) {
+	project_aabb :: proc(box_min, box_max: Vector, axis: Vector) -> (min_out, max_out: f32) {
+		corners := [8]Vector {
+			{box_min.x, box_min.y, box_min.z},
+			{box_max.x, box_min.y, box_min.z},
+			{box_min.x, box_max.y, box_min.z},
+			{box_max.x, box_max.y, box_min.z},
+			{box_min.x, box_min.y, box_max.z},
+			{box_max.x, box_min.y, box_max.z},
+			{box_min.x, box_max.y, box_max.z},
+			{box_max.x, box_max.y, box_max.z},
+		}
+		min_out = linalg.dot(corners[0], axis)
+		max_out = min_out
+		for i in 1 ..< 8 {
+			d := linalg.dot(corners[i], axis)
+			min_out = math.min(min_out, d)
+			max_out = math.max(max_out, d)
+		}
+		return
+	}
+
+	project_tri :: proc(t0, t1, t2: Vector, axis: Vector) -> (min_out, max_out: f32) {
+		min_out = linalg.dot(t0, axis)
+		max_out = min_out
+		d1 := linalg.dot(t1, axis)
+		d2 := linalg.dot(t2, axis)
+		min_out = math.min(math.min(min_out, d1), d2)
+		max_out = math.max(math.max(max_out, d1), d2)
+		return
+	}
+
+	overlap_on_axis :: proc(
+		aabb_min, aabb_max: Vector,
+		v0, v1, v2: Vector,
+		axis: Vector,
+	) -> (
+		overlaps: bool,
+		pen: f32,
+	) {
+		aabb_min_proj, aabb_max_proj := project_aabb(aabb_min, aabb_max, axis)
+		tri_min, tri_max := project_tri(v0, v1, v2, axis)
+
+		if aabb_max_proj < tri_min || tri_max < aabb_min_proj {
+			return false, 0
+		}
+
+		pen1 := aabb_max_proj - tri_min
+		pen2 := tri_max - aabb_min_proj
+		return true, math.min(pen1, pen2)
+	}
+
+	axes: [13]Vector
+	axes[0] = {1, 0, 0}
+	axes[1] = {0, 1, 0}
+	axes[2] = {0, 0, 1}
+
+	e0 := v1 - v0
+	e1 := v2 - v1
+	e2 := v0 - v2
+	axes[3] = linalg.cross(e0, axes[0])
+	axes[4] = linalg.cross(e0, axes[1])
+	axes[5] = linalg.cross(e0, axes[2])
+	axes[6] = linalg.cross(e1, axes[0])
+	axes[7] = linalg.cross(e1, axes[1])
+	axes[8] = linalg.cross(e1, axes[2])
+	axes[9] = linalg.cross(e2, axes[0])
+	axes[10] = linalg.cross(e2, axes[1])
+	axes[11] = linalg.cross(e2, axes[2])
+	axes[12] = linalg.normalize(linalg.cross(e0, e1))
+
+	min_pen := max(f32)
+	penetration_axis: Vector
+	for i in 0 ..< 13 {
+		test_axis := axes[i]
+		axis_len := linalg.length(test_axis)
+		if axis_len < 0.0001 do continue
+		test_axis = test_axis / axis_len
+
+		olaps: bool
+		pen: f32
+		olaps, pen = overlap_on_axis(aabb_min, aabb_max, v0, v1, v2, test_axis)
+		if !olaps {
+			return false, 0, test_axis
+		}
+		if pen < min_pen {
+			min_pen = pen
+			penetration_axis = test_axis
+		}
+	}
+
+	return true, min_pen, penetration_axis
 }
 
 shape_to_collision_triangles :: proc(

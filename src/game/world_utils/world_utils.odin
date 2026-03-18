@@ -1,16 +1,19 @@
 package world_utils
+import "core:strings"
+
 import cm "../../engine/core/collision_mesh/"
 import cs "../../engine/core/collision_scene"
 import csq "../../engine/core/collision_scene/query/"
+import logs "../../engine/core/logs/"
 import spat "../../engine/core/spatial/"
 import serial "../../serialization/serialize/"
 import gent "../game_entities/"
 import sent "../spawn_entities/"
-import "core:strings"
-
 import w "../world/"
 
 reload_world :: proc(world_session: ^w.World_Session) {
+	logs.infof(.Gamelogic, "Realoading World")
+
 	if (world_session.world != nil) {
 		w.world_deinit(world_session.world)
 		free(world_session.world)

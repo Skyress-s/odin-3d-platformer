@@ -96,7 +96,7 @@ update_character_physics :: proc(
 						tri.points.z,
 					)
 
-					dist_to_tri, normal := spat.distance_to_tri(&tri, loc)
+					dist_to_tri, normal := spat.distance_to_tri(tri, loc)
 					// log.warnf("dist {} loc {}", tri, loc)
 
 					ray_direction := spat.ray_direction(movement_sphere_trace.ray)
