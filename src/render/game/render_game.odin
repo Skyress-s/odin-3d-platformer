@@ -114,11 +114,6 @@ render :: proc(
 		face_color, edge_color: rl.Color,
 	) {
 		rlgl.PushMatrix()
-		// rlgl.Scalef(transform.scale.x,transform.scale.y, transform.scale.z)
-		// euler_x, euler_y, euler_z:= linalg.euler_angles_from_quaternion_f32(transform.rotation, linalg.Euler_Angle_Order.XYZ)
-		// rlgl.Rotatef(euler_x, 1, 0, 0)
-		// rlgl.Rotatef(euler_y, 0, 1, 0)
-		// rlgl.Rotatef(euler_z, 0, 0, 1)
 
 		mat := spat.get_matrix_from_transform(transform)
 
