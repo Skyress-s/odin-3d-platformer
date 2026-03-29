@@ -1,10 +1,11 @@
 package ui_test
 
 import layout "../"
-import hm "core:container/handle_map"
+import back "../../../../../vendor/back/"
 import clay "../../clay-odin/"
 import rr "../../raylib"
 import "core:c"
+import hm "core:container/handle_map"
 import "core:fmt"
 import "core:testing"
 import rl "vendor:raylib"
@@ -19,6 +20,19 @@ import rl "vendor:raylib"
 */
 
 main :: proc() {
+	context.assertion_failure_proc = back.assertion_failure_proc
+
+	back.register_segfault_handler()
+
+	// Tracking allocator callstack
+	track: back.Tracking_Allocator
+	back.tracking_allocator_init(&track, context.allocator)
+	defer back.tracking_allocator_destroy(&track)
+
+	context.allocator = back.tracking_allocator(&track)
+	defer back.tracking_allocator_print_results(&track)
+
+
 	window_width := c.int(f64(rl.GetMonitorWidth(rl.GetCurrentMonitor())) * 0.7)
 	window_height := c.int(f64(rl.GetMonitorHeight(rl.GetCurrentMonitor())) * 0.7)
 
@@ -41,6 +55,7 @@ main :: proc() {
 		0,
 		layout.make_debug_leaf_layout_item(&layout_ctx, layout_main_window),
 	)
+
 	layout.add_layout_node(
 		&layout_ctx.lic,
 		layout_ctx.root,
@@ -50,10 +65,8 @@ main :: proc() {
 	layout.normalize_sizes_recursive(&layout_ctx.lic, layout_ctx.root)
 	layout.update_layout_dir(&layout_ctx.lic, layout_ctx.root)
 
-	// TODO: unregister node?
-
 	for !rl.WindowShouldClose() {
-		layout.update_state(&layout_ctx)
+		layout.update_state(&layout_ctx, rl.GetMousePosition())
 
 		clay.BeginLayout()
 		layout.layout(&layout_ctx)
@@ -76,9 +89,16 @@ layout_main_window :: proc(
 	parent_node: ^layout.Layout_Item,
 	active_elems: ^layout.Active_Elements,
 ) {
-	clay.TextDynamic(fmt.tprint("Im here!"), clay.TextConfig(layout.DEBUG_ID_TEXT_ELEMENT_CONFIG))
-
-
+	clay.TextDynamic(
+		fmt.tprint(
+			"CONTROLS:",
+			"remove_click : MOUSE_BACK   + LEFT_ALT)",
+			"add_click    : MOUSE_MIDDLE + LEFT_ALT)",
+			"resize_click : MOUSE_RIGHT, + LEFT_ALT)",
+			"move_click   : MOUSE_LEFT,  + LEFT_ALT)",
+		),
+		clay.TextConfig(layout.DEBUG_ID_TEXT_ELEMENT_CONFIG),
+	)
 }
 
 @(test)

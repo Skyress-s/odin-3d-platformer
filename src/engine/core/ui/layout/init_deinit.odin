@@ -6,7 +6,6 @@ import "core:c"
 import hm "core:container/handle_map"
 import "core:fmt"
 import vmem "core:mem/virtual"
-import "core:strings"
 import raylib "vendor:raylib"
 
 windowWidth: i32 = 1024
@@ -14,16 +13,11 @@ windowHeight: i32 = 768
 
 MODIFIER_KEYS: []raylib.KeyboardKey : {.LEFT_SHIFT, .LEFT_CONTROL, .LEFT_ALT, .LEFT_SUPER}
 
-
-LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-
 errorHandler :: proc "c" (errorData: clay.ErrorData) {
 	context = runtime.default_context()
 	assert(errorData.errorType == nil, fmt.tprintf("CLAY ERROR: {}", errorData))
 }
 
-// TODO should find a way to move the raylib specific stuff out
-// measure_text_proc could be rr.measureText
 init :: proc(
 	measure_text_proc: proc "c" (
 		text: clay.StringSlice,
@@ -42,7 +36,6 @@ init :: proc(
 	assert(temp_arena_init_err == nil)
 	ctx.temp_allocator = vmem.arena_allocator(&ctx.temp_arena)
 
-
 	minMemorySize: c.size_t = cast(c.size_t)clay.MinMemorySize()
 	memory := make([^]u8, minMemorySize)
 	ctx.clay_arena = clay.CreateArenaWithCapacityAndMemory(minMemorySize, memory)
@@ -55,12 +48,11 @@ init :: proc(
 
 	PATH_TO_RESOURCES: string : "content/"
 
-	// raylib.SetConfigFlags({.VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT})
-	// raylib.InitWindow(windowWidth, windowHeight, "Raylib Odin Example")
-	// raylib.SetTargetFPS(raylib.GetMonitorRefreshRate(0)) // does not need be here
 
+	// TODO: Change in future if its needed:
+	// Hardcoded. Should be moved / add functionality so user can choose what fonts are used.
 	load_font(DEBUG_FONT_ID, 56, "content/resources/Calistoga-Regular.ttf")
-	load_font(DEBUG_FONT_ID_2, 56, "content/resources/Calistoga-Regular.ttf") // Need to have something with ID = 0 for debug to work
+	load_font(DEBUG_FONT_ID_2, 56, "content/resources/Calistoga-Regular.ttf")
 
 	// root node
 	{
@@ -119,6 +111,8 @@ update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	ctx.mouse_pos_last_frame = ctx.mouse_pos
 	ctx.mouse_pos = mouse_pos
 
+	// TODO: Change in future if its needed:
+	// Should be changed so that we can change at runtime what actions does what!
 	update_pointer_state_mouse(&ctx.remove_click, .SIDE, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.add_click, .MIDDLE, .LEFT_ALT)
 	update_pointer_state_mouse(&ctx.resize_click, .RIGHT, .LEFT_ALT)
@@ -127,17 +121,6 @@ update_state :: proc(ctx: ^Context, mouse_pos: raylib.Vector2) {
 	ctx.pressed_fullscreen_this_frame = raylib.IsKeyPressed(.F)
 
 	ctx.hover_layout_handle = get_hovered_layout_item_leaf(ctx)
-	// if raylib.IsKeyPressed(.L) {
-	// 	ctx.controlling_layout_item = {}
-	//
-	// } else if ctx.controlling_layout_item == {} &&
-	//    raylib.IsMouseButtonPressed(.LEFT) &&
-	//    !any_modifier_key_down_or_pressed() {
-	// 	ctx.controlling_layout_item = get_hovered_layout_item_leaf(ctx)
-	//
-	// } else if !hm.valid(ctx.lic, ctx.controlling_layout_item) {
-	// 	ctx.controlling_layout_item = {}
-	// }
 }
 
 
@@ -192,9 +175,6 @@ to_pointer_state :: proc(
 	)
 }
 
-
 render :: proc(render_commands: ^clay.ClayArray(clay.RenderCommand)) {
-	// raylib.BeginDrawing()
 	rr.clay_raylib_render(render_commands)
-	// raylib.EndDrawing()
 }

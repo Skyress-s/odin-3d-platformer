@@ -11,7 +11,7 @@ import vmem "core:mem/virtual"
 import clay "../clay-odin/"
 import hm "core:container/handle_map"
 
-MIN_WINDOW_SIZE :: 50 // in pixels TODO: Move to Context or settings
+MIN_WINDOW_SIZE :: 50 // in pixels. TODO: Move to Context or settings
 
 Debug_Settings :: struct {
 	draw_if_no_content, draw_ids: bool,
@@ -33,11 +33,10 @@ Context :: struct {
 	active_elements:                                   Active_Elements,
 
 	// Not exposed by clay. So need to cache them here too
+	// I am abit unsure if this library should have this responsebility...
 	mouse_pos:                                         raylib.Vector2,
 	mouse_pos_last_frame:                              raylib.Vector2,
 	screen_dimensions:                                 clay.Dimensions,
-	// I am abit unsure if this library should have this responsebility...
-	// controlling_layout_item:                           Layout_Item_Handle, // Tells ui which one has control / can receive inputs. if {}, we are in layout edit mode
 }
 
 Layout_Item :: struct {
@@ -60,7 +59,6 @@ Layout_Item_Handle :: hm.Handle32
 
 Layout_Item_Container :: hm.Static_Handle_Map(1024, Layout_Item, Layout_Item_Handle)
 
-// TODO: no nil? #no_nil
 Edge :: enum {
 	Left,
 	Right,
@@ -87,112 +85,13 @@ get_item :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> (^L
 }
 
 @(private)
-make_parent_layout_item :: proc(
-	ctx: ^Context,
-) -> // @(private)
-
-
-	// Note, do not use the passed in layout item. This will make a copy that now own the memory
-
-
-	// deletes item.
-
-
-	// Returns the handle that was hit and not deleted
-
-
-	// root node
-
-
-	// continue walking
-
-
-	// delete_tail(ctx, parent_handle)
-
-
-	// Is not the fastest. Could do something more local. But this is simpler.
-
-
-	// all children
-
-
-	// / f32(num_grand_grand_children) //
-
-
-	// if len(parent_layout_item.child_nodes) == 0 {
-	// 	parent_handle = delete_tail(ctx, parent_handle)
-	// }
-	//
-	// clean_upwards(ctx, parent_handle)
-
-
-	// TODO: make recursive TODO: Make work
-	// if len(parent_layout_item.child_nodes) == 0 {
-	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
-	// 	delete_handle_from_node(&ctx.lic, grand_parent_handle, parent_handle)
-	// 	delete_layout_item(ctx, parent_handle)
-	// }
-
-	// if true do return
-	// parent only has one child, reduce it
-	// if len(parent_layout_item.child_nodes) == 1 {
-	// 	grand_parent_handle := parent_layout_item.parent_handle
-	// 	if !hm.valid(ctx.lic, grand_parent_handle) do return // root node
-	//
-	// 	grand_parent := get_item_checked(&ctx.lic, grand_parent_handle)
-	// 	for &h in grand_parent.child_nodes {
-	// 		if h == parent_handle {
-	// 			h = parent_layout_item.child_nodes[0]
-	// 			single_child := get_item_checked(&ctx.lic, parent_layout_item.child_nodes[0])
-	// 			single_child.parent_handle = grand_parent_handle
-	// 			single_child.size_percent = parent_layout_item.size_percent
-	// 			delete_layout_item(ctx, parent_handle)
-	// 			break
-	// 		}
-	// 	}
-	//
-	// 	update_layout_dir(&ctx.lic, grand_parent_handle)
-	// 	normalize_sizes_recursive(&ctx.lic, grand_parent_handle)
-	// }
-
-
-	// slice_layout_item :: proc(lic: ^Layout_Item_Container, handle_to_slice: Layout_Item_Handle) {
-	// 	assert(hm.valid(lic^, handle_to_slice))
-	// 	layout_item_to_slice := hm.get(lic, handle_to_slice)
-	//
-	// 	grand_parent_handle := layout_item_to_slice.parent_handle
-	// 	if !hm.valid(lic^, grand_parent_handle) do return // root node
-	//
-	// 	grand_parent := hm.get(lic, grand_parent_handle)
-	// 	for &h in grand_parent.child_nodes {
-	// 		if h == parent_handle {
-	// 			h = parent_layout_item.child_nodes[0]
-	//
-	// 			break
-	// 		}
-	// 	}
-	// 	grand_parent.child_nodes
-	// }
-
-	// delete item and potential children
-
-
-	// setup state
-
-
-	// setup state
-
-
-	Layout_Item {// TODO: Add handles that should retain its percent
-
+make_parent_layout_item :: proc(ctx: ^Context) ->  Layout_Item {// TODO: Add handles that should retain its percent
 	@(static) debug_gen_id: u32 = 0
 	layout_item := make_layout_item(ctx, fmt.tprintf("parent_{}", debug_gen_id))
 	layout_item.size_percent = {0.5, 0.5}
 	debug_gen_id += 1
 	return layout_item
 }
-
 
 make_debug_leaf_layout_item :: proc(
 	ctx: ^Context,
@@ -225,11 +124,9 @@ make_layout_item :: proc(
 	return
 }
 
-
 add_to_context :: proc(ctx: ^Context, layout_item: Layout_Item) -> Layout_Item_Handle {
 	return hm.add(&ctx.lic, layout_item)
 }
-
 
 delete_layout_item :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	if hm.get(&ctx.lic, handle) == nil do return
@@ -264,20 +161,6 @@ delete_tail :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) -> Layout_It
 	return item.handle
 }
 
-clean_upwards :: proc(ctx: ^Context, item_handle: Layout_Item_Handle) {
-	item := get_item_checked(&ctx.lic, item_handle)
-	parent_item, parent_ok := get_item(&ctx.lic, item.parent_handle)
-	if !parent_ok do return
-	grand_parent, grandparent_ok := get_item(&ctx.lic, parent_item.parent_handle)
-	if !grandparent_ok do return
-
-	if (len(parent_item.child_nodes) == 1 && len(grand_parent.child_nodes) == 1) {
-		grand_parent.child_nodes[0] = item.handle
-		item.parent_handle = grand_parent.handle
-		delete_layout_item(ctx, parent_item.handle)
-	}
-}
-
 delete_handle_from_node :: proc(
 	lic: ^Layout_Item_Container,
 	item_handle, handle_to_delete: Layout_Item_Handle,
@@ -296,7 +179,7 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 	layout_item_to_remove := get_item_checked(&ctx.lic, handle)
 	assert(
 		len(layout_item_to_remove.child_nodes) == 0,
-		"don't support cutting nodes with children.",
+		"don't support cutting nodes with children. Use delete_layout_item_and_children instead.",
 	)
 
 	parent_handle := layout_item_to_remove.parent_handle
@@ -367,10 +250,7 @@ remove_leaf_item :: proc(ctx: ^Context, handle: Layout_Item_Handle, delete_node:
 		}
 
 	}
-
-
 }
-
 
 update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layout_Item_Handle) {
 	layout_item := get_item_checked(lic, current_item_handle)
@@ -387,7 +267,6 @@ update_layout_dir :: proc(lic: ^Layout_Item_Container, current_item_handle: Layo
 	}
 }
 
-
 delete_layout_item_and_children :: proc(ctx: ^Context, handle: Layout_Item_Handle) {
 	if hm.get(&ctx.lic, handle) == nil do return
 
@@ -398,7 +277,6 @@ delete_layout_item_and_children :: proc(ctx: ^Context, handle: Layout_Item_Handl
 
 	delete_layout_item(ctx, handle)
 }
-
 
 get_parent_layout_item :: proc(
 	lic: ^Layout_Item_Container,
@@ -431,17 +309,12 @@ add_layout_node :: proc(
 
 	new_handle, add_ok := hm.add(lic, layout_item_to_add)
 	assert(add_ok)
-	new_layout_item := hm.get(lic, new_handle)
-	inject_at(&parent_layout_item.child_nodes, index, new_handle)
 
-
-	new_layout_item.parent_handle = parent_handle
-	new_layout_item.layout_dir =
-		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
+	add_layout_node_by_handle(lic, parent_handle, index, new_handle)
 	return new_handle
 }
 
-add_layout_item_node :: proc(
+add_layout_node_by_handle :: proc(
 	lic: ^Layout_Item_Container,
 	parent_handle: Layout_Item_Handle,
 	index: u8,
@@ -452,15 +325,11 @@ add_layout_item_node :: proc(
 
 	inject_at(&parent_layout_item.child_nodes, index, homeless_item_handle)
 
-
 	homeless_item.parent_handle = parent_handle
 	homeless_item.layout_dir =
 		parent_layout_item.layout_dir == .LeftToRight ? .TopToBottom : .LeftToRight
 }
 
-is_valid_tree :: proc(lic: ^Layout_Item_Container) -> bool {
-	panic("Not implemented!")
-}
 max_leaf_distance :: proc(
 	lic: ^Layout_Item_Container,
 	handle: Layout_Item_Handle,
@@ -507,7 +376,6 @@ leaf_distance :: proc(
 
 is_leaf :: proc(lic: ^Layout_Item_Container, handle: Layout_Item_Handle) -> bool {
 	return leaf_distance(lic, handle, 0) == 0
-
 }
 
 get_average_size :: proc(
@@ -527,7 +395,6 @@ get_average_size :: proc(
 
 	return
 }
-
 
 normalize_sizes :: proc(lic: ^Layout_Item_Container, layout_item_handle: Layout_Item_Handle) {
 	layout_item := get_item_checked(lic, layout_item_handle)
@@ -578,7 +445,7 @@ insert_item_same_level :: proc(
 
 	insert_after := edge == .Bottom || edge == .Right
 
-	add_layout_item_node(
+	add_layout_node_by_handle(
 		&ctx.lic,
 		parent.handle,
 		index_in_parent + u8(insert_after),
@@ -620,7 +487,7 @@ insert_item_new_level :: proc(
 	b_insert_after := edge == .Right || edge == .Bottom
 
 
-	add_layout_item_node(
+	add_layout_node_by_handle(
 		&ctx.lic,
 		new_parent.handle,
 		b_insert_after ? 1 : 0,
@@ -677,7 +544,6 @@ closest_corner :: proc(bounding_box: clay.BoundingBox, pos: clay.Vector2) -> Cor
 		}
 	}
 }
-
 
 is_horizontal_edge :: proc(edge: Edge) -> bool {
 	return edge == .Left || edge == .Right
@@ -820,8 +686,6 @@ get_next :: proc(
 	if neighbour_index_in_parent < 0 || int(neighbour_index_in_parent) >= len(parent.child_nodes) {
 		grand_parent, grand_parent_ok := get_item(lic, parent.parent_handle)
 		if !grand_parent_ok do return {}
-		// grand2_parent, grand2_parent_ok := get_item(lic, grand_parent.parent_handle)
-		// if !grand2_parent_ok do return {}
 
 		found_next_item_handle := get_next(lic, grand_parent.handle, after)
 		return found_next_item_handle
@@ -851,80 +715,14 @@ get_clay_bounding_box_checked :: proc(id: string) -> clay.BoundingBox {
 	return bounding_box
 }
 
-
 get_clay_bounding_box :: proc(id: string) -> (clay.BoundingBox, bool) {
 	clay_element_id := clay.GetElementId(clay.MakeString(id))
 	element_data := clay.GetElementData(clay_element_id)
 	return element_data.boundingBox, element_data.found
 }
 
-// TODO: Can implement later if wanted
-scale_with_min_size :: proc(
-	ctx: ^Context,
-	item_handle: Layout_Item_Handle,
-	delta_mouse: raylib.Vector2,
-	corner: Corner,
-) {
-
-	wanted_px_change := delta_mouse.x
-
-	px_change_remaining := wanted_px_change
-
-	item := get_item_checked(&ctx.lic, item_handle)
-	parent := get_item_checked(&ctx.lic, item.parent_handle)
-
-	item_bounds := get_clay_bounding_box_checked(item.id)
-	parent_bounds := get_clay_bounding_box_checked(parent.id)
-
-
-	after := is_right(corner)
-
-	for {
-
-		next_neighbour, next_neighbour_ok := get_item(
-			&ctx.lic,
-			get_next(&ctx.lic, item.handle, after),
-		)
-
-		if !next_neighbour_ok {
-			return
-		}
-
-		px_changed := try_resize(&ctx.lic, next_neighbour.handle, px_change_remaining, after)
-		px_change_remaining -= px_changed
-
-		if px_change_remaining <= 0 {
-			return
-		}
-	}
-
-	percent_change := (wanted_px_change - px_change_remaining) / parent_bounds.width
-	item.size_percent.x += percent_change
-	// scale the original box last.
-}
-
-try_resize :: proc(
-	lic: ^Layout_Item_Container,
-	item_handle: Layout_Item_Handle,
-	px_change: f32,
-	after: bool,
-) -> (
-	changed: f32,
-) {
-	item := get_item_checked(lic, item_handle)
-	parent, parent_ok := get_item(lic, item.parent_handle)
-	if !parent_ok do return px_change
-
-
-	// TODO: Can implement later if wanted
-
-	return
-}
-
 // brute force find the if we are hovering a Layout_Item
 get_hovered_layout_item_leaf :: proc(ctx: ^Context) -> Layout_Item_Handle {
-
-	// brute force find the if we are hovering a Layout_Item
 	itr := hm.iterator_make(&ctx.lic)
 	for layout_item, _ in hm.iterate(&itr) {
 		if !is_leaf(&ctx.lic, layout_item.handle) do continue

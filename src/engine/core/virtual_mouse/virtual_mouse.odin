@@ -30,12 +30,6 @@ Context :: struct {
 	screen_dimensions:         Vec2,
 }
 
-Wanted_State :: struct {
-	cursor_pos:    Maybe(Vec2),
-	hidden:        Maybe(bool),
-	restrict_rect: Maybe(Rect),
-}
-
 Is_Window_Focused_Proc :: proc() -> bool
 
 Empty_Proc :: proc()
@@ -63,15 +57,6 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 	ctx.mouse_position += mouse_delta
 	ctx.mouse_delta = mouse_delta
 
-	// if ctx.mouse_position.x < 0 ||
-	//    ctx.mouse_position.x > screen_dimensions.x ||
-	//    ctx.mouse_position.y < 0 ||
-	//    ctx.mouse_position.y > screen_dimensions.y {
-	// 	raylib.EnableCursor()
-	// } else {
-	// 	raylib.DisableCursor()
-	// }
-
 	clamp_vec_to_rect(&ctx.mouse_position, ctx.mouse_restrict_rect)
 
 	window_focused := ctx.is_window_focused_proc()
@@ -79,25 +64,6 @@ update :: proc(ctx: ^Context, mouse_delta, screen_dimensions: Vec2) {
 		ctx.disable_cursor_proc()
 	}
 	ctx.window_focused_last_frame = window_focused
-}
-
-apply_wanted_state :: proc(ctx: ^Context, state: Wanted_State) {
-	cursor_pos, cursor_pos_ok := state.cursor_pos.(Vec2)
-	if cursor_pos_ok {
-		ctx.mouse_position = cursor_pos
-	}
-
-	hidden, hidden_ok := state.hidden.(bool)
-	if hidden_ok {
-		set_show_visibility(ctx, !hidden)
-	}
-
-	restrict_rect, restrict_rect_ok := state.restrict_rect.(Rect)
-	if restrict_rect_ok {
-		restrict_mouse(ctx, restrict_rect)
-	}
-
-
 }
 
 init :: proc(
@@ -178,7 +144,6 @@ restrict_mouse_pos :: proc(ctx: ^Context, pos: Vec2) {
 @(private)
 _restrict_mouse :: proc(ctx: ^Context, restrict_rect: Rect) {
 	ctx.mouse_restrict_rect = restrict_rect
-
 }
 
 set_show_visibility :: proc(ctx: ^Context, mouse_visible: bool) {
@@ -191,17 +156,14 @@ get_mouse_pos :: proc(ctx: Context) -> Vec2 {
 
 is_cursor_hidden :: proc(ctx: Context) -> bool {
 	return ctx.mouse_hidden
-	// return ctx.is_cursor_hidden_proc()
 }
 
 hide_cursor :: proc(ctx: ^Context) {
 	ctx.mouse_hidden = true
-	// ctx.hide_cursor_proc()
 }
 
 show_cursor :: proc(ctx: ^Context) {
 	ctx.mouse_hidden = false
-	// ctx.show_cursor_proc()
 }
 
 @(private)

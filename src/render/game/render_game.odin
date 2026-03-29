@@ -176,107 +176,12 @@ render :: proc(
 		draw_collision_object(entity.handle, game.world, col, rl.WHITE)
 	}
 
-	// for star_id, picked_up in level.collsion_scene.stars {
-	// 	drawn_collision_objects_ids[star_id] = true
-	// 	if !picked_up {
-	// 		volume_obj := hms.get(&level.collsion_scene.collision_object_map, star_id)
-	// 		assert(volume_obj != nil)
-	// 		draw_collision_object(volume_obj, rl.YELLOW, rl.RED)
-	// 	}
-	//
-	// }
-	//
-	// for kill_id in level.collsion_scene.kill_volumes {
-	// 	drawn_collision_objects_ids[kill_id] = true
-	//
-	// 	volume_obj := hms.get(&level.collsion_scene.collision_object_map, kill_id)
-	// 	assert(volume_obj != nil)
-	// 	draw_collision_object(volume_obj, rl.RED, rl.GRAY)
-	//
-	// }
-	//
-	// for grappable_obj_id in level.collsion_scene.grappable {
-	// 	drawn_collision_objects_ids[grappable_obj_id] = true
-	//
-	// 	volume_obj := hms.get(&level.collsion_scene.collision_object_map, grappable_obj_id)
-	// 	assert(volume_obj != nil)
-	// 	draw_collision_object(volume_obj, rl.SKYBLUE, rl.GRAY)
-	//
-	// }
-	//
-	// for volume_id in level.collsion_scene.finish_volumes {
-	// 	drawn_collision_objects_ids[volume_id] = true
-	//
-	// 	volume_obj := hms.get(&level.collsion_scene.collision_object_map, volume_id)
-	// 	assert(volume_obj != nil)
-	// 	draw_collision_object(volume_obj, rl.GREEN, rl.GRAY)
-	// }
-
-
-	// if game_state.cheat_state.change_color_when_player_in_cell {
-	// 	for cell_key in debug_draw_data.active_cell {
-	// 		for &collision_object_id in level.collsion_scene.spatial_hash_grid[cell_key].objects_ids {
-	// 			has_been_drawn := collision_object_id in drawn_collision_objects_ids
-	// 			if (!has_been_drawn) {
-	// 				obj: ^spat.Collision_Object_Data = hms.get(
-	// 					&level.collsion_scene.collision_object_map,
-	// 					collision_object_id,
-	// 				)
-	// 				draw_collision_object(obj, rl.GREEN, rl.GRAY)
-	// 				drawn_collision_objects_ids[collision_object_id] = true
-	// 			}
-	// 		}
-	// 	}
-	// }
-	//
-	// // Draw all other geometry
-	// for hash_key in level.collsion_scene.spatial_hash_grid {
-	// 	if hash_key == debug_draw_data.active_cell_hash do continue
-	//
-	// 	cell := &level.collsion_scene.spatial_hash_grid[hash_key]
-	// 	for &collision_object_id in cell.objects_ids {
-	// 		has_been_drawn := collision_object_id in drawn_collision_objects_ids
-	// 		if (!has_been_drawn) {
-	// 			draw_collision_object(
-	// 				hms.get(&level.collsion_scene.collision_object_map, collision_object_id),
-	// 				rl.LIGHTGRAY,
-	// 				rl.GRAY,
-	// 			)
-	// 			drawn_collision_objects_ids[collision_object_id] = true
-	// 		}
-	// 	}
-	// }
-
-
-	// Draw coorinate axis
-	// rl.DrawCube({0, 0, 0}, 0.1, 0.1, 0.1, rl.WHITE)
-	// rl.DrawCube({1, 0, 0}, 1, 0.1, 0.1, rl.RED)
-	// rl.DrawCube({0, 1, 0}, 0.1, 1, 0.1, rl.GREEN)
-	// rl.DrawCube({0, 0, 1}, 0.1, 0.1, 1, rl.BLUE)
-
 
 	if game.game_state.cheat_state.draw_bounds {
 		hash_key := cs.Hash_Location(player_verlet.position)
 		cs.Draw_Hash_Cell_Bounds(hash_key)
-		cs.draw_hash_grid_bounds_populated_cells(game.spatial_hash_grid, &hash_key)}
-
-
-	/*
-		active_cell_items := spatial_hash_map[hash_key].items
-
-		for shape in objects {
-			color := rl.RED
-			for active_cell_item in active_cell_items {
-				if active_cell_item.id == shape.id {
-					color = rl.GREEN
-					break
-				}
-			}
-
-			// draw_collision_shape(shape, &color)
-		}
-
-		*/
+		cs.draw_hash_grid_bounds_populated_cells(game.spatial_hash_grid, &hash_key)
+	}
 
 	lightray.end_lighting()
 	rl.BeginShaderMode(shader_editor_tool_depth)
@@ -289,13 +194,8 @@ render :: proc(
 
 	rl.EndMode3D()
 
-	// Draw UI babiiiiiii
 
-
-	// rl.EndDrawing()
 	rl.EndTextureMode()
-
-
 }
 
 draw_triangle :: proc(a, b, c: spat.Vector, color: rl.Color) {

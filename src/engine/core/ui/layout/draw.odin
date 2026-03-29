@@ -5,6 +5,8 @@ import "core:fmt"
 import clay "../clay-odin/"
 import hm "core:container/handle_map"
 
+// For my current needs its fine to hardcode these.
+// If I were to need to have multiple looks for windows in the future, it can be added then
 COLOR_LEAF_OUTLINE := clay.Color{72, 100, 150, 255}
 COLOR_LEAF_OUTLINE_CONTROLLING := clay.Color{164, 165, 252, 255}
 COLOR_BACKGROUND := clay.Color{3, 4, 43, 255}
@@ -12,15 +14,10 @@ COLOR_ITEM_BODY := clay.Color{14, 21, 33, 255}
 
 OUTLINE_WIDTH :: 3
 LEAF_CORNER_RADIUS :: 12
-
 BODY_PADDING :: 13
 
 DEBUG_ID_TEXT_ELEMENT_CONFIG :: clay.TextElementConfig {
-	// fontSize      = 48,
-	// letterSpacing = 4,
-	// lineHeight    = 48,
 	wrapMode  = .Words,
-	// textAlignment = .Left,
 	fontId    = DEBUG_FONT_ID,
 	fontSize  = 24,
 	textColor = {255, 255, 255, 255},
@@ -47,8 +44,6 @@ layout :: proc(ctx: ^Context) {
 		layout_floating_item(ctx)
 	}
 }
-
-// todo same style as the normal items
 
 layout_floating_item :: proc(ctx: ^Context) {
 	dragging_item, dragging_item_ok := get_item(&ctx.lic, ctx.dragging_handle)
@@ -103,7 +98,6 @@ layout_floating_item :: proc(ctx: ^Context) {
 	}
 }
 
-// TODO: Can we use non ptr?
 layout_tiling_layout_item :: proc(
 	ctx: ^Context,
 	item_handle: Layout_Item_Handle,
@@ -119,13 +113,11 @@ layout_tiling_layout_item :: proc(
 		item.layout_proc == nil
 
 	outline_color := is_leaf(&ctx.lic, item_handle) ? COLOR_LEAF_OUTLINE : COLOR_BACKGROUND
-	// if ctx.controlling_layout_item == item_handle do outline_color = COLOR_LEAF_OUTLINE_CONTROLLING
 
 	size_percent := is_root ? [2]f32{1.0, 1.0} : item.size_percent
 	if clay.UI(clay.ID(fmt.tprintf("{}", item.id)))(
 	{
 		cornerRadius = clay.CornerRadiusAll(LEAF_CORNER_RADIUS),
-		// clip = clay.ClipElementConfig{true, true, clay.GetScrollOffset()},
 		layout = {
 			layoutDirection = item.layout_dir,
 			sizing = {clay.SizingPercent(size_percent.x), clay.SizingPercent(size_percent.y)},
@@ -190,5 +182,4 @@ layout_debug_leaf_data :: proc(ctx: ^Context, item: ^Layout_Item) {
 
 		}
 	}
-
 }

@@ -9,7 +9,6 @@ import "core:strings"
 import "core:time"
 
 Context :: struct {
-	// logs_cache: rb.RingBuffer(Log_Entry),
 	logs_buf:    rb.RingBuffer(byte),
 	levels:      [len(System)]log.Level, // This is really cool!
 	initialized: bool,
@@ -33,40 +32,6 @@ System :: enum {
 	Serialization,
 }
 
-/*
-  TODO: OUTDATED
- Example program
-package main
-
-import logs "./logs"
-import rb "./rb"
-import "core:fmt"
-import log "core:log"
-
-main :: proc() {
-
-	arr: [8]rawptr
-	context.user_ptr = &arr
-	backing: [12]logs.Log_Entry
-	ctx, logger := logs.init(backing[:])
-	context.logger = logger
-
-	logs.log(&ctx, .Physics, .Error, 56)
-	log.log(.Error, 49)
-
-	for i in 0 ..< 1024 {
-		logs.log(&ctx, .Physics, .Debug, i)
-	}
-
-	fmt.printfln("============== LOGS ==============\n {} ", ctx.logs_cache.len)
-	itr := rb.iterator_init(&ctx.logs_cache)
-	for item in rb.iterator_next(&itr) {
-
-		fmt.println(item)
-	}
-
-}
- */
 
 init :: proc() -> (logger: log.Logger) {
 	global_ctx.initialized = true
@@ -75,17 +40,13 @@ init :: proc() -> (logger: log.Logger) {
 		system_log_level = .Debug
 	}
 
-	// TODO add our context to the usr ptr. So that we dont have to pass the context everywhere.
-
-	// ahh := cast([8]rawptr)context.user_ptr
-	// ahh[0] = ctx
-
 	logger = log.create_console_logger(.Debug, {.Line, .Short_File_Path, .Time, .Level})
 
 	return logger
 }
 
 deinit :: proc() {
+	// Nothing needed here yet.
 }
 
 clear :: proc() {
@@ -143,11 +104,6 @@ errorf :: proc(system: System, fmt_str: string, args: ..any, location := #caller
 fatalf :: proc(system: System, fmt_str: string, args: ..any, location := #caller_location) {
 	logf_base(system = system, level = .Fatal, fmt_str = fmt_str, args = args, location = location)
 }
-// Info    = 10,
-// Warning = 20,
-// Error   = 30,
-// Fatal   = 40,
-
 
 logf_base :: proc(
 	system: System,
@@ -157,7 +113,11 @@ logf_base :: proc(
 	location := #caller_location,
 ) {
 	string_with_system := fmt.tprintf("[{}] {}", system, fmt.tprintf(fmt_str, ..args))
-	_fire_string(level = level, string_with_system = string_with_system, location = location)
+	_log_and_add_to_ringbuffer(
+		level = level,
+		string_with_system = string_with_system,
+		location = location,
+	)
 }
 
 
@@ -169,7 +129,11 @@ log_base :: proc(
 	location := #caller_location,
 ) {
 	string_with_system := fmt.tprintf("[{}] {}", system, fmt.tprint(..args, sep = sep))
-	_fire_string(level = level, string_with_system = string_with_system, location = location)
+	_log_and_add_to_ringbuffer(
+		level = level,
+		string_with_system = string_with_system,
+		location = location,
+	)
 }
 
 @(private)
@@ -189,7 +153,11 @@ _format_string :: proc(
 	return _console_logger_proc(logger.data, level, str, logger.options, location)
 }
 
-_fire_string :: proc(level: log.Level, string_with_system: string, location := #caller_location) {
+_log_and_add_to_ringbuffer :: proc(
+	level: log.Level,
+	string_with_system: string,
+	location := #caller_location,
+) {
 	if !global_ctx.initialized do return
 	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
 
@@ -246,9 +214,6 @@ _format_logger_proc :: proc(
 	options: log.Options,
 	location: runtime.Source_Code_Location,
 ) {
-	// backing: [1024]byte //NOTE(Hoej): 1024 might be too much for a header backing, unless somebody has really long paths.
-	// buf := strings.builder_from_bytes(backing[:])
-
 	log.do_level_header(options, buf, level)
 
 	when time.IS_SUPPORTED {
@@ -258,15 +223,10 @@ _format_logger_proc :: proc(
 	log.do_location_header(options, buf, location)
 
 	if .Thread_Id in options {
-		// NOTE(Oskar): not using context.thread_id here since that could be
-		// incorrect when replacing context for a thread.
 		fmt.sbprintf(buf, "[{}] ", os.get_current_thread_id())
 	}
 
 	if ident != "" {
 		fmt.sbprintf(buf, "[%s] ", ident)
 	}
-	//TODO(Hoej): When we have better atomics and such, make this thread-safe
-	// fmt.tprintf("%s%s\n", strings.to_string(buf^), text)
-	// fmt.fprintf(h, "%s%s\n", strings.to_string(buf^), text)
 }

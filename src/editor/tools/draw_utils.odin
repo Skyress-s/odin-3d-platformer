@@ -42,8 +42,6 @@ transform_axis_planes :: proc(
 		rot_mat := linalg.matrix4_from_quaternion(transform.rotation)
 
 		for &plane in planes {
-			// plane.center += transform.position
-			// plane.center = spat.ONE_VEC3 * 10
 			spat.mult(mat, &plane.center)
 			spat.mult(rot_mat, &plane.forward)
 			spat.mult(rot_mat, &plane.normal)

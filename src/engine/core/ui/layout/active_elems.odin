@@ -1,5 +1,9 @@
 package layout
 
+// Simple structure to keep state of what elements are "active"
+// Typically used for ui stuff like remembering if a drop down panel is actually "dropped down".
+// Current implementation is simple, does not unsubscribe elements / remove from map.
+
 Active_Elements :: distinct struct {
 	elems: map[string]Active_Element_Item,
 }
@@ -16,7 +20,7 @@ active_elements_get :: proc(ae: ^Active_Elements, id: string) -> (Active_Element
 active_elements_get_or_add :: proc(ae: ^Active_Elements, id: string) -> ^Active_Element_Item {
 	item, ok := &ae.elems[id]
 	if !ok {
-		ae.elems[id] = Active_Element_Item{} // default to not old and not active
+		ae.elems[id] = Active_Element_Item{} // default to: not old and not active
 		item = &ae.elems[id]
 
 	}

@@ -10,7 +10,6 @@ Velocity_Verlet_Component :: struct {
 // Do the first half of the timestep of leapfrog
 velocity_verlet_leap :: proc(component: ^Velocity_Verlet_Component, dt: f32) {
 	// using leapfrog verlet intergration
-	// todo translate
 	// beregn ny posisjon et halvt tick fram i tid:
 	component.position += component.velocity * dt / 2
 }
@@ -33,7 +32,6 @@ velocity_verlet_homegenus_gravity :: proc(
 	dt: f32,
 ) {
 	// using leapfrog verlet intergration
-	// todo translate
 	// beregn ny posisjon et halvt tick fram i tid:
 	component.position += component.velocity * dt / 2
 
@@ -44,7 +42,6 @@ velocity_verlet_homegenus_gravity :: proc(
 	// beregn den faktiske nye posisjonen et halvt tick til fram i tid
 	component.position += component.velocity * dt / 2
 }
-
 
 // In case we need to perform velocity verlet when we dont have the component or non uniform gravitational fields.
 velocity_verlet :: proc {

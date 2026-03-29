@@ -23,5 +23,4 @@ unload_all_fonts :: proc() {
 		raylib.UnloadFont(font.font)
 	}
 	delete(rr.raylib_fonts)
-
 }

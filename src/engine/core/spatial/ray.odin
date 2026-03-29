@@ -1,7 +1,5 @@
 package Spatial
 
-import "core:fmt"
-import "core:math"
 import "core:math/linalg"
 
 // TODO this is a line, a ray is boundless

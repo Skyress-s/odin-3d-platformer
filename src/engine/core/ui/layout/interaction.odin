@@ -6,8 +6,6 @@ import hm "core:container/handle_map"
 interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	if !allow_interaction do return
 
-	// if ctx.controlling_layout_item != {} do return
-
 	if hm.get(&ctx.lic, ctx.hover_layout_handle) == nil do return // expected, might not hover over any Layout_Item
 
 	hovered_layout_item := hm.get(&ctx.lic, ctx.hover_layout_handle)
@@ -24,7 +22,6 @@ interaction :: proc(ctx: ^Context, allow_interaction: bool) {
 	edge := closest_edge(hovered_bounding_box, ctx.mouse_pos)
 
 
-	// TODO: These != .Released is stupid
 	if ctx.resize_click != .Released {
 		handle_resize_click(ctx, ctx.resize_click, hovered_layout_item, corner)
 	} else if ctx.add_click != .Released {
@@ -199,10 +196,13 @@ handle_move_click :: proc(
 	parent := get_item_checked(&ctx.lic, hovered_layout_item.parent_handle)
 
 	if pointer_state == .PressedThisFrame && ctx.dragging_handle == {} {
-		remove_leaf_item(ctx, hovered_layout_item.handle, false)
+		root := get_item_checked(&ctx.lic, ctx.root)
+		if parent.handle == ctx.root && len(root.child_nodes) == 1 do return
 
+		remove_leaf_item(ctx, hovered_layout_item.handle, false)
 		ctx.dragging_handle = hovered_layout_item.handle
 		normalize_sizes_recursive(&ctx.lic, ctx.root)
+
 	} else if pointer_state == .ReleasedThisFrame && ctx.dragging_handle != {} {
 		dragging_item := get_item_checked(&ctx.lic, ctx.dragging_handle)
 
