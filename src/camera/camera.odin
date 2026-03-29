@@ -15,8 +15,6 @@ Settings :: struct {
 Camera :: rl.Camera3D
 
 Global_State :: struct {
-	// end_camera_settings: Camera_Settings,
-	// start_camera_settings: Camera_Settings,
 	base_camera:      Camera,
 	current_camera:   Camera,
 	current_settings: Settings, // lerps towards to the target_camera_settings
@@ -31,13 +29,15 @@ init :: proc(cam: Camera, camera_settings: Settings) -> (state: Global_State) {
 }
 
 interp_fov :: proc(gs: ^Global_State, player_speed: f32, dt: f32) {
-	// gs.base_camera.fovy + gs.current_settings.fovy_increase_per_unit_speed * player_speed
 	gs.current_camera.fovy = math.lerp(
 		gs.current_camera.fovy,
 		gs.base_camera.fovy + gs.current_settings.fovy_increase_per_unit_speed * player_speed,
 		dt * gs.current_settings.lerp_speed,
 	)
+}
 
+create_camera :: proc(gs: Global_State) -> rl.Camera {
+	return gs.current_camera
 }
 
 update_transform :: proc(gc: ^Global_State, position, forward, right: rl.Vector3) {

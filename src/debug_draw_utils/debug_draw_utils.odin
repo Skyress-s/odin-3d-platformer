@@ -1,6 +1,6 @@
 package debug_draw_utils
 
-import spat "../Spatial"
+import spat "../engine/core/spatial"
 import "core:log"
 
 
@@ -10,7 +10,7 @@ import "core:fmt"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-import hms "../handle_map/handle_map_static"
+import hm "core:container/handle_map"
 
 USE_HMS :: true
 
@@ -18,20 +18,20 @@ Map_Type :: map[Id_Handle]Data2
 
 debug_draw_instruction_array: Map_Type
 
-Id_Handle :: hms.Handle
+Id_Handle :: hm.Handle32
 
-Handle_Map_Type :: distinct hms.Handle_Map(Data, Id_Handle, 1000)
+Handle_Map_Type :: distinct hm.Static_Handle_Map(1000, Data, Id_Handle)
 ins_handle_map := Handle_Map_Type{}
 
 ins_map: Map_Type
 
-Id_Type : u32
+Id_Type: u32
 
 @(private)
-id_counter :u32 = 0
+id_counter: u32 = 0
 
 @(private)
-get_next_id :: proc() -> u32{
+get_next_id :: proc() -> u32 {
 	id_counter += 1
 	return id_counter
 }
@@ -97,11 +97,11 @@ Wire_Cyllinder_Ins :: distinct struct {
 }
 
 Capsule_Ins :: distinct struct {
-	using instruction: Cyllinder_Ins
+	using instruction: Cyllinder_Ins,
 }
 
 Wire_Capsule_Ins :: distinct struct {
-	using instruction: Cyllinder_Ins
+	using instruction: Cyllinder_Ins,
 }
 
 Circle_Ins :: distinct struct {
@@ -171,9 +171,8 @@ update_lifetime_and_clean :: proc(dt: f32) {
 	to_remove: [dynamic]Id_Handle
 	defer delete(to_remove)
 
-	for &i in &ins_handle_map.items {
-		if hms.skip(i) do continue
-
+	itr := hm.iterator_make(&ins_handle_map)
+	for i, _ in hm.iterate(&itr) {
 		if i.duration >= 0 {
 			i.duration -= dt
 			if i.duration < 0 {
@@ -183,20 +182,20 @@ update_lifetime_and_clean :: proc(dt: f32) {
 	}
 
 	for &handle in &to_remove {
-		hms.remove(&ins_handle_map, handle)
+		hm.remove(&ins_handle_map, handle)
 	}
 }
 
 draw_all_instructions_and_reset :: proc() {
-	for &e in &ins_handle_map.items {
-		if hms.skip(e) || !hms.valid(ins_handle_map, e.handle) do continue
+	itr := hm.iterator_make(&ins_handle_map)
+	for e, _ in hm.iterate(&itr) {
 		draw_instruction(&e.instruction)
 	}
 }
 
 clear_all_instructions :: proc() {
 	when USE_HMS {
-		hms.clear(&ins_handle_map)
+		hm.clear(&ins_handle_map)
 	} else {
 		clear_map(&ins_map)
 
@@ -212,9 +211,9 @@ enqueue_ins :: proc(draw_ins: $T, dur: f32 = 0.0) {
 			duration    = dur,
 			handle      = Id_Handle{},
 		}
-		id, ok := hms.add(&ins_handle_map, data)
+		id, ok := hm.add(&ins_handle_map, data)
 		assert(ok, "ddu handle map full. Please increase the size")
 	} else {
-		
+
 	}
 }

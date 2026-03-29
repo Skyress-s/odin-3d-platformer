@@ -2,8 +2,8 @@ package players
 
 import character "../Character"
 import editor_player "../editor_player"
-import verlet "../Physics/verlet"
-import spat "../Spatial"
+import verlet "../engine/core/physics/verlet"
+import spat "../engine/core/spatial/"
 
 
 Player_Mode :: enum {
@@ -19,9 +19,7 @@ Players :: struct {
 	editor: editor_player.Editor_Player_Data,
 }
 
-init_players :: proc() -> Players {
-	players := Players{}
-
+init_players :: proc(players: ^Players) {
 	players.mode = Player_Mode.Game
 	players.game = character.CharacternData {
 		radius = 1,
@@ -32,6 +30,4 @@ init_players :: proc() -> Players {
 	players.editor = editor_player.Editor_Player_Data {
 		movement_speed = 30,
 	}
-
-	return players
 }

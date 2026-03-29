@@ -1,7 +1,7 @@
 package build
 
 import "core:fmt"
-import os "core:os/os2"
+import os "core:os"
 import "core:time"
 import "core:time/datetime"
 
@@ -19,7 +19,6 @@ main :: proc() {
 	fmt.printfln("Start building game...")
 	build_stopwatch: time.Stopwatch
 	time.stopwatch_start(&build_stopwatch)
-
 
 	build_step_stopwatch: time.Stopwatch
 	time.stopwatch_start(&build_step_stopwatch)
@@ -63,7 +62,6 @@ main :: proc() {
 		"Finished building game. Took {:.2f} seconds.",
 		time.stopwatch_duration(build_stopwatch),
 	)
-
 }
 
 print_build_step_with_time_and_restart :: proc(stopwatch: ^time.Stopwatch, text: string) {

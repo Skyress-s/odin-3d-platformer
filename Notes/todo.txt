@@ -1,8 +1,8 @@
 Dima
-- [ ] Entire render screen is offset half way down?!!?!?!?
-- [ ] Need some form of continious collision detection.
+- [x] Entire render screen is offset half way down?!!?!?!?
+- [x] Need some form of continious collision detection.
 - [ ] Stars, have some fluff and effects, some rewards?
-- [x](for now) Hard to orient yourself -> shadows or textures, or atleast a direction light
+- [x] (for now) Hard to orient yourself -> shadows or textures, or atleast a direction light
 - [ ] Help for controls (text or a image should be enough for now)
 
 Maja
@@ -18,36 +18,32 @@ Morgan
 - [x] When duping a object, copy the properties too :)
 - [ ] Speed indicator / White stripes at the edges for screen, sounds etc (Super Flight / Elytra fra MC)
 - [ ] Textures / seeing where you are is difficult.
-- [ ] Notify player that the lenght is shortening?
+- [x] Notify player that the lenght is shortening?
 - [x] Add tooltips to always be drawn in front!
-- [ ] 
-- [ ]
-- [ ]
-- [ ]
 
 Bernt 
 - [ ] Pipes & Cyllinders
 - [ ] Undo stack?
-- [ ] Best time ranking 
+- [x] Best time ranking
 - [x] Author time!
 - [x] automatically add .map when saving a map.
 - [ ] Boring to start every retrail by just walking of a ledge or even just falling to gain speed. Can add a speed pad / volume or start level with speed.
 - [x] When you finish the level, STOP THE PLAYER FROM SIMULATING PHYSICS!
 
 Arian
-- [ ] Don't allow you to close the editor details panel
-- [ ] Esc ikke lukk spillet
-- [ ] COTINOUS COLL DETECTION!!!
-- [ ] Change FOV based on speed? 
+- [x] Don't allow you to close the editor details panel
+- [x] Esc ikke lukk spillet
+- [x] COTINOUS COLL DETECTION!!!
+- [x] Change FOV based on speed? 
 Per object motion blur?
-- [ ]
 
 Mathias
-- [ ] Take a pass on memory leaks (arrays and maps needs to have delete(...) called on them)
+- [x] Take a pass on memory leaks (arrays and maps needs to have delete(...) called on them)
+- [ ] Radial pie menu system backup running. (Mostly for fun, not essential)
 
 Defenistration the game
 every level starts and ends with crashing into a window
 Always starts the Defenistration with some momentum
 
-- [ ] Allow windows to be fullscreened.
+- [x] Allow windows to be fullscreened.
 

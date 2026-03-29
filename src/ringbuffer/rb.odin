@@ -34,6 +34,13 @@ init :: proc(backing: []$T) -> (rb: RingBuffer(T)) {
 	return
 }
 
+reset :: proc(rb: ^RingBuffer($T)) {
+	rb.len = 0
+	rb.offset = 0
+	// TODO: memset 0?
+
+}
+
 add_back_overrite :: #force_inline proc(rb: ^RingBuffer($T), new_elem: T) #no_bounds_check {
 	idx := (rb.offset + rb.len) % len(rb.elements)
 	rb.elements[idx] = new_elem
@@ -77,12 +84,26 @@ iterator_init :: proc(rb: ^RingBuffer($T)) -> (iter: Iterator(T)) {
 	return
 }
 
-iterator_next :: #force_inline proc(itr: ^Iterator($T)) -> (val: ^T, cond: bool) #no_bounds_check {
-	if itr.i >= len(itr.rb.elements) do return nil, false
+// iterator_next :: #force_inline proc(itr: ^Iterator($T)) -> (val: ^T, cond: bool) #no_bounds_check {
+// 	if itr.i >= int(itr.rb.len) do return nil, false
+//
+// 	index := get_index(itr.rb^, itr.i)
+// 	itr.i += 1
+// 	return &itr.rb.elements[index], true
+// }
+
+iterator_next :: #force_inline proc(
+	itr: ^Iterator($T),
+) -> (
+	val: ^T,
+	i: int,
+	cond: bool,
+) #no_bounds_check {
+	if itr.i >= int(itr.rb.len) do return nil, -1, false
 
 	index := get_index(itr.rb^, itr.i)
 	itr.i += 1
-	return &itr.rb.elements[index], true
+	return &itr.rb.elements[index], itr.i - 1, true
 }
 
 

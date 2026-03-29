@@ -1,22 +1,20 @@
 package player_data
 
-import spat "../Spatial"
-import "core:math/linalg"
+import spat "../engine/core/spatial/"
 import "core:math"
+import "core:math/linalg"
 
 import "core:os"
-Player_Look_Data :: distinct struct{
-	using look_radians: spat.Vector2
-} 
+Player_Look_Data :: distinct struct {
+	using look_radians: spat.Vector2,
+}
 
-calculate_look_to_stuff :: proc(
-	rot: spat.Quaternion
-	) -> (){
+calculate_look_to_stuff :: proc(rot: spat.Quaternion) {
 
 }
 // todo terrible name
 calculate_direction_from_look :: proc(
-	look_data: ^Player_Look_Data,
+	look_data: Player_Look_Data,
 ) -> (
 	rot: linalg.Quaternionf32,
 	forward, right: linalg.Vector3f32,
@@ -36,18 +34,19 @@ calculate_direction_from_look :: proc(
 	return rot, forward, right
 }
 
-calculate_look_angles_from_direction :: proc(direction: spat.Vector) -> (look_data: Player_Look_Data) {
-	
+calculate_look_angles_from_direction :: proc(
+	direction: spat.Vector,
+) -> (
+	look_data: Player_Look_Data,
+) {
+
 	look_data.x = -math.asin(direction.y)
-	look_data.y = linalg.vector_angle_between(
-		spat.Vector{0, 0, 1},
-		direction,
-	)
+	look_data.y = linalg.vector_angle_between(spat.Vector{0, 0, 1}, direction)
 
 	return look_data
 }
 
-update_player_look_data :: proc(look_data: ^Player_Look_Data, delta_look: spat.Vector2, dt: f32){
+update_player_look_data :: proc(look_data: ^Player_Look_Data, delta_look: spat.Vector2, dt: f32) {
 	look_data.look_radians.y -= delta_look.x * 0.0015 // left and right
 	look_data.look_radians.x += delta_look.y * 0.0015 // up and down
 	look_data.look_radians.x = linalg.clamp(
